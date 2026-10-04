@@ -1,0 +1,367 @@
+{
+ "name": "Gotham Central Bank",
+ "tile_size": 48,
+ "width": 80,
+ "height": 56,
+ "map_file": "gotham_central.map",
+ "guards": [
+  {
+   "id": "G01",
+   "room": "Loading Dock",
+   "mode": "loop",
+   "pager": true,
+   "wp": [
+    [
+     5,
+     30
+    ],
+    [
+     16,
+     30
+    ],
+    [
+     16,
+     35
+    ],
+    [
+     5,
+     35
+    ]
+   ],
+   "type": "patrol_guard"
+  },
+  {
+   "id": "G02",
+   "room": "Staff Corridor",
+   "mode": "pingpong",
+   "pager": false,
+   "wp": [
+    [
+     21,
+     6
+    ],
+    [
+     21,
+     42
+    ]
+   ],
+   "type": "patrol_guard"
+  },
+  {
+   "id": "G03",
+   "room": "Security Room",
+   "mode": "stationary",
+   "pager": false,
+   "wp": [
+    [
+     30,
+     15
+    ]
+   ],
+   "facing": 180,
+   "type": "patrol_guard"
+  },
+  {
+   "id": "G04",
+   "room": "Open Office",
+   "mode": "loop",
+   "pager": true,
+   "wp": [
+    [
+     27,
+     30
+    ],
+    [
+     36,
+     30
+    ],
+    [
+     36,
+     35
+    ],
+    [
+     27,
+     35
+    ]
+   ],
+   "type": "patrol_guard"
+  },
+  {
+   "id": "G05",
+   "room": "Main Hall",
+   "mode": "loop",
+   "pager": true,
+   "wp": [
+    [
+     42,
+     18
+    ],
+    [
+     62,
+     18
+    ],
+    [
+     62,
+     38
+    ],
+    [
+     42,
+     38
+    ]
+   ],
+   "type": "patrol_guard"
+  },
+  {
+   "id": "G06",
+   "room": "Main Hall",
+   "mode": "pingpong",
+   "pager": true,
+   "wp": [
+    [
+     52,
+     20
+    ],
+    [
+     52,
+     38
+    ]
+   ],
+   "type": "patrol_guard"
+  },
+  {
+   "id": "G07",
+   "room": "Main Hall",
+   "mode": "pingpong",
+   "pager": false,
+   "wp": [
+    [
+     42,
+     28
+    ],
+    [
+     62,
+     28
+    ]
+   ],
+   "type": "patrol_guard"
+  },
+  {
+   "id": "G08",
+   "room": "Foyer",
+   "mode": "stationary",
+   "pager": false,
+   "wp": [
+    [
+     50,
+     44
+    ]
+   ],
+   "facing": 90,
+   "type": "patrol_guard"
+  },
+  {
+   "id": "G09",
+   "room": "Counting Room",
+   "mode": "loop",
+   "pager": false,
+   "wp": [
+    [
+     72,
+     30
+    ],
+    [
+     76,
+     30
+    ],
+    [
+     76,
+     36
+    ],
+    [
+     72,
+     36
+    ]
+   ],
+   "type": "patrol_guard"
+  },
+  {
+   "id": "G10",
+   "room": "East Corridor",
+   "mode": "pingpong",
+   "pager": false,
+   "wp": [
+    [
+     67,
+     14
+    ],
+    [
+     67,
+     38
+    ]
+   ],
+   "type": "patrol_guard"
+  },
+  {
+   "id": "G11",
+   "room": "Street",
+   "mode": "pingpong",
+   "pager": false,
+   "wp": [
+    [
+     14,
+     51
+    ],
+    [
+     46,
+     51
+    ]
+   ],
+   "type": "patrol_guard"
+  }
+ ],
+ "cameras": [
+  {
+   "id": "C01",
+   "room": "Staff Corridor",
+   "pos": [
+    21,
+    5
+   ],
+   "angle": 90,
+   "sweep": 25,
+   "range_px": 340
+  },
+  {
+   "id": "C02",
+   "room": "Main Hall NW",
+   "pos": [
+    41,
+    17
+   ],
+   "angle": 45,
+   "sweep": 35,
+   "range_px": 340
+  },
+  {
+   "id": "C03",
+   "room": "Main Hall NE",
+   "pos": [
+    63,
+    17
+   ],
+   "angle": 135,
+   "sweep": 35,
+   "range_px": 340
+  },
+  {
+   "id": "C04",
+   "room": "Foyer",
+   "pos": [
+    57,
+    42
+   ],
+   "angle": 180,
+   "sweep": 30,
+   "range_px": 340
+  },
+  {
+   "id": "C05",
+   "room": "Vault Corridor",
+   "pos": [
+    57,
+    9
+   ],
+   "angle": 135,
+   "sweep": 40,
+   "range_px": 340
+  }
+ ],
+ "lasers": [
+  {
+   "id": "L01",
+   "a": [
+    46,
+    13
+   ],
+   "b": [
+    56,
+    13
+   ]
+  },
+  {
+   "id": "L02",
+   "a": [
+    48,
+    11
+   ],
+   "b": [
+    58,
+    11
+   ]
+  },
+  {
+   "id": "L03",
+   "a": [
+    46,
+    9
+   ],
+   "b": [
+    56,
+    9
+   ]
+  }
+ ],
+ "light_zones": [
+  {
+   "name": "Security Room",
+   "rect": [
+    25,
+    12,
+    33,
+    18
+   ],
+   "level": "lit"
+  },
+  {
+   "name": "Counting Room",
+   "rect": [
+    71,
+    28,
+    77,
+    38
+   ],
+   "level": "lit"
+  },
+  {
+   "name": "Foyer",
+   "rect": [
+    44,
+    41,
+    58,
+    46
+   ],
+   "level": "lit"
+  },
+  {
+   "name": "Street",
+   "rect": [
+    12,
+    48,
+    78,
+    54
+   ],
+   "level": "lit"
+  },
+  {
+   "name": "Main Hall",
+   "rect": [
+    40,
+    16,
+    64,
+    40
+   ],
+   "level": "dim"
+  }
+ ],
+ "default_light": "dark"
+}
