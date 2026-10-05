@@ -2,6 +2,12 @@
 ## Project: Ghost Protocol
 All game data lives under `assets/`. Code reads it at startup; nothing here is hard-coded. Paths are relative and web-safe.
 
+Development reference media live under `reference/`, with the blueprint under
+`docs/levels/`. They are not gameplay data, runtime textures, or packaged video.
+`09_Visual_Reference.md` translates them into presentation requirements. The
+map/JSON remain authoritative for collision, patrols, cameras, and lasers;
+decorative furnishing is renderer geometry, not an additional level schema.
+
 ---
 
 ## 1. Folder layout

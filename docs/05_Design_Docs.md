@@ -1,13 +1,13 @@
 # Design Documentation
 ## Project: Ghost Protocol
-**Companion to:** 01_GDD.md, 04_Data_Formats.md, 06_Wireframes.html
+**Companion to:** 01_GDD.md, 04_Data_Formats.md, 09_Visual_Reference.md; 06_Wireframes.html pending delivery
 
 ---
 
 ## 1. Visual Foundation
 
 ### 1.1 Direction
-Flat vector. Bold silhouettes, no textures, no outlines on world shapes, soft glow and fine film grain only as post effects. Everything is drawn in code from polygons, circles, rectangles and lines; PNG is used only for the logo, portraits and UI art.
+Stylized vector geometry with bold silhouettes, layered flat fills, restrained tonal depth, and controlled glow. Match the furnished bank identity and visual hierarchy in the supplied gameplay images; plain tiles and circles are early development placeholders. Build walls, counters, furniture, doors, and character details from original polygons, circles, rectangles, and lines. Fine surface texture is optional. PNG is used only for the logo, portraits and UI art. See `09_Visual_Reference.md` for the visual acceptance target.
 
 ### 1.2 Two palettes, one flip
 The game has a **Stealth palette** (teal and black) and a **Loud palette** (red and black). The alarm flips from one to the other over 0.4 s. That flip is the signature moment of the game.
@@ -24,7 +24,7 @@ The game has a **Stealth palette** (teal and black) and a **Loud palette** (red 
 | Panel | Slate | `#14161B` | HUD panels, menus |
 | Muted | Grey | `#858585` | Disabled, secondary text |
 
-In the Loud phase walls become Alarm, floors Dark Alarm. Entities keep their own colours (below) so they stay readable.
+In the Loud phase walls become Alarm, floors Dark Alarm. Entities keep their own colours (below), with a 2 px Bone rim on characters for readability. World geometry uses flat tonal layers rather than uniform decorative outlines.
 
 ### 1.3 Characters (top-down, drawn in code)
 | Entity | Shape recipe | Colours |
@@ -55,6 +55,9 @@ Scale base: 8 px. All margins and paddings are multiples of 8.
 - UI easing: cubic ease-out, 0.25 s for appear/disappear, 0.15 s for hover.
 - Screen shake: trauma model (shake = trauma², trauma decays 1.5/s). "Reduce effects" halves it.
 - Film grain: 4% intensity; vignette: 35% at corners. Both off in "Reduce effects".
+- The reference video supplies geometric wipes, layered entrances, directional continuity, and brief focal accents for selection/pickups/results. Use the existing UI durations; feedback starts promptly and never blocks input.
+- Screen transitions use an outgoing composition, a geometric mask, and an incoming focal element. Parallax belongs to menu/briefing presentation; gameplay retains its orthographic follow camera and stable HUD anchors.
+- Reduce Effects replaces moving wipes/parallax and decorative impact motion with a simple fade. Skip/back controls stay usable during animation. Preserve the separately specified alarm timings.
 
 ---
 
@@ -63,7 +66,7 @@ Scale base: 8 px. All margins and paddings are multiples of 8.
 |---|---|
 | Button | Slate fill, Bone text, 56 px tall; hover = Bone fill with Ink text and a 0.15 s ease |
 | Meter (health/armor) | 240x12 px, rounded; health Alarm, armor Bone; drain animation 0.3 s |
-| Noise meter | Segmented 6-bar meter under the objective; fills with the player's current noise level; segment 6 flashes at sprint |
+| Noise meter | Stealth only: segmented 6-bar meter under the objective; fills with current noise; segment 6 flashes at sprint; hidden when Loud |
 | Detection pie | Small circle above each guard that fills clockwise with the meter; shape fills, not just colour |
 | Ping cooldown ring | Thin ring around the player that refills during cooldown |
 | Hold-E ring | 40 px ring that fills during interaction, with the prompt text underneath |
@@ -74,6 +77,9 @@ Scale base: 8 px. All margins and paddings are multiples of 8.
 | Toast | Slides in from top-right for hints and pickups, 3 s |
 | Alarm banner | Full-width Alarm strip "POLICE INBOUND" for 2.5 s |
 | Wave indicator | Loud phase only, below objective: "WAVE 3" |
+| Thermite timer | Gold world-space countdown near the active thermite device; visible while burning |
+
+HUD anchors at 1280x720: objective top-left and bags top-right, both with 24 px margins; weapon/ammo/health/armor bottom-left; Handler portrait and subtitles bottom-center. Fit the 240 px health/armor bars within panel padding. Subtitle width and height expand for readable wrapping rather than forcing long lines into the concept's approximate box. Keep the objective visible below the temporary alarm banner. Hide ping/cooldown rings in Loud. Detailed placement and reference comparisons are in `09_Visual_Reference.md`.
 
 ## 3. User Flows
 1. **First run:** Boot (Click to start) -> Menu -> START HEIST -> Briefing (4 slides, skippable with Space) -> Loadout (pick 2 of 3 guns) -> Play.

@@ -9,6 +9,7 @@ One public GitHub repository: `ghost-protocol`.
 ghost-protocol/
   CMakeLists.txt        AGENTS.md   README.md   ASSETS.md   .clang-format   .gitignore
   docs/                 this documentation pack (including levels/ source copies)
+  reference/            gameplay images and motion video; development reference only
   assets/               config, levels, fonts, ui, audio, shaders (see 04_Data_Formats.md)
   src/
     main.cpp
@@ -140,6 +141,10 @@ Three sessions with classmates: end of week 2 (Sun 18 Oct), end of week 3 (Sun 2
 - [ ] Every Handler line plays with matching subtitles; panic lines interrupt
 - [ ] Music crossfades at the alarm; volume sliders work
 **Quality**
+- [ ] Gameplay screenshots match the composition, furnishing, phase contrast, and HUD hierarchy in `09_Visual_Reference.md`
+- [ ] Screen recordings show geometric transitions and prompt feedback inspired by the reference video; skip/back remain responsive
+- [ ] Loud hides noise/ping indicators; thermite shows its countdown; temporary banners do not obscure objectives
+- [ ] Reference video/images and blueprint are excluded from runtime assets and release packages
 - [ ] 60 FPS in a full loud fight; no crash in three full runs
 - [ ] No softlock: retry every stage preset once
 - [ ] Reduce Effects removes flashes and halves shake

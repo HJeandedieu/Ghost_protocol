@@ -43,6 +43,7 @@ Every open question was answered before implementation. "Author" = stated by the
 | D-32 | Ownership / release | Author owns it. Publish to itch.io (Windows zip + web build) after submission | Author |
 | D-33 | Originality | All names, art, story, audio are original. Every third-party asset is logged in `ASSETS.md` with its licence | Author + Proposed |
 | D-34 | Docs | Markdown in zip, HTML wireframes, Docs-First Rule, no separate short version | Author |
+| D-35 | Reference direction | Gameplay images define finished appearance; reference video defines motion. Furnished bank, layered vector geometry, stable framed HUD, geometric transitions, and prompt feedback; see `09_Visual_Reference.md` | Author confirmed 5 Oct 2026 + documented translation |
 
 ---
 
@@ -59,6 +60,7 @@ Ghost Protocol is a single-player, top-down 2D stealth-action heist game. The pl
 2. **Quiet in, loud out.** The best run is silent; the most exciting run goes wrong at the worst moment.
 3. **Funny and stylish.** Flat vector shapes, a bold palette, and a Handler who never panics (until she does).
 4. **Always readable.** Every threat and objective is understandable within a second.
+5. **Presentation responds.** Inputs and events receive prompt visual feedback. Gameplay follows the supplied phase images; screen motion follows the reference video, translated into the existing UI and alarm timings. Decoration never hides threats or blocks controls.
 
 ### 1.4 Definitions
 | Term | Meaning |
@@ -306,7 +308,8 @@ Full data: `levels/gotham_central.map` and `.json`, summarised in `04_Data_Forma
 | Foyer | lit | Front doors, stationary guard, one camera |
 | Vault Corridor | dark | Electric gate, three laser rows, one camera |
 | Vault | dark | Ten money stacks |
-| East Corridor + Counting Room | dark | Flank route into the vault corridor, one guard each |
+| East Corridor | dark | Flank route into the vault corridor, one guard |
+| Counting Room | lit | Furnished side room on the flank route, one guard; matches level JSON |
 | Street | lit | Pickup zone, bollards, bollard panel, van spawn |
 
 Three routes reach the vault corridor: through the Main Hall, via the Foyer passage, or via the East Corridor flank. Guards: 11 stealth guards, 5 cameras, 3 laser rows.
