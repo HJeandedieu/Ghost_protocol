@@ -36,7 +36,8 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
             "speed": 800, "fade": 2.5, "cooldown": 3.0, "noise_mult": 0.6, "halo": 96 },
   "noise": { "crouch": 40, "walk": 120, "sprint": 280, "lockpick": 120, "crack": 200,
              "crack_interval": 5, "shot_suppressed": 350, "shot": 900, "laser": 400 },
-  "guard": { "patrol_speed": 90, "search_speed": 130, "chase_speed": 200, "cone_deg": 75,
+  "guard": { "radius": 14, "stationary_turn_speed": 20,
+             "patrol_speed": 90, "search_speed": 130, "chase_speed": 200, "cone_deg": 75,
              "range_lit": 300, "range_dim": 240, "range_dark": 180, "crouch_dark_mult": 0.7,
              "fill_far": 35, "fill_near": 100, "sprint_mult": 1.25, "crouch_mult": 0.7,
              "decay": 25, "callin": 3.0, "takedown_range": 50, "suspicious_time": 1.5,
@@ -130,6 +131,11 @@ Keys: `name`, `tile_size`, `width`, `height`, `map_file`, `guards[]`, `cameras[]
 - **light_zones:** `name`, `rect [x0, y0, x1, y1]` in tiles, `level` (`lit`, `dim`). Anything not covered is `default_light` (`dark`).
 
 The shipped file defines 11 guards (pager guards: G01, G04, G05, G06), 5 cameras, 3 lasers, 5 light zones. Treat the file as authoritative; this section only describes its shape.
+
+Guard collision radius is `guard.radius` in pixels. Stationary guards rotate clockwise
+from their configured initial facing at `guard.stationary_turn_speed` degrees per
+second. Moving guards face their direction of travel. These Day 8 tuning values
+were approved by the author on 5 October 2026.
 
 ### 4.3 Level validator
 `tools/validate_level.py` (Day 3 task) must check: every `wp` and camera tile is not `#`; all item characters exist exactly where required (one each of `@`, `k`, `P`, `B`, `N`; ten `M`); every item is reachable from `@` treating all door-like tiles as passable.
