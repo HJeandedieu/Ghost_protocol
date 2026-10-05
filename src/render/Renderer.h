@@ -9,6 +9,8 @@ struct Level;
 class Player;
 class RippleSystem;
 class Logger;
+class InteractionSystem;
+struct World;
 
 class Renderer {
    public:
@@ -20,6 +22,8 @@ class Renderer {
     void present();
     void setReduceEffects(bool enabled) { reduceEffects_ = enabled; }
     Texture2D frameTexture() const { return surface_.texture; }
+    void drawInteractionHud(const World& world, const InteractionSystem& interaction,
+                            float noiseRadius, float maximumNoise) const;
     static void drawPlaceholder(const char* title, const char* subtitle);
     static void drawError(const char* message);
     void drawLevel(const Level& level, const Player& player, const RippleSystem& ripple,

@@ -25,20 +25,31 @@ Game::Game()
 Game::~Game() = default;
 
 int Game::run() {
+#ifdef __EMSCRIPTEN__
+    SetConfigFlags(FLAG_MSAA_4X_HINT);
+#else
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT | FLAG_WINDOW_RESIZABLE);
+#endif
     InitWindow(Letterbox::kWidth, Letterbox::kHeight, "Ghost Protocol");
     if (!IsWindowReady()) {
         logger_.log(LogLevel::Error, "Window initialization failed");
         return 1;
     }
+#ifndef __EMSCRIPTEN__
     SetTargetFPS(60);
+#endif
     renderer_ = std::make_unique<Renderer>(logger_);
 #ifdef __EMSCRIPTEN__
     constexpr bool kWaitForClick = true;
 #else
     constexpr bool kWaitForClick = false;
 #endif
-    states_.replace(std::make_unique<BootState>(input_, kWaitForClick, [this] { showMenu(); }));
+    states_.replace(std::make_unique<BootState>(input_, kWaitForClick, [this] {
+#ifdef __EMSCRIPTEN__
+        InitAudioDevice();
+#endif
+        showMenu();
+    }));
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop_arg([](void* context) { static_cast<Game*>(context)->tick(); }, this,
                                  0, true);
@@ -60,6 +71,7 @@ void Game::tick() {
         if (key == KEY_F11) toggleFullscreen();
         if (key == KEY_C || key == KEY_LEFT_CONTROL) input_.crouchPressed = true;
         if (key == KEY_SPACE) input_.pingPressed = true;
+        if (key == KEY_E) input_.interactPressed = true;
 #ifndef NDEBUG
         if (key == KEY_F3) input_.debugPressed = true;
 #endif
@@ -71,6 +83,7 @@ void Game::tick() {
                                       (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)))};
     input_.sprintHeld = IsKeyDown(KEY_LEFT_SHIFT);
     input_.pingHeld = IsKeyDown(KEY_SPACE);
+    input_.interactHeld = IsKeyDown(KEY_E);
     const auto viewport = Letterbox::fit(GetScreenWidth(), GetScreenHeight());
     const auto mouse = GetMousePosition();
     input_.mouseInViewport = viewport.width > 0 && viewport.height > 0 && mouse.x >= viewport.x &&

@@ -48,6 +48,9 @@ class TileMap {
     void setLight(int x, int y, LightLevel level);
     Vec2 tileCenter(TileCoord position) const;
     Vec2 moveCircle(Vec2 position, Vec2 displacement, float radius) const;
+    bool isOpen(int x, int y) const;
+    void setOpen(int x, int y, bool open);
+    void removeKeycard(int x, int y);
 
    private:
     int width_ = 0;
@@ -55,4 +58,5 @@ class TileMap {
     int tileSize_ = 0;
     std::vector<TileType> tiles_;
     std::vector<LightLevel> lights_;
+    std::vector<bool> open_;
 };

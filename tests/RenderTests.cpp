@@ -2,11 +2,14 @@
 
 #include <sstream>
 
+#include "core/EventBus.h"
 #include "core/Logger.h"
 #include "entities/Player.h"
 #include "render/Renderer.h"
+#include "systems/InteractionSystem.h"
 #include "systems/RippleSystem.h"
 #include "world/LevelLoader.h"
+#include "world/World.h"
 
 class Render : public testing::Test {
    protected:
@@ -62,6 +65,40 @@ TEST_F(Render, ShaderCompilesDarknessIsPreservedAndHudRemainsUnprocessed) {
     EXPECT_EQ(plain.r, 30);
     EXPECT_EQ(plain.g, 74);
     EXPECT_EQ(plain.b, 74);
+    UnloadImage(image);
+}
+
+TEST_F(Render, InteractionPromptAndSixSegmentNoiseMeterRemainReadable) {
+    std::ostringstream console;
+    Logger logger(console, "");
+    Renderer renderer(logger);
+    Level level;
+    std::istringstream source(".....\n.@S..\n.....");
+    level.map = TileMap::parse(source, 48);
+    level.playerSpawn = {1, 1};
+    Config config;
+    World world(std::move(level), config.player);
+    EventBus bus;
+    InteractionSystem interaction(bus);
+    interaction.loadBank(world, config);
+    interaction.update(1, true, world);
+    RippleSystem ripple(config.ping, world.level.map);
+    renderer.beginFrame();
+    renderer.drawLevel(world.level, world.player, ripple, world.player.pos, 0, 1, false, 1234);
+    renderer.drawInteractionHud(world, interaction, config.noise.walk, config.noise.sprint);
+    renderer.present();
+    auto image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    for (int segment = 0; segment < 6; ++segment) {
+        const auto color = GetImageColor(image, 108 + segment * 24, 140);
+        EXPECT_EQ(color.g, segment < 3 ? 143 : 44);
+    }
+    const auto prompt = GetImageColor(image, 268, 612);
+    EXPECT_EQ(prompt.r, 20);
+    EXPECT_EQ(prompt.g, 22);
+    EXPECT_EQ(prompt.b, 27);
+    const auto ring = GetImageColor(image, 960, 620);
+    EXPECT_GT(ring.r, 200);
     UnloadImage(image);
 }
 

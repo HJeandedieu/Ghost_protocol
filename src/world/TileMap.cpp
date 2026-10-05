@@ -27,6 +27,7 @@ TileMap TileMap::parse(std::istream& source, int tileSize) {
     }
     if (source.bad() || result.height_ == 0) throw std::runtime_error("Unreadable or empty map");
     result.lights_.assign(result.tiles_.size(), LightLevel::Dark);
+    result.open_.assign(result.tiles_.size(), false);
     return result;
 }
 
@@ -38,6 +39,7 @@ TileType TileMap::tile(int x, int y) const {
 }
 
 bool TileMap::isPassable(int x, int y) const {
+    if (isOpen(x, y)) return true;
     switch (tile(x, y)) {
         case TileType::Wall:
         case TileType::ServiceDoor:
@@ -58,6 +60,7 @@ LightLevel TileMap::light(int x, int y) const {
 }
 
 bool TileMap::blocksSight(int x, int y) const {
+    if (isOpen(x, y)) return false;
     switch (tile(x, y)) {
         case TileType::Wall:
         case TileType::Door:
@@ -70,6 +73,32 @@ bool TileMap::blocksSight(int x, int y) const {
         default:
             return false;
     }
+}
+
+bool TileMap::isOpen(int x, int y) const {
+    return contains(x, y) && open_[static_cast<std::size_t>(y) * width_ + x];
+}
+
+void TileMap::setOpen(int x, int y, bool open) {
+    if (!contains(x, y)) throw std::out_of_range("Door outside map");
+    switch (tile(x, y)) {
+        case TileType::Door:
+        case TileType::ServiceDoor:
+        case TileType::CardDoor:
+        case TileType::Gate:
+        case TileType::VaultDoor:
+        case TileType::FrontDoor:
+        case TileType::Bollard:
+            open_[static_cast<std::size_t>(y) * width_ + x] = open;
+            return;
+        default:
+            throw std::invalid_argument("Tile is not a door or bollard");
+    }
+}
+
+void TileMap::removeKeycard(int x, int y) {
+    if (tile(x, y) != TileType::Keycard) throw std::invalid_argument("Tile has no keycard");
+    tiles_[static_cast<std::size_t>(y) * width_ + x] = TileType::Floor;
 }
 
 void TileMap::fillLight(LightLevel level) { std::fill(lights_.begin(), lights_.end(), level); }

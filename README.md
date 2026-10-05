@@ -16,7 +16,7 @@ one night, and one sarcastic voice in your ear.
 
 ## Current milestone
 
-Day 6 foundation: Boot transitions to a placeholder Menu; Enter loads Gotham
+Day 7 foundation: Boot transitions to a placeholder Menu; Enter loads Gotham
 Central Bank. Tiles use the initial passability and light zones from the map and
 JSON. F3 toggles the full-bank overview in Debug builds; normal view starts at
 the alley spawn. Move with WASD or arrows, hold Left Shift to sprint, and toggle
@@ -25,14 +25,20 @@ the camera follows smoothly with mouse look-ahead. Rendering uses a 1280x720
 surface with letterboxing.
 Resize the window to change its size, F11 toggles fullscreen, and Escape quits.
 The existing fixed 60 Hz loop, typed tuning, logger, seeded RNG, and headless
-unit tests remain in place. Locked-door interactions arrive on Day 7, so the
-Service Door currently stops the player. Tap Space for a small ping; hold up to
+unit tests remain in place. Hold E to lockpick the Service Door, collect the red
+keycard, unlock its door, and operate the breaker to open the gate. The vault
+remains locked until its later milestone. Interaction prompts, a progress ring,
+six-segment noise meter, and the security-panel loop are available. Footsteps
+and pings publish queued hearing events; guard behavior arrives in Week 2.
+Tap Space for a small ping; hold up to
 0.8 seconds and release for a larger ping. Walls and closed doors block reveal;
 revealed tiles fade, the player has a local halo, lit rooms stay visible, and
 dim rooms stay faint. The ring around Ghost refills during the ping cooldown.
 Vignette and grain affect the world before the sharp HUD is drawn. Furnishing
 and the finished HUD remain later milestones.
 The level validator checks the shipped map and entity coordinates.
+The WebAssembly build and browser setup are described in [web/NOTES.md](web/NOTES.md).
+Windows CI is configured; its hosted result awaits an approved push.
 
 ## Build and test
 

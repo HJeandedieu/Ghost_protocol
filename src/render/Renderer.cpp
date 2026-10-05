@@ -8,9 +8,11 @@
 #include "entities/Player.h"
 #include "raylib.h"
 #include "render/Letterbox.h"
+#include "systems/InteractionSystem.h"
 #include "systems/RippleSystem.h"
 #include "world/Level.h"
 #include "world/Raycast.h"
+#include "world/World.h"
 
 Renderer::Renderer(Logger& logger)
     : surface_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)),
@@ -119,7 +121,7 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
             if (reveal <= 0) continue;
             DrawRectangleRec({x * size, y * size, size, size},
                              Fade(tile == TileType::Wall ? kTeal : kDeepTeal, reveal));
-            if (tile != TileType::Wall && tile != TileType::Floor &&
+            if (tile != TileType::Wall && tile != TileType::Floor && !map.isOpen(x, y) &&
                 tile != TileType::PlayerSpawn) {
                 const auto center = map.tileCenter({x, y});
                 const auto color = map.isPassable(x, y) ? kGold : kBone;
@@ -187,8 +189,8 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
              20, kGold);
     DrawRectangle(0, Letterbox::kHeight - 48, Letterbox::kWidth, 48, {20, 22, 27, 255});
 #ifndef NDEBUG
-    DrawText("WASD/arrows | Shift sprint | C/Ctrl crouch | Space tap/hold ping | F3 overview", 24,
-             Letterbox::kHeight - 32, 18, kBone);
+    DrawText("WASD/arrows | Shift sprint | C/Ctrl crouch | Space ping | E interact | F3 overview",
+             24, Letterbox::kHeight - 32, 18, kBone);
     if (overview) {
         const auto details = std::to_string(map.width()) + " x " + std::to_string(map.height()) +
                              " | Tile " + std::to_string(map.tileSize()) + " px | Seed " +
@@ -197,6 +199,38 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
     }
 #else
     (void)seed;
-    DrawText("F11 fullscreen  |  ESC quit", 24, Letterbox::kHeight - 32, 18, kBone);
+    DrawText(
+        "WASD/arrows | Shift sprint | C/Ctrl crouch | Space ping | E interact | F11 fullscreen", 24,
+        Letterbox::kHeight - 32, 18, kBone);
 #endif
+}
+
+void Renderer::drawInteractionHud(const World& world, const InteractionSystem& interaction,
+                                  float noiseRadius, float maximumNoise) const {
+    constexpr Color kBone = {233, 228, 208, 255};
+    constexpr Color kTeal = {63, 143, 140, 255};
+    constexpr Color kSlate = {20, 22, 27, 255};
+    const char* objective =
+        world.powerOn ? "Gate open: reach the vault corridor"
+                      : (world.player.hasKeycard() ? "Find the breaker and restore gate power"
+                                                   : "Enter the bank and find the red keycard");
+    DrawRectangle(24, 80, 520, 88, kSlate);
+    DrawText(objective, 40, 96, 18, kBone);
+    const int filled =
+        maximumNoise > 0
+            ? std::clamp(static_cast<int>(std::ceil(noiseRadius / maximumNoise * 6)), 0, 6)
+            : 0;
+    DrawText("NOISE", 40, 136, 14, kBone);
+    for (int i = 0; i < 6; ++i)
+        DrawRectangle(104 + i * 24, 136, 16, 12, i < filled ? kTeal : Color{40, 44, 50, 255});
+    if (world.securityLoopRemaining > 0)
+        DrawText(TextFormat("SECURITY LOOP %.0fs", world.securityLoopRemaining), 288, 136, 14,
+                 kTeal);
+    if (const auto* target = interaction.target()) {
+        DrawRectangle(264, Letterbox::kHeight - 112, 752, 56, kSlate);
+        DrawText(target->prompt.c_str(), 288, Letterbox::kHeight - 96, 20, kBone);
+        if (interaction.progress() > 0)
+            DrawRing({960, static_cast<float>(Letterbox::kHeight - 84)}, 14, 18, -90,
+                     -90 + 360 * interaction.progress(), 64, kBone);
+    }
 }

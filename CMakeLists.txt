@@ -14,6 +14,9 @@ option(GP_BUILD_RENDER_TESTS "Build desktop tests requiring an OpenGL context" O
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BUILD_EXAMPLES OFF CACHE BOOL "Build raylib examples" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "Build raylib games" FORCE)
+if(EMSCRIPTEN)
+    set(PLATFORM Web CACHE STRING "raylib platform" FORCE)
+endif()
 FetchContent_Declare(raylib
     URL https://github.com/raysan5/raylib/archive/refs/tags/5.5.tar.gz
 )
@@ -60,6 +63,7 @@ add_library(ghost_core STATIC
     src/entities/Player.cpp
     src/render/FollowCamera.cpp
     src/world/Raycast.cpp src/systems/RippleSystem.cpp
+    src/systems/NoiseSystem.cpp src/systems/InteractionSystem.cpp
 )
 target_include_directories(ghost_core PUBLIC src)
 target_link_libraries(ghost_core PRIVATE nlohmann_json::nlohmann_json)
@@ -70,6 +74,16 @@ add_executable(ghost_game src/main.cpp src/core/Game.cpp src/render/Renderer.cpp
 target_link_libraries(ghost_game PRIVATE ghost_core raylib)
 gp_enable_warnings(ghost_game)
 gp_copy_mingw_runtime(ghost_game)
+if(EMSCRIPTEN)
+    set_target_properties(ghost_game PROPERTIES OUTPUT_NAME index SUFFIX ".html")
+    target_link_options(ghost_game PRIVATE
+        "--preload-file" "${CMAKE_CURRENT_SOURCE_DIR}/assets@assets"
+        "--shell-file" "${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html"
+        "-sINITIAL_MEMORY=134217728" "-sALLOW_MEMORY_GROWTH=1"
+        "-sMAXIMUM_MEMORY=536870912"
+        "-sEXPORTED_RUNTIME_METHODS=HEAPF32")
+    add_custom_target(ghost_web DEPENDS ghost_game)
+endif()
 
 add_custom_target(ghost_assets
     COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -93,6 +107,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/PlayerTests.cpp
         tests/FollowCameraTests.cpp
         tests/RaycastTests.cpp tests/RippleSystemTests.cpp
+        tests/EventBusTests.cpp tests/NoiseSystemTests.cpp tests/InteractionSystemTests.cpp
     )
     target_link_libraries(ghost_tests PRIVATE ghost_core GTest::gtest_main
         nlohmann_json::nlohmann_json)

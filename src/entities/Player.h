@@ -14,10 +14,13 @@ class Player : public Entity {
     bool isCrouched() const { return crouched_; }
     bool isSprinting() const { return sprinting_; }
     Vec2 interpolatedPosition(float alpha) const;
+    bool hasKeycard() const { return hasKeycard_; }
+    void collectKeycard() { hasKeycard_ = true; }
 
    private:
     const PlayerConfig config_;
     Vec2 velocity_;
     bool crouched_ = false;
     bool sprinting_ = false;
+    bool hasKeycard_ = false;
 };

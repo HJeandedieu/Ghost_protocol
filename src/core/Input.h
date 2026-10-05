@@ -13,11 +13,14 @@ struct Input {
     bool mouseInViewport = false;
     bool pingPressed = false;
     bool pingHeld = false;
+    bool interactHeld = false;
+    bool interactPressed = false;
     void clearEdges() {
         confirmPressed = false;
         startClicked = false;
         debugPressed = false;
         crouchPressed = false;
         pingPressed = false;
+        interactPressed = false;
     }
 };
