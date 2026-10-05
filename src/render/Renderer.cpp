@@ -1,8 +1,10 @@
 #include "render/Renderer.h"
 
 #include <algorithm>
+#include <cmath>
 #include <string>
 
+#include "entities/Player.h"
 #include "raylib.h"
 #include "render/Letterbox.h"
 #include "world/Level.h"
@@ -44,17 +46,18 @@ void Renderer::drawError(const char* message) {
     DrawText(message, 40, 440, 20, {255, 59, 92, 255});
 }
 
-void Renderer::drawLevel(const Level& level, bool overview, std::uint32_t seed) {
+void Renderer::drawLevel(const Level& level, const Player& player, Vec2 cameraTarget, float facing,
+                         float alpha, bool overview, std::uint32_t seed) {
     constexpr Color kBone = {233, 228, 208, 255};
     constexpr Color kTeal = {63, 143, 140, 255};
     constexpr Color kDeepTeal = {30, 74, 74, 255};
     constexpr Color kGold = {242, 183, 5, 255};
     const auto& map = level.map;
     const float size = static_cast<float>(map.tileSize());
-    const auto spawn = map.tileCenter(level.playerSpawn);
+    const auto spawn = player.interpolatedPosition(alpha);
     Camera2D camera{};
     camera.offset = {Letterbox::kWidth * 0.5f, Letterbox::kHeight * 0.5f};
-    camera.target = {spawn.x, spawn.y};
+    camera.target = {cameraTarget.x, cameraTarget.y};
     camera.zoom = 1.0f;
     if (overview) {
         camera.target = {map.width() * size * 0.5f, map.height() * size * 0.5f};
@@ -82,13 +85,27 @@ void Renderer::drawLevel(const Level& level, bool overview, std::uint32_t seed) 
             }
         }
     }
+    DrawCircleV({spawn.x, spawn.y}, player.radius, {10, 10, 12, 255});
+    DrawCircleV({spawn.x, spawn.y}, player.radius * 0.65f, kBone);
+    DrawRectangleRec({spawn.x - player.radius * 0.35f, spawn.y - player.radius * 0.1f,
+                      player.radius * 0.2f, player.radius * 0.2f},
+                     {10, 10, 12, 255});
+    DrawRectangleRec({spawn.x + player.radius * 0.15f, spawn.y - player.radius * 0.1f,
+                      player.radius * 0.2f, player.radius * 0.2f},
+                     {10, 10, 12, 255});
+    const Vector2 aim{std::cos(facing), std::sin(facing)};
+    DrawLineEx({spawn.x, spawn.y},
+               {spawn.x + aim.x * player.radius * 1.7f, spawn.y + aim.y * player.radius * 1.7f},
+               player.radius * 0.25f, kBone);
     EndMode2D();
     DrawRectangle(0, 0, Letterbox::kWidth, 64, {20, 22, 27, 255});
     DrawText(level.name.c_str(), 160, 20, 24, kBone);
+    DrawText(player.isCrouched() ? "CROUCH" : (player.isSprinting() ? "SPRINT" : "WALK"), 440, 24,
+             20, kGold);
     DrawRectangle(0, Letterbox::kHeight - 48, Letterbox::kWidth, 48, {20, 22, 27, 255});
 #ifndef NDEBUG
-    DrawText("F3 bank overview  |  F11 fullscreen  |  ESC quit", 24, Letterbox::kHeight - 32, 18,
-             kBone);
+    DrawText("WASD/arrows move | Shift sprint | C/Ctrl crouch | F3 overview | F11 fullscreen", 24,
+             Letterbox::kHeight - 32, 18, kBone);
     if (overview) {
         const auto details = std::to_string(map.width()) + " x " + std::to_string(map.height()) +
                              " | Tile " + std::to_string(map.tileSize()) + " px | Seed " +

@@ -16,13 +16,17 @@ one night, and one sarcastic voice in your ear.
 
 ## Current milestone
 
-Day 4 foundation: Boot transitions to a placeholder Menu; Enter loads Gotham
+Day 5 foundation: Boot transitions to a placeholder Menu; Enter loads Gotham
 Central Bank. Tiles use the initial passability and light zones from the map and
 JSON. F3 toggles the full-bank overview in Debug builds; normal view starts at
-the alley spawn. Rendering uses a 1280x720 surface with letterboxing.
+the alley spawn. Move with WASD or arrows, hold Left Shift to sprint, and toggle
+crouch with C or Left Ctrl. Movement accelerates, brakes, and slides along walls;
+the camera follows smoothly with mouse look-ahead. Rendering uses a 1280x720
+surface with letterboxing.
 Resize the window to change its size, F11 toggles fullscreen, and Escape quits.
 The existing fixed 60 Hz loop, typed tuning, logger, seeded RNG, and headless
-unit tests remain in place. Movement, reveal, and furnishing are later milestones.
+unit tests remain in place. Locked-door interactions arrive on Day 7, so the
+Service Door currently stops the player. Reveal and furnishing are later milestones.
 The level validator checks the shipped map and entity coordinates.
 
 ## Build and test

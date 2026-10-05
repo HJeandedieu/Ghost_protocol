@@ -60,7 +60,6 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
 }
 ```
 
-## 3. weapons.json and enemies.json
 Day 5 camera tuning (author delegated the feel choice): `view.lead_px` caps mouse
 look-ahead in world pixels. Inside that distance the lead follows the cursor
 offset; outside it the offset is normalized to the cap. `view.follow_rate` is
@@ -69,6 +68,7 @@ Zero lead disables look-ahead; zero rate freezes camera follow. A cursor outside
 the letterboxed game picture contributes no lead. The `camera` group above
 continues to configure security cameras.
 
+## 3. weapons.json and enemies.json
 ```json
 { "weapons": [
   { "id": "whisper", "name": "Whisper", "damage": 22, "pellets": 1, "mag": 12, "reserve": 60,

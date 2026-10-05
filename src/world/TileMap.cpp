@@ -1,6 +1,7 @@
 #include "world/TileMap.h"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -66,4 +67,49 @@ void TileMap::setLight(int x, int y, LightLevel level) {
 Vec2 TileMap::tileCenter(TileCoord position) const {
     return {(static_cast<float>(position.x) + 0.5f) * tileSize_,
             (static_cast<float>(position.y) + 0.5f) * tileSize_};
+}
+
+Vec2 TileMap::moveCircle(Vec2 position, Vec2 displacement, float radius) const {
+    if (tileSize_ <= 0 || radius <= 0.0f) return position;
+    // Sweep one axis at a time. The circular extent at a tile edge preserves
+    // corner clearance; sweeping the entire segment also prevents tunnelling.
+    auto sweep = [&](bool horizontal, float delta) {
+        if (delta == 0.0f) return;
+        const float start = horizontal ? position.x : position.y;
+        const float perpendicular = horizontal ? position.y : position.x;
+        float finish = start + delta;
+        const int axisLimit = horizontal ? width_ : height_;
+        const int otherLimit = horizontal ? height_ : width_;
+        const int first =
+            std::clamp(static_cast<int>(std::floor((std::min(start, finish) - radius) / tileSize_)),
+                       -1, axisLimit);
+        const int last =
+            std::clamp(static_cast<int>(std::floor((std::max(start, finish) + radius) / tileSize_)),
+                       -1, axisLimit);
+        const int otherFirst = std::clamp(
+            static_cast<int>(std::floor((perpendicular - radius) / tileSize_)), -1, otherLimit);
+        const int otherLast = std::clamp(
+            static_cast<int>(std::floor((perpendicular + radius) / tileSize_)), -1, otherLimit);
+        for (int a = first; a <= last; ++a) {
+            for (int b = otherFirst; b <= otherLast; ++b) {
+                if (isPassable(horizontal ? a : b, horizontal ? b : a)) continue;
+                const float low = static_cast<float>(b) * tileSize_;
+                const float separation =
+                    perpendicular - std::clamp(perpendicular, low, low + tileSize_);
+                if (separation * separation >= radius * radius) continue;
+                const float extent = std::sqrt(radius * radius - separation * separation);
+                const float near = static_cast<float>(a) * tileSize_ - extent;
+                const float far = static_cast<float>(a + 1) * tileSize_ + extent;
+                if (delta > 0.0f && start <= near) finish = std::min(finish, near);
+                if (delta < 0.0f && start >= far) finish = std::max(finish, far);
+            }
+        }
+        if (horizontal)
+            position.x = finish;
+        else
+            position.y = finish;
+    };
+    sweep(true, displacement.x);
+    sweep(false, displacement.y);
+    return position;
 }

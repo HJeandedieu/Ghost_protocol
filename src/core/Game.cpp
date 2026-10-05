@@ -58,11 +58,26 @@ void Game::tick() {
     for (int key = GetKeyPressed(); key != 0; key = GetKeyPressed()) {
         if (key == KEY_ENTER || key == KEY_KP_ENTER) input_.confirmPressed = true;
         if (key == KEY_F11) toggleFullscreen();
+        if (key == KEY_C || key == KEY_LEFT_CONTROL) input_.crouchPressed = true;
 #ifndef NDEBUG
         if (key == KEY_F3) input_.debugPressed = true;
 #endif
     }
     input_.startClicked = input_.startClicked || IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    input_.move = {static_cast<float>((IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) -
+                                      (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))),
+                   static_cast<float>((IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) -
+                                      (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)))};
+    input_.sprintHeld = IsKeyDown(KEY_LEFT_SHIFT);
+    const auto viewport = Letterbox::fit(GetScreenWidth(), GetScreenHeight());
+    const auto mouse = GetMousePosition();
+    input_.mouseInViewport = viewport.width > 0 && viewport.height > 0 && mouse.x >= viewport.x &&
+                             mouse.x < viewport.x + viewport.width && mouse.y >= viewport.y &&
+                             mouse.y < viewport.y + viewport.height;
+    if (input_.mouseInViewport) {
+        input_.mouseLogical = {(mouse.x - viewport.x) * Letterbox::kWidth / viewport.width,
+                               (mouse.y - viewport.y) * Letterbox::kHeight / viewport.height};
+    }
     time_.addFrame(GetFrameTime());
     while (time_.consumeStep()) {
         update(static_cast<float>(Time::kStep));
@@ -88,7 +103,8 @@ void Game::showMenu(const std::string& error) {
                 return;
             }
             logger_.log(LogLevel::Info, "State: Play");
-            states_.replace(std::make_unique<PlayState>(std::move(*level), input_, rng_.seed()));
+            states_.replace(
+                std::make_unique<PlayState>(std::move(*level), input_, config_, rng_.seed()));
         },
         error));
 }

@@ -12,6 +12,10 @@
     "armor_regen": 8,
     "armor_regen_delay": 5
   },
+  "view": {
+    "lead_px": 60,
+    "follow_rate": 8
+  },
   "ping": {
     "small_radius": 260,
     "big_radius": 520,

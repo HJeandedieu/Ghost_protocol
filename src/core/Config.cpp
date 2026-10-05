@@ -59,6 +59,10 @@ Config Config::load(const std::string& path, Logger& logger) {
         readNumber(player, "armor_regen", config.player.armorRegen, "player", logger);
     config.player.armorRegenDelay =
         readNumber(player, "armor_regen_delay", config.player.armorRegenDelay, "player", logger);
+    const auto& view = groupOrEmpty(data, "view", empty);
+    config.view.leadPx = readNumber(view, "lead_px", config.view.leadPx, "view", logger);
+    config.view.followRate =
+        readNumber(view, "follow_rate", config.view.followRate, "view", logger);
     const auto& ping = groupOrEmpty(data, "ping", empty);
     config.ping.smallRadius =
         readNumber(ping, "small_radius", config.ping.smallRadius, "ping", logger);

@@ -30,6 +30,11 @@ struct PingConfig {
     float halo = 96.0f;
 };
 
+struct ViewConfig {
+    float leadPx = 60.0f;
+    float followRate = 8.0f;
+};
+
 struct NoiseConfig {
     float crouch = 40.0f;
     float walk = 120.0f;
@@ -139,6 +144,7 @@ class Config {
     static Config load(const std::string& path, Logger& logger);
 
     PlayerConfig player;
+    ViewConfig view;
     PingConfig ping;
     NoiseConfig noise;
     GuardConfig guard;

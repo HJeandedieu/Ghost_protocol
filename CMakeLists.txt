@@ -56,6 +56,8 @@ add_library(ghost_core STATIC
     src/states/StateMachine.cpp src/render/Letterbox.cpp
     src/world/TileMap.cpp src/world/LevelLoader.cpp
     src/core/Assets.cpp
+    src/entities/Player.cpp
+    src/render/FollowCamera.cpp
 )
 target_include_directories(ghost_core PUBLIC src)
 target_link_libraries(ghost_core PRIVATE nlohmann_json::nlohmann_json)
@@ -85,6 +87,8 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/StateMachineTests.cpp tests/LetterboxTests.cpp
         tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
         tests/AssetsTests.cpp
+        tests/PlayerTests.cpp
+        tests/FollowCameraTests.cpp
     )
     target_link_libraries(ghost_tests PRIVATE ghost_core GTest::gtest_main
         nlohmann_json::nlohmann_json)

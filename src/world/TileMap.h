@@ -46,6 +46,7 @@ class TileMap {
     void fillLight(LightLevel level);
     void setLight(int x, int y, LightLevel level);
     Vec2 tileCenter(TileCoord position) const;
+    Vec2 moveCircle(Vec2 position, Vec2 displacement, float radius) const;
 
    private:
     int width_ = 0;

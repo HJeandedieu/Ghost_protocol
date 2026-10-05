@@ -13,6 +13,8 @@ TEST(Config, LoadsDocumentedTuningWithoutWarnings) {
     Logger logger(console, "");
     const auto config = Config::load("assets/config/tuning.json", logger);
     EXPECT_FLOAT_EQ(config.player.walk, 160.0f);
+    EXPECT_FLOAT_EQ(config.view.leadPx, 60.0f);
+    EXPECT_FLOAT_EQ(config.view.followRate, 8.0f);
     EXPECT_FLOAT_EQ(config.ping.bigRadius, 520.0f);
     EXPECT_FLOAT_EQ(config.mission.thermiteBurn, 75.0f);
     EXPECT_FLOAT_EQ(config.difficulty.hard.maxAlive, 16.0f);
@@ -32,6 +34,20 @@ TEST(Config, MissingKeyFallsBackAndPreservesOtherOverrides) {
     EXPECT_FLOAT_EQ(config.player.sprint, 275.0f);
     EXPECT_NE(console.str().find("[WARN] Missing or invalid tuning key: player.walk"),
               std::string::npos);
+}
+
+TEST(Config, CameraTuningOverridesAndMissingValuesUseDocumentedDefaults) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    data["view"]["lead_px"] = 40;
+    data["view"].erase("follow_rate");
+    std::ostringstream console;
+    Logger logger(console, "");
+    const auto config = Config::load(files.write("view.json", data.dump()), logger);
+    EXPECT_FLOAT_EQ(config.view.leadPx, 40);
+    EXPECT_FLOAT_EQ(config.view.followRate, 8);
+    EXPECT_NE(console.str().find("view.follow_rate"), std::string::npos);
 }
 
 TEST(Config, MissingFileAndMalformedJsonUseDefaults) {
