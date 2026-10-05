@@ -33,9 +33,46 @@ introduced on Day 2; this milestone is checked by building and launching it.
 
 ## Project documentation
 
-Start with [the GDD](docs/01_GDD.md), then read the architecture, systems contract,
-data formats, and implementation plan in `docs/`. Contributor rules are in
-`AGENTS.md`. The original documentation pack remains in `Ghost_protocol_docs/`.
+The documentation in `docs/` is the source of truth for game behavior. Read the
+GDD, architecture, systems contract, data formats, and implementation plan in
+that order. Contract changes must be documented before implementation; see
+[the development guidelines](docs/07_Development_Guidelines.md).
+
+| Document | Contents |
+|---|---|
+| [Game design](docs/01_GDD.md) | Story, mechanics, requirements, and priorities |
+| [Architecture](docs/02_Architecture.md) | Layers, loop, rendering, and web rules |
+| [Systems contract](docs/03_Systems_Contract.md) | Events, state machines, and interfaces |
+| [Data formats](docs/04_Data_Formats.md) | Configuration, levels, saves, and asset formats |
+| [Visual and audio design](docs/05_Design_Docs.md) | Palette, typography, screens, effects, and voice script |
+| [Development guidelines](docs/07_Development_Guidelines.md) | Code style, Git workflow, CI, testing, and QA |
+| [Implementation plan](docs/08_Implementation_Plan.md) | Daily tasks and milestones |
+| [Agent instructions](AGENTS.md) | Rules for AI contributors |
+
+Wireframes (`docs/06_Wireframes.html`) are pending delivery.
+
+## Project structure
+
+```text
+Ghost Protocol/
+  CMakeLists.txt
+  README.md
+  AGENTS.md
+  .clang-format
+  .gitignore
+  src/
+    main.cpp
+  assets/
+    levels/             Runtime map and entity data
+  docs/
+    01_GDD.md ... 08_Implementation_Plan.md
+    levels/             Documentation source copies of level data
+  logo.png              Supplied logo, awaiting asset preparation
+```
+
+Keep the documentation and runtime level copies synchronized when editing a
+level. Local IDE files and build outputs are ignored by Git. Source modules,
+tests, tools, and web files will be added as their implementation days arrive.
 
 Windows is the primary platform; a web build is planned later. Submission is
 planned for October 31, 2026, with November 1 as the deadline buffer.
