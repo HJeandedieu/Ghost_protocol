@@ -31,6 +31,7 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
 {
   "player": { "radius": 14, "walk": 160, "sprint": 260, "crouch": 80, "accel": 1200, "decel": 1600,
               "bag_speed_mult": 0.75, "hp": 100, "armor": 50, "armor_regen": 8, "armor_regen_delay": 5 },
+  "view": { "lead_px": 60, "follow_rate": 8 },
   "ping": { "small_radius": 260, "big_radius": 520, "tap_max": 0.25, "charge_max": 0.8,
             "speed": 800, "fade": 2.5, "cooldown": 3.0, "noise_mult": 0.6, "halo": 96 },
   "noise": { "crouch": 40, "walk": 120, "sprint": 280, "lockpick": 120, "crack": 200,
@@ -60,6 +61,14 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
 ```
 
 ## 3. weapons.json and enemies.json
+Day 5 camera tuning (author delegated the feel choice): `view.lead_px` caps mouse
+look-ahead in world pixels. Inside that distance the lead follows the cursor
+offset; outside it the offset is normalized to the cap. `view.follow_rate` is
+the exponential follow rate per second: lerp weight `1 - exp(-follow_rate * dt)`.
+Zero lead disables look-ahead; zero rate freezes camera follow. A cursor outside
+the letterboxed game picture contributes no lead. The `camera` group above
+continues to configure security cameras.
+
 ```json
 { "weapons": [
   { "id": "whisper", "name": "Whisper", "damage": 22, "pellets": 1, "mag": 12, "reserve": 60,
