@@ -54,6 +54,8 @@ endfunction()
 add_library(ghost_core STATIC
     src/core/Config.cpp src/core/Logger.cpp src/core/Rng.cpp src/core/Time.cpp
     src/states/StateMachine.cpp src/render/Letterbox.cpp
+    src/world/TileMap.cpp src/world/LevelLoader.cpp
+    src/core/Assets.cpp
 )
 target_include_directories(ghost_core PUBLIC src)
 target_link_libraries(ghost_core PRIVATE nlohmann_json::nlohmann_json)
@@ -81,10 +83,15 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
     add_executable(ghost_tests
         tests/ConfigTests.cpp tests/LoggerTests.cpp tests/RngTests.cpp tests/TimeTests.cpp
         tests/StateMachineTests.cpp tests/LetterboxTests.cpp
+        tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
+        tests/AssetsTests.cpp
     )
     target_link_libraries(ghost_tests PRIVATE ghost_core GTest::gtest_main
         nlohmann_json::nlohmann_json)
     gp_enable_warnings(ghost_tests)
+    add_dependencies(ghost_tests ghost_game)
+    target_compile_definitions(ghost_tests PRIVATE
+        GP_RUNTIME_TEST_DIRECTORY="$<TARGET_FILE_DIR:ghost_game>")
     gp_copy_mingw_runtime(ghost_tests)
     include(GoogleTest)
     gtest_discover_tests(ghost_tests

@@ -16,11 +16,13 @@ one night, and one sarcastic voice in your ear.
 
 ## Current milestone
 
-Day 3 foundation: Boot transitions to a placeholder Menu; Enter starts the
-placeholder Play screen. Rendering uses a 1280x720 surface with letterboxing.
+Day 4 foundation: Boot transitions to a placeholder Menu; Enter loads Gotham
+Central Bank. Tiles use the initial passability and light zones from the map and
+JSON. F3 toggles the full-bank overview in Debug builds; normal view starts at
+the alley spawn. Rendering uses a 1280x720 surface with letterboxing.
 Resize the window to change its size, F11 toggles fullscreen, and Escape quits.
 The existing fixed 60 Hz loop, typed tuning, logger, seeded RNG, and headless
-unit tests remain in place. Level loading and gameplay are subsequent milestones.
+unit tests remain in place. Movement, reveal, and furnishing are later milestones.
 The level validator checks the shipped map and entity coordinates.
 
 ## Build and test
@@ -45,7 +47,8 @@ ctest --test-dir build --output-on-failure --stop-on-failure
 If CMake cannot locate Python, pass `-DPython3_EXECUTABLE=<path-to-python>`.
 Disable desktop tests explicitly with `-DGP_BUILD_TESTS=OFF` for a game-only build.
 The build copies assets and the selected MinGW runtime DLLs beside executables.
-Run the game from the project root or executable directory for relative assets.
+Desktop startup uses the executable directory, so assets load regardless of the
+launcher's working directory. Keep the copied `assets/` folder beside the executable.
 Startup loads `assets/config/tuning.json` and logs its RNG seed to the console
 and `logs/ghost.log`. Invalid tuning uses documented defaults with warnings.
 

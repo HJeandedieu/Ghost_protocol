@@ -9,6 +9,7 @@
 #include "states/BootState.h"
 #include "states/MenuState.h"
 #include "states/PlayState.h"
+#include "world/LevelLoader.h"
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #endif
@@ -53,11 +54,15 @@ int Game::run() {
 }
 
 void Game::tick() {
-    input_.confirmPressed = input_.confirmPressed || IsKeyPressed(KEY_ENTER);
-    input_.startClicked = input_.startClicked || IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
-    if (IsKeyPressed(KEY_F11)) {
-        toggleFullscreen();
+    // The key queue also retains short down/up taps occurring between rendered frames.
+    for (int key = GetKeyPressed(); key != 0; key = GetKeyPressed()) {
+        if (key == KEY_ENTER || key == KEY_KP_ENTER) input_.confirmPressed = true;
+        if (key == KEY_F11) toggleFullscreen();
+#ifndef NDEBUG
+        if (key == KEY_F3) input_.debugPressed = true;
+#endif
     }
+    input_.startClicked = input_.startClicked || IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
     time_.addFrame(GetFrameTime());
     while (time_.consumeStep()) {
         update(static_cast<float>(Time::kStep));
@@ -72,12 +77,20 @@ void Game::update(float dt) {
     input_.clearEdges();
 }
 
-void Game::showMenu() {
+void Game::showMenu(const std::string& error) {
     logger_.log(LogLevel::Info, "State: Menu");
-    states_.replace(std::make_unique<MenuState>(input_, [this] {
-        logger_.log(LogLevel::Info, "State: Play");
-        states_.replace(std::make_unique<PlayState>());
-    }));
+    states_.replace(std::make_unique<MenuState>(
+        input_,
+        [this] {
+            auto level = LevelLoader::load("assets/levels/gotham_central.json", logger_);
+            if (!level) {
+                showMenu("Unable to load the bank. Check the level files and try again.");
+                return;
+            }
+            logger_.log(LogLevel::Info, "State: Play");
+            states_.replace(std::make_unique<PlayState>(std::move(*level), input_, rng_.seed()));
+        },
+        error));
 }
 
 void Game::toggleFullscreen() {

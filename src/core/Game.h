@@ -20,7 +20,7 @@ class Game {
    private:
     void tick();
     void update(float dt);
-    void showMenu();
+    void showMenu(const std::string& error = "");
     void toggleFullscreen();
     Logger logger_;
     const Config config_;
