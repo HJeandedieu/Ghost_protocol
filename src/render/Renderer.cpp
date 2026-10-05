@@ -5,6 +5,7 @@
 #include <string>
 
 #include "core/Logger.h"
+#include "entities/Guard.h"
 #include "entities/Player.h"
 #include "raylib.h"
 #include "render/Letterbox.h"
@@ -91,7 +92,7 @@ void Renderer::drawError(const char* message) {
 
 void Renderer::drawLevel(const Level& level, const Player& player, const RippleSystem& ripple,
                          Vec2 cameraTarget, float facing, float alpha, bool overview,
-                         std::uint32_t seed) {
+                         std::uint32_t seed, const std::vector<Guard>& guards) {
     constexpr Color kBone = {233, 228, 208, 255};
     constexpr Color kTeal = {63, 143, 140, 255};
     constexpr Color kDeepTeal = {30, 74, 74, 255};
@@ -165,6 +166,23 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                 }
             }
         }
+    }
+    for (const auto& guard : guards) {
+        const auto position = guard.interpolatedPosition(alpha);
+        const int tx = static_cast<int>(guard.pos.x / size);
+        const int ty = static_cast<int>(guard.pos.y / size);
+        const float visible =
+            overview ? 1.0f : std::max(guard.reveal, ripple.visibility(tx, ty, player.pos, map));
+        if (visible <= 0) continue;
+        DrawCircleV({position.x, position.y}, guard.radius, Fade(kBone, visible));
+        const Vector2 direction{std::cos(guard.facing()), std::sin(guard.facing())};
+        DrawLineEx({position.x, position.y},
+                   {position.x + direction.x * guard.radius * 1.7f,
+                    position.y + direction.y * guard.radius * 1.7f},
+                   guard.radius * 0.25f, Fade(kGold, visible));
+        if (overview)
+            DrawText(guard.id.c_str(), static_cast<int>(position.x + guard.radius),
+                     static_cast<int>(position.y), 24, kBone);
     }
     DrawCircleV({spawn.x, spawn.y}, player.radius, {10, 10, 12, 255});
     DrawCircleV({spawn.x, spawn.y}, player.radius * 0.65f, kBone);

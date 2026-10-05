@@ -87,6 +87,9 @@ Config Config::load(const std::string& path, Logger& logger) {
     config.noise.shot = readNumber(noise, "shot", config.noise.shot, "noise", logger);
     config.noise.laser = readNumber(noise, "laser", config.noise.laser, "noise", logger);
     const auto& guard = groupOrEmpty(data, "guard", empty);
+    config.guard.radius = readNumber(guard, "radius", config.guard.radius, "guard", logger);
+    config.guard.stationaryTurnSpeed = readNumber(
+        guard, "stationary_turn_speed", config.guard.stationaryTurnSpeed, "guard", logger);
     config.guard.patrolSpeed =
         readNumber(guard, "patrol_speed", config.guard.patrolSpeed, "guard", logger);
     config.guard.searchSpeed =

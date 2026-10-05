@@ -16,7 +16,7 @@ one night, and one sarcastic voice in your ear.
 
 ## Current milestone
 
-Day 7 foundation: Boot transitions to a placeholder Menu; Enter loads Gotham
+Day 8 foundation: Boot transitions to a placeholder Menu; Enter loads Gotham
 Central Bank. Tiles use the initial passability and light zones from the map and
 JSON. F3 toggles the full-bank overview in Debug builds; normal view starts at
 the alley spawn. Move with WASD or arrows, hold Left Shift to sprint, and toggle
@@ -29,7 +29,10 @@ unit tests remain in place. Hold E to lockpick the Service Door, collect the red
 keycard, unlock its door, and operate the breaker to open the gate. The vault
 remains locked until its later milestone. Interaction prompts, a progress ring,
 six-segment noise meter, and the security-panel loop are available. Footsteps
-and pings publish queued hearing events; guard behavior arrives in Week 2.
+and pings publish queued hearing events. Eleven guards now follow their loop or
+ping-pong routes, or turn in place, with facing markers. F3 exposes their IDs in
+the overview. Hearing positions follow their movement, and pings reveal guards;
+vision, detection, and reactions to noise arrive in the following days.
 Tap Space for a small ping; hold up to
 0.8 seconds and release for a larger ping. Walls and closed doors block reveal;
 revealed tiles fade, the player has a local halo, lit rooms stay visible, and

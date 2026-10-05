@@ -5,6 +5,23 @@
 #include "core/EventBus.h"
 #include "systems/NoiseSystem.h"
 
+TEST(NoiseSystem, HearingUsesCurrentPatrolPositionInsteadOfSpawn) {
+    EventBus bus;
+    NoiseSystem noise(bus);
+    noise.setHearers({{"G01", {400, 0}}});
+    int heard = 0;
+    bus.subscribe<GuardSuspicious>([&](const GuardSuspicious&) { ++heard; });
+    noise.emit({0, 0}, 120, NoiseType::Step, "Ghost");
+    bus.dispatch();
+    bus.dispatch();
+    EXPECT_EQ(heard, 0);
+    noise.setHearerPosition(0, {100, 0});
+    noise.emit({0, 0}, 120, NoiseType::Step, "Ghost");
+    bus.dispatch();
+    bus.dispatch();
+    EXPECT_EQ(heard, 1);
+}
+
 TEST(NoiseSystem, NotifiesOnlyHearersInsideRadiusIncludingBoundaryRegardlessOfWalls) {
     EventBus bus;
     NoiseSystem noise(bus);

@@ -16,6 +16,9 @@ class NoiseSystem {
     explicit NoiseSystem(EventBus& bus);
     void emit(Vec2 origin, float radius, NoiseType type, const std::string& sourceId);
     void setHearers(std::vector<Hearer> hearers);
+    void setHearerPosition(std::size_t index, Vec2 position) {
+        hearers_.at(index).position = position;
+    }
     void beginTick() { radius_ = 0; }
     float currentRadius() const { return radius_; }
 

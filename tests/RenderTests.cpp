@@ -4,6 +4,7 @@
 
 #include "core/EventBus.h"
 #include "core/Logger.h"
+#include "entities/Guard.h"
 #include "entities/Player.h"
 #include "render/Renderer.h"
 #include "systems/InteractionSystem.h"
@@ -99,6 +100,48 @@ TEST_F(Render, InteractionPromptAndSixSegmentNoiseMeterRemainReadable) {
     EXPECT_EQ(prompt.b, 27);
     const auto ring = GetImageColor(image, 960, 620);
     EXPECT_GT(ring.r, 200);
+    UnloadImage(image);
+}
+
+TEST_F(Render, GuardsRespectDarknessAndAreVisibleInLitRoomsAndOverview) {
+    std::ostringstream console;
+    Logger logger(console, "");
+    Renderer renderer(logger);
+    Level level;
+    std::string rows;
+    for (int y = 0; y < 15; ++y) rows += std::string(40, '.') + '\n';
+    std::istringstream source(rows);
+    level.map = TileMap::parse(source, 48);
+    level.map.setLight(2, 6, LightLevel::Lit);
+    level.playerSpawn = {13, 7};
+    GuardSpawn lit, dark;
+    lit.id = "G01";
+    lit.mode = PatrolMode::Stationary;
+    lit.waypoints = {{2, 6}};
+    dark = lit;
+    dark.id = "G02";
+    dark.waypoints = {{4, 6}};
+    level.guards = {lit, dark};
+    World world(std::move(level), PlayerConfig{});
+    RippleSystem ripple(PingConfig{}, world.level.map);
+    renderer.setReduceEffects(true);
+    renderer.beginFrame();
+    renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, false, 1234,
+                       world.guards);
+    renderer.present();
+    auto image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    EXPECT_GT(GetImageColor(image, 120, 312).r, 200);
+    EXPECT_LT(GetImageColor(image, 216, 312).r, 15);
+    UnloadImage(image);
+    renderer.beginFrame();
+    renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, true, 1234,
+                       world.guards);
+    renderer.present();
+    image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    // The overview scales this map to 1232 px wide, centering it in the logical frame.
+    EXPECT_GT(GetImageColor(image, 163, 329).r, 200);
     UnloadImage(image);
 }
 

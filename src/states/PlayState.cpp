@@ -8,7 +8,7 @@
 
 PlayState::PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed,
                      Renderer& renderer)
-    : world_(std::move(level), config.player),
+    : world_(std::move(level), config.player, config.guard),
       input_(input),
       camera_(world_.player.pos, config.view),
       seed_(seed),
@@ -20,8 +20,11 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
     interaction_.loadBank(world_, config_);
     std::vector<Hearer> hearers;
     hearers.reserve(world_.level.guards.size());
-    for (const auto& guard : world_.level.guards)
-        hearers.push_back({guard.id, world_.level.map.tileCenter(guard.waypoints.front())});
+    revealables_.reserve(world_.guards.size());
+    for (auto& guard : world_.guards) {
+        hearers.push_back({guard.id, guard.pos});
+        revealables_.push_back(&guard);
+    }
     noise_.setHearers(std::move(hearers));
 }
 
@@ -29,6 +32,10 @@ void PlayState::enter() {}
 void PlayState::exit() {}
 void PlayState::update(float dt) {
     noise_.beginTick();
+    for (std::size_t i = 0; i < world_.guards.size(); ++i) {
+        world_.guards[i].update(dt, world_.level.map);
+        noise_.setHearerPosition(i, world_.guards[i].pos);
+    }
     auto& player = world_.player;
     player.update(dt, input_, world_.level.map);
     if (player.pos.x != player.prevPos.x || player.pos.y != player.prevPos.y)
@@ -60,7 +67,7 @@ void PlayState::update(float dt) {
 }
 void PlayState::render(float alpha) {
     renderer_.drawLevel(world_.level, world_.player, ripple_, camera_.interpolatedTarget(alpha),
-                        facing_, alpha, debugView_, seed_);
+                        facing_, alpha, debugView_, seed_, world_.guards);
     renderer_.drawInteractionHud(world_, interaction_, noise_.currentRadius(),
                                  config_.noise.sprint);
 }

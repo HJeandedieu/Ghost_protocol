@@ -1,12 +1,14 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 #include "core/Vec2.h"
 #include "raylib.h"
 
 struct Level;
 class Player;
+class Guard;
 class RippleSystem;
 class Logger;
 class InteractionSystem;
@@ -27,7 +29,8 @@ class Renderer {
     static void drawPlaceholder(const char* title, const char* subtitle);
     static void drawError(const char* message);
     void drawLevel(const Level& level, const Player& player, const RippleSystem& ripple,
-                   Vec2 cameraTarget, float facing, float alpha, bool overview, std::uint32_t seed);
+                   Vec2 cameraTarget, float facing, float alpha, bool overview, std::uint32_t seed,
+                   const std::vector<Guard>& guards = {});
 
    private:
     RenderTexture2D surface_;

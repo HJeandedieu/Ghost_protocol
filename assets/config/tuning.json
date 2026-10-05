@@ -39,6 +39,8 @@
     "laser": 400
   },
   "guard": {
+    "radius": 14,
+    "stationary_turn_speed": 20,
     "patrol_speed": 90,
     "search_speed": 130,
     "chase_speed": 200,

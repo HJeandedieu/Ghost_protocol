@@ -48,6 +48,8 @@ struct NoiseConfig {
 };
 
 struct GuardConfig {
+    float radius = 14.0f;
+    float stationaryTurnSpeed = 20.0f;
     float patrolSpeed = 90.0f;
     float searchSpeed = 130.0f;
     float chaseSpeed = 200.0f;
