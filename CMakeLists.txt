@@ -53,12 +53,14 @@ endfunction()
 
 add_library(ghost_core STATIC
     src/core/Config.cpp src/core/Logger.cpp src/core/Rng.cpp src/core/Time.cpp
+    src/states/StateMachine.cpp src/render/Letterbox.cpp
 )
 target_include_directories(ghost_core PUBLIC src)
 target_link_libraries(ghost_core PRIVATE nlohmann_json::nlohmann_json)
 gp_enable_warnings(ghost_core)
 
-add_executable(ghost_game src/main.cpp src/core/Game.cpp src/render/Renderer.cpp)
+add_executable(ghost_game src/main.cpp src/core/Game.cpp src/render/Renderer.cpp
+    src/states/BootState.cpp src/states/MenuState.cpp src/states/PlayState.cpp)
 target_link_libraries(ghost_game PRIVATE ghost_core raylib)
 gp_enable_warnings(ghost_game)
 gp_copy_mingw_runtime(ghost_game)
@@ -78,6 +80,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
     FetchContent_MakeAvailable(googletest)
     add_executable(ghost_tests
         tests/ConfigTests.cpp tests/LoggerTests.cpp tests/RngTests.cpp tests/TimeTests.cpp
+        tests/StateMachineTests.cpp tests/LetterboxTests.cpp
     )
     target_link_libraries(ghost_tests PRIVATE ghost_core GTest::gtest_main
         nlohmann_json::nlohmann_json)
@@ -89,4 +92,10 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         DISCOVERY_TIMEOUT 30
         PROPERTIES TIMEOUT 15
     )
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+    add_test(NAME LevelValidator
+        COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_level.py")
+    add_test(NAME LevelValidatorTests
+        COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tests/ValidateLevelTests.py")
+    set_tests_properties(LevelValidator LevelValidatorTests PROPERTIES TIMEOUT 15)
 endif()

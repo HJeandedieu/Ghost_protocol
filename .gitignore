@@ -6,3 +6,5 @@ logs/
 .env
 *.log
 cmake_test_discovery_*.json
+__pycache__/
+*.pyc
