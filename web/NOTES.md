@@ -52,3 +52,15 @@ route is additionally exercised by desktop movement/collision tests.
 
 Hosted Windows CI requires a push to GitHub. The Week 1 tag is held until that
 workflow passes and the user approves publishing.
+
+## Day 9 vision smoke test
+
+The Debug WebAssembly build displays guard cones and wall/closed-door clipping
+in F3. Target lighting and crouched-dark coverage use the same tuning as the
+vision checks. Uniform lighting regions are merged before clipping to reduce
+repeated geometry work. The preview is saved as `build/day9-web-preview.png`.
+
+The in-app browser Debug overview counter showed roughly 25–30 FPS during
+inspection, and frame-rate readings varied during tool-controlled tab changes.
+This smoke test verifies rendering, not the GDD's 45+ FPS web release target.
+Release performance profiling on a normal browser remains outstanding.

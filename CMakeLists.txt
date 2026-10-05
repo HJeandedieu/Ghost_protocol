@@ -64,6 +64,7 @@ add_library(ghost_core STATIC
     src/render/FollowCamera.cpp
     src/world/Raycast.cpp src/systems/RippleSystem.cpp
     src/systems/NoiseSystem.cpp src/systems/InteractionSystem.cpp
+    src/systems/VisionSystem.cpp
 )
 target_include_directories(ghost_core PUBLIC src)
 target_link_libraries(ghost_core PRIVATE nlohmann_json::nlohmann_json)
@@ -108,6 +109,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/FollowCameraTests.cpp
         tests/RaycastTests.cpp tests/RippleSystemTests.cpp
         tests/EventBusTests.cpp tests/NoiseSystemTests.cpp tests/InteractionSystemTests.cpp
+        tests/VisionSystemTests.cpp
     )
     target_link_libraries(ghost_tests PRIVATE ghost_core GTest::gtest_main
         nlohmann_json::nlohmann_json)

@@ -10,5 +10,6 @@ class Raycast {
    public:
     static bool hasLineOfSight(Vec2 from, Vec2 to, const TileMap& map,
                                bool revealBlockingTarget = false);
+    static float sightDistance(Vec2 from, Vec2 to, const TileMap& map);
     static std::optional<float> intersectCircle(Vec2 from, Vec2 to, Vec2 center, float radius);
 };

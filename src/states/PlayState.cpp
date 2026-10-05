@@ -18,6 +18,7 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       interaction_(events_),
       config_(config) {
     interaction_.loadBank(world_, config_);
+    renderer_.prepareLevel(world_.level);
     std::vector<Hearer> hearers;
     hearers.reserve(world_.level.guards.size());
     revealables_.reserve(world_.guards.size());

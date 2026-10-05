@@ -59,3 +59,41 @@ std::optional<float> Raycast::intersectCircle(Vec2 from, Vec2 to, Vec2 center, f
     if (t >= 0 && t <= 1) return t;
     return std::nullopt;
 }
+
+float Raycast::sightDistance(Vec2 from, Vec2 to, const TileMap& map) {
+    if (!std::isfinite(from.x) || !std::isfinite(from.y) || !std::isfinite(to.x) ||
+        !std::isfinite(to.y))
+        return 0;
+    const float size = static_cast<float>(map.tileSize());
+    int x = static_cast<int>(std::floor(from.x / size));
+    int y = static_cast<int>(std::floor(from.y / size));
+    if (!map.contains(x, y) || map.blocksSight(x, y)) return 0;
+    const float dx = to.x - from.x, dy = to.y - from.y;
+    const float length = std::hypot(dx, dy);
+    if (length == 0 || !std::isfinite(length)) return 0;
+    const int stepX = dx > 0 ? 1 : -1, stepY = dy > 0 ? 1 : -1;
+    const float infinity = std::numeric_limits<float>::infinity();
+    const float deltaX = dx == 0 ? infinity : size / std::abs(dx);
+    const float deltaY = dy == 0 ? infinity : size / std::abs(dy);
+    float nextX = dx == 0 ? infinity : ((x + (dx > 0 ? 1 : 0)) * size - from.x) / dx;
+    float nextY = dy == 0 ? infinity : ((y + (dy > 0 ? 1 : 0)) * size - from.y) / dy;
+    while (true) {
+        const float entry = std::min(nextX, nextY);
+        if (entry > 1) return length;
+        if (nextX == nextY) {
+            if (map.blocksSight(x + stepX, y) || map.blocksSight(x, y + stepY))
+                return std::max(0.0f, entry * length);
+            x += stepX;
+            y += stepY;
+            nextX += deltaX;
+            nextY += deltaY;
+        } else if (nextX < nextY) {
+            x += stepX;
+            nextX += deltaX;
+        } else {
+            y += stepY;
+            nextY += deltaY;
+        }
+        if (map.blocksSight(x, y)) return std::max(0.0f, entry * length);
+    }
+}

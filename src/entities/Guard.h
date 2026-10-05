@@ -14,6 +14,7 @@ class Guard : public Entity {
     Vec2 interpolatedPosition(float alpha) const;
     bool hasPager() const { return pager_; }
     PatrolMode mode() const { return mode_; }
+    const GuardConfig& visionConfig() const { return config_; }
 
    private:
     const GuardConfig config_;

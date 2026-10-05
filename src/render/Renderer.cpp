@@ -1,6 +1,7 @@
 #include "render/Renderer.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <string>
 
@@ -11,9 +12,166 @@
 #include "render/Letterbox.h"
 #include "systems/InteractionSystem.h"
 #include "systems/RippleSystem.h"
+#include "systems/VisionSystem.h"
 #include "world/Level.h"
 #include "world/Raycast.h"
 #include "world/World.h"
+
+namespace {
+constexpr float kPi = 3.14159265358979323846f;
+constexpr int kConeArcSegments = 64;
+
+void drawClippedTriangle(Vector2 eye, Vector2 right, Vector2 left, Rectangle tile, Color color) {
+    std::array<Vector2, 8> polygon{eye, right, left};
+    int count = 3;
+    for (int edge = 0; edge < 4 && count >= 3; ++edge) {
+        std::array<Vector2, 8> clipped{};
+        int output = 0;
+        const bool horizontal = edge < 2;
+        const float boundary = horizontal ? tile.x + (edge == 1 ? tile.width : 0)
+                                          : tile.y + (edge == 3 ? tile.height : 0);
+        const auto coordinate = [horizontal](Vector2 p) { return horizontal ? p.x : p.y; };
+        const auto inside = [&](Vector2 p) {
+            return edge % 2 == 0 ? coordinate(p) >= boundary : coordinate(p) <= boundary;
+        };
+        for (int i = 0; i < count; ++i) {
+            const auto a = polygon[static_cast<std::size_t>(i)];
+            const auto b = polygon[static_cast<std::size_t>((i + 1) % count)];
+            if (inside(a) != inside(b)) {
+                const float t = (boundary - coordinate(a)) / (coordinate(b) - coordinate(a));
+                clipped[static_cast<std::size_t>(output++)] = {a.x + (b.x - a.x) * t,
+                                                               a.y + (b.y - a.y) * t};
+            }
+            if (inside(b)) clipped[static_cast<std::size_t>(output++)] = b;
+        }
+        polygon = clipped;
+        count = output;
+    }
+    if (count >= 3) DrawTriangleFan(polygon.data(), count, color);
+}
+}  // namespace
+
+void Renderer::prepareLevel(const Level& level) {
+    const auto corners = static_cast<std::size_t>(level.map.width() + 1) * (level.map.height() + 1);
+    const auto capacity = corners * 3 + kConeArcSegments + 1;
+    coneAngles_.reserve(capacity);
+    coneDistances_.reserve(capacity);
+    coneDirections_.reserve(capacity);
+    coneLightRegions_.reserve(static_cast<std::size_t>(level.map.width()) * level.map.height());
+}
+
+void Renderer::drawGuardCone(const Guard& guard, Vec2 position, const TileMap& map, bool crouched,
+                             float visibility) {
+    const auto& config = guard.visionConfig();
+    const VisionSystem vision(config);
+    const float range = std::max({vision.rangeFor(LightLevel::Lit, crouched),
+                                  vision.rangeFor(LightLevel::Dim, crouched),
+                                  vision.rangeFor(LightLevel::Dark, crouched)});
+    if (range <= 0 || config.coneDeg <= 0) return;
+    const float size = static_cast<float>(map.tileSize());
+    const float half = config.coneDeg * kPi / 360;
+    const int x0 = std::max(0, static_cast<int>(std::floor((position.x - range) / size)));
+    const int y0 = std::max(0, static_cast<int>(std::floor((position.y - range) / size)));
+    const int x1 =
+        std::min(map.width() - 1, static_cast<int>(std::floor((position.x + range) / size)));
+    const int y1 =
+        std::min(map.height() - 1, static_cast<int>(std::floor((position.y + range) / size)));
+    coneAngles_.clear();
+    coneDistances_.clear();
+    coneDirections_.clear();
+    for (int i = 0; i <= kConeArcSegments; ++i)
+        coneAngles_.push_back(-half + 2 * half * i / kConeArcSegments);
+    // Rays immediately to either side of wall corners preserve sharp occlusion edges.
+    for (int y = y0; y <= y1 + 1; ++y)
+        for (int x = x0; x <= x1 + 1; ++x) {
+            if (!map.blocksSight(x, y) && !map.blocksSight(x - 1, y) &&
+                !map.blocksSight(x, y - 1) && !map.blocksSight(x - 1, y - 1))
+                continue;
+            const float dx = x * size - position.x, dy = y * size - position.y;
+            if (std::hypot(dx, dy) > range) continue;
+            const float angle = std::remainder(std::atan2(dy, dx) - guard.facing(), 2 * kPi);
+            for (const float offset : {-0.00001f, 0.0f, 0.00001f})
+                if (angle + offset > -half && angle + offset < half)
+                    coneAngles_.push_back(angle + offset);
+        }
+    std::sort(coneAngles_.begin(), coneAngles_.end());
+    coneAngles_.erase(std::unique(coneAngles_.begin(), coneAngles_.end()), coneAngles_.end());
+    for (const float angle : coneAngles_) {
+        const Vec2 direction{std::cos(guard.facing() + angle), std::sin(guard.facing() + angle)};
+        coneDirections_.push_back(direction);
+        coneDistances_.push_back(Raycast::sightDistance(
+            position, {position.x + direction.x * range, position.y + direction.y * range}, map));
+    }
+    const Color color = Fade({233, 228, 208, 255}, 0.18f * visibility);
+    coneLightRegions_.clear();
+    // Merge equal-light tiles into rectangles. Occlusion is already in the ray fan,
+    // so uniform rooms need one range clip rather than hundreds of tile clips.
+    for (int y = y0; y <= y1; ++y) {
+        for (int x = x0; x <= x1;) {
+            const int start = x;
+            const float tileRange = vision.rangeFor(map.light(x, y), crouched);
+            while (x <= x1 && vision.rangeFor(map.light(x, y), crouched) == tileRange) ++x;
+            const float width = (x - start) * size;
+            bool merged = false;
+            for (auto& region : coneLightRegions_) {
+                if (region.range == tileRange && region.bounds.x == start * size &&
+                    region.bounds.width == width &&
+                    region.bounds.y + region.bounds.height == y * size) {
+                    region.bounds.height += size;
+                    merged = true;
+                    break;
+                }
+            }
+            if (!merged)
+                coneLightRegions_.push_back({{start * size, y * size, width, size}, tileRange});
+        }
+    }
+    for (const auto& region : coneLightRegions_) {
+        const float tileRange = region.range;
+        const Rectangle tile = region.bounds;
+        const float dx = position.x - std::clamp(position.x, tile.x, tile.x + tile.width);
+        const float dy = position.y - std::clamp(position.y, tile.y, tile.y + tile.height);
+        if (dx * dx + dy * dy > tileRange * tileRange) continue;
+        const float centerX = tile.x + tile.width * 0.5f - position.x;
+        const float centerY = tile.y + tile.height * 0.5f - position.y;
+        const float distance = std::hypot(centerX, centerY);
+        const float bound = std::hypot(tile.width, tile.height) * 0.5f;
+        const bool nearEye = distance <= bound;
+        const float center =
+            nearEye ? 0 : std::remainder(std::atan2(centerY, centerX) - guard.facing(), 2 * kPi);
+        const float span = nearEye ? kPi : std::asin(bound / distance);
+        // A tile's circumscribed circle bounds the fan sectors that can touch it.
+        for (int wrap = -1; wrap <= 1; ++wrap) {
+            if (nearEye && wrap != 0) continue;
+            const float low = center - span + wrap * 2 * kPi;
+            const float high = center + span + wrap * 2 * kPi;
+            if (high < -half || low > half) continue;
+            const auto first = std::max<std::size_t>(
+                1, static_cast<std::size_t>(
+                       std::lower_bound(coneAngles_.begin(), coneAngles_.end(), low) -
+                       coneAngles_.begin()));
+            const auto last =
+                std::min(coneAngles_.size() - 1,
+                         static_cast<std::size_t>(
+                             std::upper_bound(coneAngles_.begin(), coneAngles_.end(), high) -
+                             coneAngles_.begin()));
+            for (std::size_t i = first; i <= last; ++i) {
+                const float leftLength = std::min(tileRange, coneDistances_[i - 1]);
+                const float rightLength = std::min(tileRange, coneDistances_[i]);
+                const Vector2 left{position.x + coneDirections_[i - 1].x * leftLength,
+                                   position.y + coneDirections_[i - 1].y * leftLength};
+                const Vector2 right{position.x + coneDirections_[i].x * rightLength,
+                                    position.y + coneDirections_[i].y * rightLength};
+                if (std::max({position.x, left.x, right.x}) < tile.x ||
+                    std::min({position.x, left.x, right.x}) > tile.x + tile.width ||
+                    std::max({position.y, left.y, right.y}) < tile.y ||
+                    std::min({position.y, left.y, right.y}) > tile.y + tile.height)
+                    continue;
+                drawClippedTriangle({position.x, position.y}, right, left, tile, color);
+            }
+        }
+    }
+}
 
 Renderer::Renderer(Logger& logger)
     : surface_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)),
@@ -98,6 +256,7 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
     constexpr Color kDeepTeal = {30, 74, 74, 255};
     constexpr Color kGold = {242, 183, 5, 255};
     const auto& map = level.map;
+    if (!guards.empty()) prepareLevel(level);
     const float size = static_cast<float>(map.tileSize());
     const auto spawn = player.interpolatedPosition(alpha);
     Camera2D camera{};
@@ -174,6 +333,7 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
         const float visible =
             overview ? 1.0f : std::max(guard.reveal, ripple.visibility(tx, ty, player.pos, map));
         if (visible <= 0) continue;
+        drawGuardCone(guard, position, map, player.isCrouched(), visible);
         DrawCircleV({position.x, position.y}, guard.radius, Fade(kBone, visible));
         const Vector2 direction{std::cos(guard.facing()), std::sin(guard.facing())};
         DrawLineEx({position.x, position.y},

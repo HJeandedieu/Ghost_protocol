@@ -16,7 +16,7 @@ one night, and one sarcastic voice in your ear.
 
 ## Current milestone
 
-Day 8 foundation: Boot transitions to a placeholder Menu; Enter loads Gotham
+Day 9 foundation: Boot transitions to a placeholder Menu; Enter loads Gotham
 Central Bank. Tiles use the initial passability and light zones from the map and
 JSON. F3 toggles the full-bank overview in Debug builds; normal view starts at
 the alley spawn. Move with WASD or arrows, hold Left Shift to sprint, and toggle
@@ -32,7 +32,10 @@ six-segment noise meter, and the security-panel loop are available. Footsteps
 and pings publish queued hearing events. Eleven guards now follow their loop or
 ping-pong routes, or turn in place, with facing markers. F3 exposes their IDs in
 the overview. Hearing positions follow their movement, and pings reveal guards;
-vision, detection, and reactions to noise arrive in the following days.
+visible guards show 75-degree vision cones clipped by walls and closed doors.
+Vision range uses Ghost's tile lighting (300/240/180 px for lit/dim/dark), with
+a further dark-range reduction while crouching. Detection meters and reactions
+to noise arrive in the following days.
 Tap Space for a small ping; hold up to
 0.8 seconds and release for a larger ping. Walls and closed doors block reveal;
 revealed tiles fade, the player has a local halo, lit rooms stay visible, and

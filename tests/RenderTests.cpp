@@ -132,7 +132,8 @@ TEST_F(Render, GuardsRespectDarknessAndAreVisibleInLitRoomsAndOverview) {
     auto image = LoadImageFromTexture(renderer.frameTexture());
     ImageFlipVertical(&image);
     EXPECT_GT(GetImageColor(image, 120, 312).r, 200);
-    EXPECT_LT(GetImageColor(image, 216, 312).r, 15);
+    // A visible neighbor's faint cone may cover the floor, but must not expose this guard.
+    EXPECT_LT(GetImageColor(image, 216, 312).r, 100);
     UnloadImage(image);
     renderer.beginFrame();
     renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, true, 1234,
@@ -165,5 +166,65 @@ TEST_F(Render, ShippedBankPingRendersAndExportsDevelopmentPreview) {
     EXPECT_EQ(image.width, 1280);
     EXPECT_EQ(image.height, 720);
     EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day6-preview.png"));
+    UnloadImage(image);
+}
+
+TEST_F(Render, RevealedVisionConeStopsAtClosedDoorsAndUsesTargetLighting) {
+    std::ostringstream console;
+    Logger logger(console, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    Level level;
+    std::string rows;
+    for (int y = 0; y < 10; ++y) {
+        std::string row(20, '.');
+        row[7] = y == 4 ? 'S' : '#';
+        rows += row + '\n';
+    }
+    std::istringstream source(rows);
+    level.map = TileMap::parse(source, 48);
+    level.playerSpawn = {1, 1};
+    for (int y = 0; y < 10; ++y)
+        for (int x = 8; x < 20; ++x) level.map.setLight(x, y, LightLevel::Lit);
+    GuardSpawn spawn;
+    spawn.id = "G01";
+    spawn.mode = PatrolMode::Stationary;
+    spawn.waypoints = {{4, 4}};
+    level.guards.push_back(spawn);
+    World world(std::move(level), PlayerConfig{});
+    RippleSystem ripple(PingConfig{}, world.level.map);
+    const auto capture = [&] {
+        renderer.beginFrame();
+        renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, false, 1234,
+                           world.guards);
+        renderer.present();
+        auto image = LoadImageFromTexture(renderer.frameTexture());
+        ImageFlipVertical(&image);
+        return image;
+    };
+    auto image = capture();
+    EXPECT_LT(GetImageColor(image, 312, 216).r, 15);
+    UnloadImage(image);
+    std::vector<Entity*> entities{&world.guards.front()};
+    ripple.startPing(world.guards.front().pos, 0);
+    ripple.update(0.01f, world.level.map, entities);
+    ASSERT_GT(world.guards.front().reveal, 0);
+    image = capture();
+    EXPECT_GT(GetImageColor(image, 312, 216).r, 35);
+    EXPECT_LT(GetImageColor(image, 360, 216).r, 15);
+    EXPECT_LT(GetImageColor(image, 432, 216).r, 35);
+    UnloadImage(image);
+    world.level.map.setOpen(7, 4, true);
+    image = capture();
+    EXPECT_GT(GetImageColor(image, 432, 216).r, 55);
+    EXPECT_LT(GetImageColor(image, 540, 216).r, 35);
+    EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day9-cone-preview.png"));
+    UnloadImage(image);
+    Input input;
+    input.crouchPressed = true;
+    world.player.update(1.0f / 60, input, world.level.map);
+    image = capture();
+    EXPECT_LT(GetImageColor(image, 360, 216).r, 15);
+    EXPECT_GT(GetImageColor(image, 432, 216).r, 55);
     UnloadImage(image);
 }

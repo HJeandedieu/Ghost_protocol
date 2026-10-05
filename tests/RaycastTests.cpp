@@ -1,9 +1,24 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <sstream>
 
 #include "world/Raycast.h"
 #include "world/TileMap.h"
+
+TEST(Raycast, SightDistanceStopsAtWallDoorCornerAndMapBoundary) {
+    std::istringstream source(".....\n..S..\n.....");
+    auto map = TileMap::parse(source, 48);
+    EXPECT_FLOAT_EQ(Raycast::sightDistance({72, 72}, {216, 72}, map), 24);
+    map.setOpen(2, 1, true);
+    EXPECT_FLOAT_EQ(Raycast::sightDistance({72, 72}, {216, 72}, map), 144);
+    EXPECT_FLOAT_EQ(Raycast::sightDistance({72, 24}, {500, 24}, map), 168);
+    EXPECT_FLOAT_EQ(Raycast::sightDistance({72, 24}, {24, 24}, map), 48);
+    std::istringstream walls(".#.\n#..\n...");
+    map = TileMap::parse(walls, 48);
+    EXPECT_NEAR(Raycast::sightDistance({24, 24}, {72, 72}, map), std::sqrt(2.0f) * 24, 0.0001f);
+    EXPECT_FLOAT_EQ(Raycast::sightDistance({72, 24}, {120, 24}, map), 0);
+}
 
 TEST(Raycast, ClearRaysWorkInBothDirectionsAndWallsBlock) {
     std::istringstream source(".....\n..#..\n.....");
