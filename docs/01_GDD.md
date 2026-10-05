@@ -189,6 +189,10 @@ A guard hearing a noise turns Suspicious and walks to its source (Investigating)
 **Guard vision**
 - Cone angle 75°, blocked by walls and closed doors.
 - Range: lit 300 px, dim 240 px, dark 180 px. Crouched in dark: x0.7 further.
+- Range uses the target's tile lighting (Ghost's tile when checking Ghost), not the
+  guard's tile. The displayed cone shows the corresponding coverage across light
+  zones, including Ghost's crouched-dark reduction, and stops at walls and closed
+  doors. The author confirmed this interpretation on 5 October 2026.
 - Detection meter fills from 35/s at max range to 100/s at point blank. Sprinting x1.25, crouching x0.7. Decays at 25/s when unseen.
 - Meter 100 means **spotted**: the guard starts the **call-in** (3.0 s). If it reaches zero the alarm fires.
 
