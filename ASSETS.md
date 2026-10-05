@@ -11,6 +11,8 @@ this register does not grant redistribution rights or claim ownership.
 | `reference/gameplay_reference_loud.png` | Supplied by project author; described as AI-generated in visual-reference notes | Generator/creator not supplied | Not supplied | Unknown | Loud visual target only |
 | `reference/transitions_and_user_interactions.mp4` | Supplied by project author; source URL not supplied | Not supplied | Not supplied | Unknown | Motion reference only |
 | `docs/levels/gotham_central_blueprint.png` | Supplied by project author; source URL not supplied | Not supplied | Not supplied | Unknown | Bank composition reference only |
+| `assets/shaders/glsl330/post.fs` | Original project code | Ghost Protocol project | Project-owned | None | Desktop vignette and grain |
+| `assets/shaders/glsl100/post.fs` | Original project code | Ghost Protocol project | Project-owned | None | Web variant of vignette and grain |
 
 Log each future runtime font, texture, sound, and music file with its source,
 author, licence, and attribution requirements before adding it to a release.

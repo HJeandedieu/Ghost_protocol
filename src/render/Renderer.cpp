@@ -4,21 +4,62 @@
 #include <cmath>
 #include <string>
 
+#include "core/Logger.h"
 #include "entities/Player.h"
 #include "raylib.h"
 #include "render/Letterbox.h"
+#include "systems/RippleSystem.h"
 #include "world/Level.h"
+#include "world/Raycast.h"
 
-Renderer::Renderer() : surface_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)) {}
-Renderer::~Renderer() { UnloadRenderTexture(surface_); }
+Renderer::Renderer(Logger& logger)
+    : surface_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)),
+      world_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)) {
+#ifdef __EMSCRIPTEN__
+    const char* path = "assets/shaders/glsl100/post.fs";
+#else
+    const char* path = "assets/shaders/glsl330/post.fs";
+#endif
+    if (FileExists(path)) {
+        post_ = LoadShader(nullptr, path);
+        timeLocation_ = GetShaderLocation(post_, "elapsedTime");
+    }
+    if (timeLocation_ < 0)
+        logger.log(LogLevel::Error, "Post shader unavailable; using plain rendering");
+}
+Renderer::~Renderer() {
+    if (timeLocation_ >= 0) UnloadShader(post_);
+    UnloadRenderTexture(world_);
+    UnloadRenderTexture(surface_);
+}
 
-void Renderer::beginFrame() const {
+void Renderer::beginFrame() {
     constexpr Color kInk = {10, 10, 12, 255};
-    BeginTextureMode(surface_);
+    composed_ = false;
+    BeginTextureMode(world_);
     ClearBackground(kInk);
 }
 
-void Renderer::present() const {
+void Renderer::compose(bool effects) {
+    EndTextureMode();
+    BeginTextureMode(surface_);
+    ClearBackground({10, 10, 12, 255});
+    const bool useShader = effects && !reduceEffects_ && timeLocation_ >= 0;
+    if (useShader) {
+        const float elapsed = static_cast<float>(GetTime());
+        SetShaderValue(post_, timeLocation_, &elapsed, SHADER_UNIFORM_FLOAT);
+        BeginShaderMode(post_);
+    }
+    DrawTextureRec(
+        world_.texture,
+        {0, 0, static_cast<float>(Letterbox::kWidth), -static_cast<float>(Letterbox::kHeight)},
+        {0, 0}, WHITE);
+    if (useShader) EndShaderMode();
+    composed_ = true;
+}
+
+void Renderer::present() {
+    if (!composed_) compose(false);
     DrawFPS(16, 16);
     EndTextureMode();
     BeginDrawing();
@@ -46,8 +87,9 @@ void Renderer::drawError(const char* message) {
     DrawText(message, 40, 440, 20, {255, 59, 92, 255});
 }
 
-void Renderer::drawLevel(const Level& level, const Player& player, Vec2 cameraTarget, float facing,
-                         float alpha, bool overview, std::uint32_t seed) {
+void Renderer::drawLevel(const Level& level, const Player& player, const RippleSystem& ripple,
+                         Vec2 cameraTarget, float facing, float alpha, bool overview,
+                         std::uint32_t seed) {
     constexpr Color kBone = {233, 228, 208, 255};
     constexpr Color kTeal = {63, 143, 140, 255};
     constexpr Color kDeepTeal = {30, 74, 74, 255};
@@ -68,19 +110,56 @@ void Renderer::drawLevel(const Level& level, const Player& player, Vec2 cameraTa
     for (int y = 0; y < map.height(); ++y) {
         for (int x = 0; x < map.width(); ++x) {
             const auto tile = map.tile(x, y);
+            const auto topLeft = GetWorldToScreen2D({x * size, y * size}, camera);
+            const float screenSize = size * camera.zoom;
+            if (topLeft.x + screenSize < 0 || topLeft.y + screenSize < 0 ||
+                topLeft.x >= Letterbox::kWidth || topLeft.y >= Letterbox::kHeight)
+                continue;
+            const float reveal = overview ? 1.0f : ripple.visibility(x, y, player.pos, map);
+            if (reveal <= 0) continue;
             DrawRectangleRec({x * size, y * size, size, size},
-                             tile == TileType::Wall ? kTeal : kDeepTeal);
-            if (tile != TileType::Wall && tile != TileType::Floor) {
+                             Fade(tile == TileType::Wall ? kTeal : kDeepTeal, reveal));
+            if (tile != TileType::Wall && tile != TileType::Floor &&
+                tile != TileType::PlayerSpawn) {
                 const auto center = map.tileCenter({x, y});
                 const auto color = map.isPassable(x, y) ? kGold : kBone;
                 DrawRectangleRec(
                     {center.x - size * 0.2f, center.y - size * 0.2f, size * 0.4f, size * 0.4f},
-                    color);
+                    Fade(color, reveal));
                 if (overview) {
                     const char symbol[] = {static_cast<char>(tile), '\0'};
                     DrawText(symbol, static_cast<int>(x * size + size * 0.25f),
                              static_cast<int>(y * size + size * 0.25f),
                              static_cast<int>(size * 0.5f), {10, 10, 12, 255});
+                }
+            }
+            if (!overview) {
+                const auto center = map.tileCenter({x, y});
+                const bool halo = std::hypot(center.x - player.pos.x, center.y - player.pos.y) <=
+                                      ripple.haloRadius() + size &&
+                                  Raycast::hasLineOfSight(player.pos, center, map, true);
+                const bool wave = ripple.waveActive() &&
+                                  Raycast::hasLineOfSight(ripple.origin(), center, map, true);
+                if (halo || wave) {
+                    BeginScissorMode(static_cast<int>(std::floor(topLeft.x)),
+                                     static_cast<int>(std::floor(topLeft.y)),
+                                     static_cast<int>(std::ceil(screenSize)),
+                                     static_cast<int>(std::ceil(screenSize)));
+                    BeginBlendMode(BLEND_ADDITIVE);
+                    if (halo)
+                        DrawCircleGradient(static_cast<int>(spawn.x), static_cast<int>(spawn.y),
+                                           ripple.haloRadius(), Fade(kBone, 0.12f), Fade(kBone, 0));
+                    if (wave) {
+                        const auto origin = ripple.origin();
+                        const float radius = ripple.waveRadius();
+                        DrawCircleV({origin.x, origin.y}, radius, Fade(kBone, 0.08f));
+                        if (radius > 0)
+                            DrawRing({origin.x, origin.y}, std::max(0.0f, radius - 3.0f), radius, 0,
+                                     360, 128,
+                                     Fade(kBone, 0.9f * (1.0f - radius / ripple.maxRadius())));
+                    }
+                    EndBlendMode();
+                    EndScissorMode();
                 }
             }
         }
@@ -97,14 +176,18 @@ void Renderer::drawLevel(const Level& level, const Player& player, Vec2 cameraTa
     DrawLineEx({spawn.x, spawn.y},
                {spawn.x + aim.x * player.radius * 1.7f, spawn.y + aim.y * player.radius * 1.7f},
                player.radius * 0.25f, kBone);
+    if (!overview)
+        DrawRing({spawn.x, spawn.y}, player.radius + 4, player.radius + 6, -90,
+                 -90 + 360 * ripple.cooldownFraction(), 64, kBone);
     EndMode2D();
+    compose(true);
     DrawRectangle(0, 0, Letterbox::kWidth, 64, {20, 22, 27, 255});
     DrawText(level.name.c_str(), 160, 20, 24, kBone);
     DrawText(player.isCrouched() ? "CROUCH" : (player.isSprinting() ? "SPRINT" : "WALK"), 440, 24,
              20, kGold);
     DrawRectangle(0, Letterbox::kHeight - 48, Letterbox::kWidth, 48, {20, 22, 27, 255});
 #ifndef NDEBUG
-    DrawText("WASD/arrows move | Shift sprint | C/Ctrl crouch | F3 overview | F11 fullscreen", 24,
+    DrawText("WASD/arrows | Shift sprint | C/Ctrl crouch | Space tap/hold ping | F3 overview", 24,
              Letterbox::kHeight - 32, 18, kBone);
     if (overview) {
         const auto details = std::to_string(map.width()) + " x " + std::to_string(map.height()) +

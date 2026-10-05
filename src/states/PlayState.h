@@ -6,11 +6,15 @@
 #include "entities/Player.h"
 #include "render/FollowCamera.h"
 #include "states/IState.h"
+#include "systems/RippleSystem.h"
 #include "world/Level.h"
+
+class Renderer;
 
 class PlayState : public IState {
    public:
-    PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed);
+    PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed,
+              Renderer& renderer);
     void enter() override;
     void exit() override;
     void update(float dt) override;
@@ -24,4 +28,7 @@ class PlayState : public IState {
     float facing_ = 0.0f;
     std::uint32_t seed_;
     bool debugView_ = false;
+    RippleSystem ripple_;
+    std::vector<Entity*> revealables_;
+    Renderer& renderer_;
 };

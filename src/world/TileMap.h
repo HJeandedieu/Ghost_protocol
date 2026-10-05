@@ -42,6 +42,7 @@ class TileMap {
     bool contains(int x, int y) const;
     TileType tile(int x, int y) const;
     bool isPassable(int x, int y) const;
+    bool blocksSight(int x, int y) const;
     LightLevel light(int x, int y) const;
     void fillLight(LightLevel level);
     void setLight(int x, int y, LightLevel level);

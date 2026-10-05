@@ -11,10 +11,13 @@ struct Input {
     Vec2 move;
     Vec2 mouseLogical;
     bool mouseInViewport = false;
+    bool pingPressed = false;
+    bool pingHeld = false;
     void clearEdges() {
         confirmPressed = false;
         startClicked = false;
         debugPressed = false;
         crouchPressed = false;
+        pingPressed = false;
     }
 };

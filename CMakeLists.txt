@@ -10,6 +10,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(FetchContent)
 option(GP_BUILD_TESTS "Build desktop logic tests" ON)
+option(GP_BUILD_RENDER_TESTS "Build desktop tests requiring an OpenGL context" OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BUILD_EXAMPLES OFF CACHE BOOL "Build raylib examples" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "Build raylib games" FORCE)
@@ -58,6 +59,7 @@ add_library(ghost_core STATIC
     src/core/Assets.cpp
     src/entities/Player.cpp
     src/render/FollowCamera.cpp
+    src/world/Raycast.cpp src/systems/RippleSystem.cpp
 )
 target_include_directories(ghost_core PUBLIC src)
 target_link_libraries(ghost_core PRIVATE nlohmann_json::nlohmann_json)
@@ -69,11 +71,12 @@ target_link_libraries(ghost_game PRIVATE ghost_core raylib)
 gp_enable_warnings(ghost_game)
 gp_copy_mingw_runtime(ghost_game)
 
-add_custom_command(TARGET ghost_game POST_BUILD
+add_custom_target(ghost_assets
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:ghost_game>/assets"
     COMMENT "Copying game assets"
 )
+add_dependencies(ghost_game ghost_assets)
 
 if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
     enable_testing()
@@ -89,6 +92,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/AssetsTests.cpp
         tests/PlayerTests.cpp
         tests/FollowCameraTests.cpp
+        tests/RaycastTests.cpp tests/RippleSystemTests.cpp
     )
     target_link_libraries(ghost_tests PRIVATE ghost_core GTest::gtest_main
         nlohmann_json::nlohmann_json)
@@ -109,4 +113,16 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
     add_test(NAME LevelValidatorTests
         COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tests/ValidateLevelTests.py")
     set_tests_properties(LevelValidator LevelValidatorTests PROPERTIES TIMEOUT 15)
+    if(GP_BUILD_RENDER_TESTS)
+        add_executable(ghost_render_tests tests/RenderTests.cpp src/render/Renderer.cpp)
+        target_link_libraries(ghost_render_tests PRIVATE ghost_core raylib GTest::gtest_main)
+        add_dependencies(ghost_render_tests ghost_game)
+        gp_enable_warnings(ghost_render_tests)
+        target_compile_definitions(ghost_render_tests PRIVATE
+            GP_RENDER_OUTPUT_DIRECTORY="$<TARGET_FILE_DIR:ghost_render_tests>")
+        gp_copy_mingw_runtime(ghost_render_tests)
+        gtest_discover_tests(ghost_render_tests
+            WORKING_DIRECTORY "$<TARGET_FILE_DIR:ghost_game>"
+            DISCOVERY_TIMEOUT 30 PROPERTIES TIMEOUT 30)
+    endif()
 endif()

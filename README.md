@@ -16,7 +16,7 @@ one night, and one sarcastic voice in your ear.
 
 ## Current milestone
 
-Day 5 foundation: Boot transitions to a placeholder Menu; Enter loads Gotham
+Day 6 foundation: Boot transitions to a placeholder Menu; Enter loads Gotham
 Central Bank. Tiles use the initial passability and light zones from the map and
 JSON. F3 toggles the full-bank overview in Debug builds; normal view starts at
 the alley spawn. Move with WASD or arrows, hold Left Shift to sprint, and toggle
@@ -26,7 +26,12 @@ surface with letterboxing.
 Resize the window to change its size, F11 toggles fullscreen, and Escape quits.
 The existing fixed 60 Hz loop, typed tuning, logger, seeded RNG, and headless
 unit tests remain in place. Locked-door interactions arrive on Day 7, so the
-Service Door currently stops the player. Reveal and furnishing are later milestones.
+Service Door currently stops the player. Tap Space for a small ping; hold up to
+0.8 seconds and release for a larger ping. Walls and closed doors block reveal;
+revealed tiles fade, the player has a local halo, lit rooms stay visible, and
+dim rooms stay faint. The ring around Ghost refills during the ping cooldown.
+Vignette and grain affect the world before the sharp HUD is drawn. Furnishing
+and the finished HUD remain later milestones.
 The level validator checks the shipped map and entity coordinates.
 
 ## Build and test
@@ -66,6 +71,13 @@ python tools/validate_level.py docs/levels/gotham_central.json
 `ghost_core` holds window-independent logic, state-stack management, and viewport
 math. `ghost_game` owns the window, concrete screens, and renderer. `ghost_tests`
 runs without opening a window; CTest also runs the Python level checks.
+
+For desktop graphics verification, configure `-DGP_BUILD_RENDER_TESTS=ON` and
+rebuild. These additional tests require an OpenGL context, use hidden windows,
+check shader/lighting/HUD pixels and the Reduce Effects rendering stub, and
+export `day6-preview.png` into the build directory. They are off by default
+so the logic suite remains usable without a graphics context. Both desktop and
+web shader sources are present; the browser smoke test is still scheduled for Day 7.
 
 ## Visual direction
 

@@ -57,6 +57,21 @@ LightLevel TileMap::light(int x, int y) const {
     return lights_[static_cast<std::size_t>(y) * width_ + x];
 }
 
+bool TileMap::blocksSight(int x, int y) const {
+    switch (tile(x, y)) {
+        case TileType::Wall:
+        case TileType::Door:
+        case TileType::ServiceDoor:
+        case TileType::CardDoor:
+        case TileType::Gate:
+        case TileType::VaultDoor:
+        case TileType::FrontDoor:
+            return true;
+        default:
+            return false;
+    }
+}
+
 void TileMap::fillLight(LightLevel level) { std::fill(lights_.begin(), lights_.end(), level); }
 
 void TileMap::setLight(int x, int y, LightLevel level) {

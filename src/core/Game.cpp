@@ -32,7 +32,7 @@ int Game::run() {
         return 1;
     }
     SetTargetFPS(60);
-    renderer_ = std::make_unique<Renderer>();
+    renderer_ = std::make_unique<Renderer>(logger_);
 #ifdef __EMSCRIPTEN__
     constexpr bool kWaitForClick = true;
 #else
@@ -59,6 +59,7 @@ void Game::tick() {
         if (key == KEY_ENTER || key == KEY_KP_ENTER) input_.confirmPressed = true;
         if (key == KEY_F11) toggleFullscreen();
         if (key == KEY_C || key == KEY_LEFT_CONTROL) input_.crouchPressed = true;
+        if (key == KEY_SPACE) input_.pingPressed = true;
 #ifndef NDEBUG
         if (key == KEY_F3) input_.debugPressed = true;
 #endif
@@ -69,6 +70,7 @@ void Game::tick() {
                    static_cast<float>((IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) -
                                       (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)))};
     input_.sprintHeld = IsKeyDown(KEY_LEFT_SHIFT);
+    input_.pingHeld = IsKeyDown(KEY_SPACE);
     const auto viewport = Letterbox::fit(GetScreenWidth(), GetScreenHeight());
     const auto mouse = GetMousePosition();
     input_.mouseInViewport = viewport.width > 0 && viewport.height > 0 && mouse.x >= viewport.x &&
@@ -103,8 +105,8 @@ void Game::showMenu(const std::string& error) {
                 return;
             }
             logger_.log(LogLevel::Info, "State: Play");
-            states_.replace(
-                std::make_unique<PlayState>(std::move(*level), input_, config_, rng_.seed()));
+            states_.replace(std::make_unique<PlayState>(std::move(*level), input_, config_,
+                                                        rng_.seed(), *renderer_));
         },
         error));
 }
