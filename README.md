@@ -8,13 +8,17 @@ the stealth mission into a loud fight for the cash and the getaway van.
 
 ## Current milestone
 
-Day 1: a 1280x720 window with the Ink background and an FPS counter.
+Day 2 foundation: a 1280x720 window with an Ink background and FPS counter,
+a fixed 60 Hz simulation loop with interpolation timing, typed JSON tuning,
+console/file logging, seeded randomness, and headless unit tests.
 Close the window or press Escape to quit. Gameplay starts in later milestones.
 
 ## Build
 
 Requires CMake 3.20 or newer and a C++17 compiler. The first configure downloads
-raylib 5.5, so it requires an internet connection.
+raylib 5.5, nlohmann_json 3.11.3, and GoogleTest 1.15.2, so it requires an
+internet connection. Put the compiler's `bin` directory on PATH when using a
+terminal, so MinGW's compiler helpers and runtime DLLs can be found.
 
 In CLion, open this folder and select the bundled MinGW toolchain under
 Settings > Build, Execution, Deployment > Toolchains. Select the `ghost_game`
@@ -23,13 +27,23 @@ run configuration and build/run it.
 For a terminal build with MinGW and Ninja available:
 
 ```powershell
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGP_BUILD_TESTS=ON
 cmake --build build
+ctest --test-dir build --output-on-failure --stop-on-failure
 .\build\ghost_game.exe
 ```
 
-The build copies `assets/` beside the executable. Automated logic tests are
-introduced on Day 2; this milestone is checked by building and launching it.
+The build copies `assets/` and the selected MinGW runtime DLLs beside the
+executable. Run from the project root or
+the executable's directory so relative asset paths resolve. Startup reads
+`assets/config/tuning.json`, logs its RNG seed, and creates `logs/ghost.log` on
+desktop. Missing or malformed configuration falls back to documented defaults
+with warnings. Tests do not open a window. Disable desktop tests explicitly
+with `-DGP_BUILD_TESTS=OFF` for a game-only build.
+
+`ghost_core` contains window-independent configuration, logging, timing, and
+randomness. `ghost_game` owns the application/window and renderer; `ghost_tests`
+checks the core. Reference images/video remain outside runtime assets.
 
 ## Project documentation
 
@@ -47,9 +61,16 @@ that order. Contract changes must be documented before implementation; see
 | [Visual and audio design](docs/05_Design_Docs.md) | Palette, typography, screens, effects, and voice script |
 | [Development guidelines](docs/07_Development_Guidelines.md) | Code style, Git workflow, CI, testing, and QA |
 | [Implementation plan](docs/08_Implementation_Plan.md) | Daily tasks and milestones |
+| [Visual reference](docs/09_Visual_Reference.md) | Gameplay appearance, motion reference, and acceptance checklist |
 | [Agent instructions](AGENTS.md) | Rules for AI contributors |
 
 Wireframes (`docs/06_Wireframes.html`) are pending delivery.
+
+The supplied gameplay images define the finished appearance: a furnished vector
+bank, dark teal stealth, red Loud lighting, gold effects, and a stable framed HUD.
+The video in `reference/` defines geometric transitions, layered presentation,
+and visual emphasis. It supplies motion direction rather than new gameplay.
+These references describe the target; the current Day 1 window is scaffolding.
 
 ## Project structure
 
@@ -62,12 +83,17 @@ Ghost Protocol/
   .gitignore
   src/
     main.cpp
+    core/               Config, Logger, Rng, Time, and Game orchestration
+    render/             Window-dependent drawing
+  tests/                Headless GoogleTest suites
   assets/
+    config/             Documented tuning.json
     levels/             Runtime map and entity data
   docs/
     01_GDD.md ... 08_Implementation_Plan.md
+    09_Visual_Reference.md
     levels/             Documentation source copies of level data
-  logo.png              Supplied logo, awaiting asset preparation
+  reference/            Gameplay images, motion video, and supplied logo source
 ```
 
 Keep the documentation and runtime level copies synchronized when editing a

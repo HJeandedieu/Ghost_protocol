@@ -5,3 +5,4 @@ save/
 logs/
 .env
 *.log
+cmake_test_discovery_*.json

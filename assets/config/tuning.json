@@ -1,0 +1,129 @@
+{
+  "player": {
+    "radius": 14,
+    "walk": 160,
+    "sprint": 260,
+    "crouch": 80,
+    "accel": 1200,
+    "decel": 1600,
+    "bag_speed_mult": 0.75,
+    "hp": 100,
+    "armor": 50,
+    "armor_regen": 8,
+    "armor_regen_delay": 5
+  },
+  "ping": {
+    "small_radius": 260,
+    "big_radius": 520,
+    "tap_max": 0.25,
+    "charge_max": 0.8,
+    "speed": 800,
+    "fade": 2.5,
+    "cooldown": 3.0,
+    "noise_mult": 0.6,
+    "halo": 96
+  },
+  "noise": {
+    "crouch": 40,
+    "walk": 120,
+    "sprint": 280,
+    "lockpick": 120,
+    "crack": 200,
+    "crack_interval": 5,
+    "shot_suppressed": 350,
+    "shot": 900,
+    "laser": 400
+  },
+  "guard": {
+    "patrol_speed": 90,
+    "search_speed": 130,
+    "chase_speed": 200,
+    "cone_deg": 75,
+    "range_lit": 300,
+    "range_dim": 240,
+    "range_dark": 180,
+    "crouch_dark_mult": 0.7,
+    "fill_far": 35,
+    "fill_near": 100,
+    "sprint_mult": 1.25,
+    "crouch_mult": 0.7,
+    "decay": 25,
+    "callin": 3.0,
+    "takedown_range": 50,
+    "suspicious_time": 1.5,
+    "search_time": 8,
+    "investigate_look": 3
+  },
+  "camera": {
+    "cone_deg": 60,
+    "range": 340,
+    "callin": 2.0,
+    "loop_seconds": 120,
+    "sweep_speed": 20
+  },
+  "laser": {
+    "touch_cooldown": 1.5,
+    "second_touch_window": 30
+  },
+  "pager": {
+    "ring_delay": 4,
+    "answer_window": 12,
+    "answer_hold": 1.5
+  },
+  "alarm": {
+    "slowmo_scale": 0.35,
+    "slowmo_time": 0.8,
+    "flip_time": 0.4,
+    "bars_in": 0.6,
+    "bars_out": 1.2,
+    "shake_trauma": 0.8,
+    "first_wave_delay": 30,
+    "wave_interval": 25,
+    "max_alive": 12
+  },
+  "mission": {
+    "lockpick": 4,
+    "security_hold": 6,
+    "breaker_hold": 5,
+    "crack": 25,
+    "thermite_place": 2,
+    "thermite_burn": 75,
+    "dye_hold": 2,
+    "dye_burst": 45,
+    "bollard_hold": 4,
+    "van_delay": 10,
+    "throw_distance": 300
+  },
+  "payout": {
+    "bag": 20000,
+    "spoiled": 10000,
+    "ghost_bonus": 0.25,
+    "time_bonus": 10000,
+    "time_bonus_limit": 600,
+    "handler_cut": 0.15,
+    "death_penalty": 10000,
+    "rank_s": 200000,
+    "rank_a": 150000,
+    "rank_b": 90000
+  },
+  "difficulty": {
+    "easy": {
+      "enemy_dmg": 0.6,
+      "detect_fill": 0.75,
+      "ammo": 1.5,
+      "max_alive": 12
+    },
+    "normal": {
+      "enemy_dmg": 1.0,
+      "detect_fill": 1.0,
+      "ammo": 1.0,
+      "max_alive": 12
+    },
+    "hard": {
+      "enemy_dmg": 1.4,
+      "detect_fill": 1.25,
+      "ammo": 0.8,
+      "max_alive": 16
+    }
+  }
+}
