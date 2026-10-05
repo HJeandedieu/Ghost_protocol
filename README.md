@@ -11,81 +11,87 @@ A 2D top-down stealth-action heist game. You can't see in the dark, so you liste
 
 ---
 
-## About
+Day 2 foundation: a 1280x720 window with an Ink background and FPS counter,
+a fixed 60 Hz simulation loop with interpolation timing, typed JSON tuning,
+console/file logging, seeded randomness, and headless unit tests.
+Close the window or press Escape to quit. Gameplay starts in later milestones.
 
 You are **Ghost**, a thief so quiet that nobody noticed him leave his own birthday party (with the cake). Tonight's job: **Gotham Central Bank**. Ten bags of cash, one night, and one sarcastic voice in your ear.
 
-The bank is pitch black. The only way to see is to **ping**: send out a sound wave that briefly reveals walls, guards, lasers and loot. Every ping also tells the guards where you are. Stay quiet and you walk out clean. Get spotted and the lights come on, the screen flips from teal to red, police pour in, and the heist becomes a gunfight.
+Requires CMake 3.20 or newer and a C++17 compiler. The first configure downloads
+raylib 5.5, nlohmann_json 3.11.3, and GoogleTest 1.15.2, so it requires an
+internet connection. Put the compiler's `bin` directory on PATH when using a
+terminal, so MinGW's compiler helpers and runtime DLLs can be found.
 
 Written solo in C++17 with [raylib](https://www.raylib.com/), for Windows and the web.
 
 ## Features
 
-- **Ping to see.** Tap for a small pulse, hold for a big one. Bigger pulses reveal more and make more noise.
-- **Two ways to play.** Sneak the whole bank without an alarm (a "Ghost run" pays 25% extra) or go loud with guns and thermite.
-- **Living guards.** Vision cones, detection meters, hearing, pagers, call-ins, cameras and laser tripwires.
-- **Three guns and a takedown.** Suppressed pistol, SMG, shotgun, plus a silent melee knockout.
-- **Police waves.** Cops, shield cops and heavies arrive on a clock once the alarm fires.
-- **A full heist.** Keycard, power room, vault (quiet crack or thermite), dye packs, bags, bollards, van.
-- **Flat vector style.** Bold shapes, a teal-to-red palette flip at the alarm, grain and glow.
-- **A Handler with opinions.** Voiced, subtitled, and not telling you everything.
-- **Payout screen.** Receipt-style breakdown with deductions, a rank stamp, and a twist.
-
-## How to play
-
-| Action | Input |
-|---|---|
-| Move | Arrow keys or WASD |
-| Aim / Fire | Mouse / Left click |
-| Ping | Space (tap = small, hold = big) |
-| Sprint | Hold Shift (louder) |
-| Crouch | Ctrl or C (quieter, slower) |
-| Takedown | Right click, close to a guard |
-| Interact | Hold E |
-| Reload / Switch weapon | R / 1, 2 or mouse wheel |
-| Throw bag | G |
-| Objectives | Hold Tab |
-| Pause / Fullscreen | Esc / F11 |
-
-### The heist
-
-1. **Back Door:** lockpick the Service Door in the alley.
-2. **Red Card:** find the red keycard. Optionally loop the cameras at the security panel.
-3. **Lights Out:** flip the breaker in the Power Room to open the vault gate.
-4. **Open Sesame:** crack the vault quietly (25 s) or place thermite (75 s) and hold the line.
-5. **Cash and Dye:** disarm the dye packs and grab the bags. You carry one at a time.
-6. **Get Out:** lower the bollards, load the van, leave.
-
-## Build from source
-
-**Requirements:** CLion (or any CMake 3.20+ setup), a C++17 compiler (CLion's bundled MinGW works), and an internet connection for the first configure (dependencies are fetched by CMake).
-
-```bash
-git clone https://github.com/hjeandedieu/ghost-protocol.git
-cd ghost-protocol
-
-# Debug build with tests
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DGP_BUILD_TESTS=ON
+```powershell
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGP_BUILD_TESTS=ON
 cmake --build build
-ctest --test-dir build --output-on-failure
-
-# Run (from the repo root so assets/ is found)
-./build/ghost_game        # Windows: build\ghost_game.exe
+ctest --test-dir build --output-on-failure --stop-on-failure
+.\build\ghost_game.exe
 ```
+
+The build copies `assets/` and the selected MinGW runtime DLLs beside the
+executable. Run from the project root or
+the executable's directory so relative asset paths resolve. Startup reads
+`assets/config/tuning.json`, logs its RNG seed, and creates `logs/ghost.log` on
+desktop. Missing or malformed configuration falls back to documented defaults
+with warnings. Tests do not open a window. Disable desktop tests explicitly
+with `-DGP_BUILD_TESTS=OFF` for a game-only build.
+
+`ghost_core` contains window-independent configuration, logging, timing, and
+randomness. `ghost_game` owns the application/window and renderer; `ghost_tests`
+checks the core. Reference images/video remain outside runtime assets.
 
 ### Web build (WebAssembly)
 
 Requires the [Emscripten SDK](https://emscripten.org/).
 
-```bash
-emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release
-cmake --build build-web
-```
+| Document | Contents |
+|---|---|
+| [Game design](docs/01_GDD.md) | Story, mechanics, requirements, and priorities |
+| [Architecture](docs/02_Architecture.md) | Layers, loop, rendering, and web rules |
+| [Systems contract](docs/03_Systems_Contract.md) | Events, state machines, and interfaces |
+| [Data formats](docs/04_Data_Formats.md) | Configuration, levels, saves, and asset formats |
+| [Visual and audio design](docs/05_Design_Docs.md) | Palette, typography, screens, effects, and voice script |
+| [Development guidelines](docs/07_Development_Guidelines.md) | Code style, Git workflow, CI, testing, and QA |
+| [Implementation plan](docs/08_Implementation_Plan.md) | Daily tasks and milestones |
+| [Visual reference](docs/09_Visual_Reference.md) | Gameplay appearance, motion reference, and acceptance checklist |
+| [Agent instructions](AGENTS.md) | Rules for AI contributors |
 
 Serve the output folder with any static web server and open it in a browser. Web-specific notes live in `docs/02_Architecture.md` section 10.
 
+The supplied gameplay images define the finished appearance: a furnished vector
+bank, dark teal stealth, red Loud lighting, gold effects, and a stable framed HUD.
+The video in `reference/` defines geometric transitions, layered presentation,
+and visual emphasis. It supplies motion direction rather than new gameplay.
+These references describe the target; the current Day 1 window is scaffolding.
+
 ## Project structure
 
+```text
+Ghost Protocol/
+  CMakeLists.txt
+  README.md
+  AGENTS.md
+  .clang-format
+  .gitignore
+  src/
+    main.cpp
+    core/               Config, Logger, Rng, Time, and Game orchestration
+    render/             Window-dependent drawing
+  tests/                Headless GoogleTest suites
+  assets/
+    config/             Documented tuning.json
+    levels/             Runtime map and entity data
+  docs/
+    01_GDD.md ... 08_Implementation_Plan.md
+    09_Visual_Reference.md
+    levels/             Documentation source copies of level data
+  reference/            Gameplay images, motion video, and supplied logo source
 ```
 ghost-protocol/
   src/          core, world, entities, systems, render, ui, states

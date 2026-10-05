@@ -13,6 +13,10 @@ You do not need any other game as a reference. Everything required is in `docs/`
 3. `docs/03_Systems_Contract.md` — events, state machines, interfaces
 4. `docs/04_Data_Formats.md` — config and level formats
 5. `docs/08_Implementation_Plan.md` — which day's tasks you are doing
+6. `docs/05_Design_Docs.md` and `docs/09_Visual_Reference.md` — finished appearance, motion, HUD, and acceptance criteria
+
+## Persistent project context (updated 5 October 2026)
+The author confirmed: reference images define gameplay appearance; `reference/transitions_and_user_interactions.mp4` defines presentation motion. Build a furnished, orthographic vector bank with dark teal stealth, Bone pings/cones, red Loud lighting, gold combat/loot effects, distinct character silhouettes, and a stable framed HUD with Handler portrait/subtitles. Use geometric screen transitions, restrained menu/briefing parallax, and prompt visual feedback. Plain tiles/circles are scaffolding, not the finished target. Follow `docs/09_Visual_Reference.md`; do not invent a percentage reduction in fidelity. Map/JSON define collision and entity positions; the blueprint guides visual composition. Reference media are development inputs, not runtime assets. This records project context for future sessions; it does not claim these features are already implemented.
 
 ## The Docs-First Rule
 Never implement a **contract change** (a different number meaning, file format, event, state machine, or requirement) before the docs reflect it. If a task needs one: stop, say which file and section must change and why, wait for the human to update `docs/`, then continue. If the docs already cover it, proceed and cite the FR ID (e.g. `FR-05`) in the PR.

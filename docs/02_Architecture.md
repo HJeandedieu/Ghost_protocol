@@ -95,6 +95,10 @@ All drawing goes to a 1280x720 `RenderTexture` (the "game surface"), then scaled
 6. **HUD pass:** drawn after post so UI stays sharp.
 7. **Letterbox blit** to the window.
 
+World rendering includes decorative bank furnishing and layered tonal geometry as specified in `09_Visual_Reference.md`. Decoration reads the same room/tile reveal and light values and adds no gameplay collision. Characters receive the Loud-phase Bone rim. The HUD follows the reference anchors, hides noise/ping indicators when Loud, and presents the active thermite countdown.
+
+Screen transitions are non-blocking presentation animations driven by elapsed time. Render the outgoing/incoming screen compositions with geometric masks and restrained parallax for menus/briefing; keep gameplay camera and HUD anchors stable. Transition effects do not dispatch gameplay events or write world state. Input, skip, and back handling remain active. Reduce Effects selects a simple fade. Reference media stay outside runtime `assets/` and are not preloaded into releases.
+
 **Reveal values** are computed in logic, not in shaders. `RippleSystem` keeps one float per tile (80x56) and a float per revealable entity. When a wave front crosses a tile with line of sight to the ping origin, the value is set to 1.0 and then decays linearly over 2.5 s. This keeps the look testable.
 
 Shaders ship in two variants because desktop and web differ: `assets/shaders/glsl330/` (desktop) and `assets/shaders/glsl100/` (web).

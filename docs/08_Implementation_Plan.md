@@ -9,6 +9,8 @@ Every day lists: **Goal**, **Tasks** (do them in order), and **Done when** (the 
 ---
 
 ## How every day starts and ends
+**Visual baseline:** read `09_Visual_Reference.md` alongside the day's tasks. Early rectangles/circles and placeholder screens are scaffolding; the final target is the furnished gameplay images and motion language of the video. Existing dates and gameplay scope remain the schedule baseline.
+
 **Start (5 min):** `git checkout main && git pull`, read today's block, create the branch named in the block.
 **End (10 min):** run `ctest`, commit with a Conventional Commit message, push, open a PR, squash-merge, tick the day in your own notes, and write two lines: what worked, what is tomorrow's first step.
 **Every Sunday:** web smoke test (15 min, from 11 Oct), tag the week, review the schedule (see "If you fall behind").
@@ -58,6 +60,7 @@ Every day lists: **Goal**, **Tasks** (do them in order), and **Done when** (the 
 1. `TileMap` (80x56 grid, tile types, passability, light level per tile), `LevelLoader` for `gotham_central.map` + `.json`.
 2. Draw tiles as flat rectangles in Deep Teal (floor) and Teal (wall), no reveal yet; debug draw the whole map.
 3. Tests: parse a tiny 5x5 sample map, passability, bad file rejected.
+4. Compare room connectivity with the blueprint and map/JSON. Keep visual furnishing in rendering; do not invent collision from the blueprint.
 **Done when:** the full bank is visible when you press F3 (debug shows everything); tests pass.
 
 ### Day 5: Fri 9 Oct (light, 2 h) Player movement and camera
@@ -237,6 +240,7 @@ Every day lists: **Goal**, **Tasks** (do them in order), and **Done when** (the 
 1. Load Orbitron and Inter; build the button widget (hover ease 0.15 s).
 2. Main Menu per the wireframe (bank facade drifting, logo, START HEIST, SETTINGS, CREDITS, QUIT on desktop).
 3. Settings screen: four volume sliders, fullscreen, hints, reduce effects, difficulty; `SaveStore` persists `settings.json`.
+4. Apply reference HUD anchors and framed panel hierarchy; add geometric screen entrances and prompt hover/selection feedback within the existing UI timings.
 **Done when:** the menu looks good in a screenshot and settings survive a restart.
 
 ### Day 23: Tue 27 Oct (light, 2 h) Pause, Busted, briefing
@@ -245,6 +249,7 @@ Every day lists: **Goal**, **Tasks** (do them in order), and **Done when** (the 
 1. Pause (Esc): Resume, Settings, Restart stage, Quit to menu.
 2. Final Busted screen with random quip from the pool and Retry/Menu.
 3. Briefing: 4 slides with simple tweened shapes (facade, vault, van, "Are you in or out?" + START HEIST), Space to skip.
+4. Use the reference video's layered directional transitions for these presentation screens; ensure skip/back works throughout and Reduce Effects uses simple fades.
 **Done when:** menu to briefing to loadout to play to pause to busted to retry all flow without a glitch.
 
 ### Day 24: Wed 28 Oct (light, 2 h) Payout screen
@@ -270,6 +275,7 @@ Every day lists: **Goal**, **Tasks** (do them in order), and **Done when** (the 
 1. `VoiceDirector`: trigger each line from its event, priority rules (3 interrupts, 1 never interrupts), subtitle bar and Handler portrait (flicker on panic lines).
 2. Tutorial hints (first ping, crouch, takedown, pager, interact) as toasts + voice, off when Hints is off.
 3. Polish grain, vignette and glow; ship the `glsl100` shader variant for web.
+4. Complete the bank furnishing, character silhouette details, Loud Bone rims, and active thermite timer. Compare stealth/Loud screenshots and a screen-transition recording using `09_Visual_Reference.md`; hide noise/ping indicators when Loud.
 **Done when:** a first-time player gets guided from the alley to the first guard without reading a manual.
 
 ### Day 27: Sat 31 Oct (HEAVY, 8 h) QA, web build, package, SUBMIT
