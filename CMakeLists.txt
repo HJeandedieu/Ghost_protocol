@@ -122,6 +122,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/TakedownTests.cpp
         tests/AlarmDirectorTests.cpp tests/PagerSystemTests.cpp
         tests/CameraTests.cpp tests/LaserSystemTests.cpp tests/HazardRevealTests.cpp
+        tests/StealthRunTests.cpp
     )
     target_link_libraries(ghost_tests PRIVATE ghost_core GTest::gtest_main
         nlohmann_json::nlohmann_json)
