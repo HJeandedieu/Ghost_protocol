@@ -96,7 +96,8 @@ void PlayState::update(float dt) {
     }
     camera_.update(dt, player.pos, cursorOffset);
     const float before = ripple_.cooldownRemaining();
-    ripple_.updateCharge(dt, input_.pingHeld, input_.pingPressed, player.pos);
+    if (!world_.alarmLoud)
+        ripple_.updateCharge(dt, input_.pingHeld, input_.pingPressed, player.pos);
     if (before <= 0 && ripple_.waveActive() && ripple_.waveRadius() == 0)
         noise_.emit(ripple_.origin(), ripple_.maxRadius() * config_.ping.noiseMult, NoiseType::Ping,
                     player.id);

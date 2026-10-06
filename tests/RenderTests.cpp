@@ -623,3 +623,54 @@ TEST_F(Render, PlayStateStartsAssaultClockAfterAlarmAndDisplaysWaveHud) {
     UnloadImage(expected);
     UnloadImage(image);
 }
+
+TEST_F(Render, LoudUsesFullRedVisibilityBoneRimAndHidesNoiseAndPingEffects) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    Level level;
+    std::string rows;
+    for (int y = 0; y < 15; ++y) {
+        std::string row(40, '.');
+        if (y == 7) row[4] = '#';
+        rows += row + '\n';
+    }
+    std::istringstream source(rows);
+    level.map = TileMap::parse(source, 48);
+    level.playerSpawn = {13, 7};
+    World world(std::move(level), PlayerConfig{});
+    world.alarmLoud = true;
+    world.player.pos = world.player.prevPos = {640, 360};
+    RippleSystem ripple(PingConfig{}, world.level.map);
+    ripple.startPing(world.player.pos, 0);
+    EventBus bus;
+    InteractionSystem interaction(bus);
+    renderer.beginFrame();
+    renderer.drawLevel(world.level, world.player, ripple, world.player.pos, 0, 1, false, 42, {}, {},
+                       {}, false, nullptr, {}, true);
+    renderer.drawInteractionHud(world, interaction, 1000, 500);
+    renderer.present();
+    auto image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    const auto wall = GetImageColor(image, 200, 360);
+    EXPECT_EQ(wall.r, 255);
+    EXPECT_EQ(wall.g, 59);
+    EXPECT_EQ(wall.b, 92);
+    for (const int x : {300, 680}) {
+        const auto floor = GetImageColor(image, x, 360);
+        EXPECT_EQ(floor.r, 122);
+        EXPECT_EQ(floor.g, 26);
+        EXPECT_EQ(floor.b, 43);
+    }
+    const auto rim = GetImageColor(image, 655, 360);
+    EXPECT_EQ(rim.r, 233);
+    EXPECT_EQ(rim.g, 228);
+    const auto noise = GetImageColor(image, 108, 140);
+    EXPECT_EQ(noise.r, 20);
+    EXPECT_EQ(noise.g, 22);
+    EXPECT_EQ(noise.b, 27);
+    EXPECT_FLOAT_EQ(ripple.tileReveal(4, 7), 0);
+    ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day19-loud-preview.png");
+    UnloadImage(image);
+}
