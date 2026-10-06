@@ -10,7 +10,9 @@
 #include "entities/Player.h"
 #include "raylib.h"
 #include "render/Letterbox.h"
+#include "systems/AlarmDirector.h"
 #include "systems/InteractionSystem.h"
+#include "systems/PagerSystem.h"
 #include "systems/RippleSystem.h"
 #include "systems/VisionSystem.h"
 #include "world/Level.h"
@@ -433,4 +435,21 @@ void Renderer::drawInteractionHud(const World& world, const InteractionSystem& i
             DrawRing({960, static_cast<float>(Letterbox::kHeight - 84)}, 14, 18, -90,
                      -90 + 360 * interaction.progress(), 64, kBone);
     }
+}
+
+void Renderer::drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pagers,
+                              const std::vector<Guard>& guards) const {
+    constexpr Color kAlarm = {255, 59, 92, 255};
+    constexpr Color kBone = {233, 228, 208, 255};
+    if (alarm.state() == AlarmState::CallIn)
+        DrawText(TextFormat("SPOTTED %.1fs", alarm.callInRemaining()), 560, 96, 24, kAlarm);
+    else if (alarm.state() == AlarmState::Loud)
+        DrawText("ALARM", 560, 96, 24, kAlarm);
+    int y = 136;
+    for (const auto& guard : guards)
+        if (pagers.state(guard.id) == PagerState::Ringing) {
+            DrawText(TextFormat("PAGER %s %.1fs", guard.id.c_str(), pagers.remaining(guard.id)),
+                     560, y, 18, kBone);
+            y += 24;
+        }
 }

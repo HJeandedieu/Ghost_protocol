@@ -13,6 +13,8 @@ class RippleSystem;
 class Logger;
 class InteractionSystem;
 class TileMap;
+class AlarmDirector;
+class PagerSystem;
 struct World;
 
 class Renderer {
@@ -30,6 +32,8 @@ class Renderer {
                             float noiseRadius, float maximumNoise) const;
     static void drawPlaceholder(const char* title, const char* subtitle);
     static void drawError(const char* message);
+    void drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pagers,
+                        const std::vector<Guard>& guards) const;
     void drawLevel(const Level& level, const Player& player, const RippleSystem& ripple,
                    Vec2 cameraTarget, float facing, float alpha, bool overview, std::uint32_t seed,
                    const std::vector<Guard>& guards = {});

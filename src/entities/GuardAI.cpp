@@ -7,6 +7,7 @@
 #include "core/EventBus.h"
 #include "core/Logger.h"
 #include "entities/Guard.h"
+#include "world/Pathfinder.h"
 #include "world/Raycast.h"
 
 namespace {
@@ -15,13 +16,21 @@ float distance(Vec2 a, Vec2 b) { return std::hypot(a.x - b.x, a.y - b.y); }
 }  // namespace
 
 GuardAI::GuardAI(Guard& guard, TileMap& map, EventBus& events, Logger& logger)
-    : guard_(guard), map_(map), logger_(logger) {
+    : guard_(guard), map_(map), logger_(logger), pathfinder_(guard.visionConfig(), map) {
+    investigatePath_.reserve(static_cast<std::size_t>(map.width()) * map.height());
     events.subscribe<NoiseEmitted>([this](const NoiseEmitted& event) { hear(event); });
+    events.subscribe<AlarmTriggered>([this](const auto&) {
+        if (guard_.state_ != GuardState::Unconscious) {
+            guard_.state_ = GuardState::Combat;
+            guard_.callInRemaining_ = 0;
+            guard_.callInCompleted_ = true;
+        }
+    });
 }
 
 bool GuardAI::canReach(Vec2 target) const {
-    return Raycast::isPathClear(guard_.pos, target, guard_.radius, map_,
-                                guard_.config_.pathClearStep);
+    pathfinder_.findPath(guard_.pos, target, map_, investigatePath_);
+    return !investigatePath_.empty();
 }
 
 void GuardAI::hear(const NoiseEmitted& event) {
@@ -125,6 +134,7 @@ void GuardAI::update(float deltaTime) {
                 guard.state_ = GuardState::Investigating;
                 looking_ = false;
                 trackingProgress_ = false;
+                pathIndex_ = 0;
             }
             continue;
         }
@@ -167,14 +177,19 @@ void GuardAI::update(float deltaTime) {
         if (guard.state_ == GuardState::Searching && pauseRemaining_ > 0)
             slice = std::min(slice, pauseRemaining_);
         if (guard.state_ == GuardState::Investigating) {
+            const Vec2 target = pathIndex_ < investigatePath_.size() ? investigatePath_[pathIndex_]
+                                                                     : guard.interestPoint_;
             // Start the progress window before movement, including its first step.
-            if (!trackingProgress_) stuck(guard.interestPoint_, 0);
-            if (moveToward(guard.interestPoint_, speed, slice, true)) {
-                looking_ = true;
-                lookElapsed_ = 0;
-                arrivalHeading_ = guard.facing_;
+            if (!trackingProgress_) stuck(target, 0);
+            if (moveToward(target, speed, slice, true)) {
+                ++pathIndex_;
                 trackingProgress_ = false;
-            } else if (stuck(guard.interestPoint_, slice))
+                if (pathIndex_ >= investigatePath_.size()) {
+                    looking_ = true;
+                    lookElapsed_ = 0;
+                    arrivalHeading_ = guard.facing_;
+                }
+            } else if (stuck(target, slice))
                 startSearching(guard.pos);
         } else if (guard.state_ == GuardState::Searching) {
             searchElapsed_ += slice;

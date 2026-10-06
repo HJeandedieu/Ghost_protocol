@@ -33,6 +33,23 @@ struct BodyFound {
     std::string guardId;
     std::string bodyId;
 };
+struct PagerRang {
+    std::string bodyId;
+};
+struct PagerAnswered {
+    std::string bodyId;
+};
+struct PagerMissed {
+    std::string bodyId;
+};
+struct LaserTouched {
+    std::string laserId;
+    int count = 0;
+};
+enum class AlarmReason { CallIn, Laser, Pager, Shot, Thermite, Combat };
+struct AlarmTriggered {
+    AlarmReason reason = AlarmReason::CallIn;
+};
 struct InteractionProgress {
     std::string interactableId;
     float progress = 0;
