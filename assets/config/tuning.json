@@ -12,6 +12,10 @@
     "armor_regen": 8,
     "armor_regen_delay": 5
   },
+  "view": {
+    "lead_px": 60,
+    "follow_rate": 8
+  },
   "ping": {
     "small_radius": 260,
     "big_radius": 520,
@@ -35,6 +39,8 @@
     "laser": 400
   },
   "guard": {
+    "radius": 14,
+    "stationary_turn_speed": 20,
     "patrol_speed": 90,
     "search_speed": 130,
     "chase_speed": 200,

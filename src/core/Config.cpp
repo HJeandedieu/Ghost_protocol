@@ -59,6 +59,10 @@ Config Config::load(const std::string& path, Logger& logger) {
         readNumber(player, "armor_regen", config.player.armorRegen, "player", logger);
     config.player.armorRegenDelay =
         readNumber(player, "armor_regen_delay", config.player.armorRegenDelay, "player", logger);
+    const auto& view = groupOrEmpty(data, "view", empty);
+    config.view.leadPx = readNumber(view, "lead_px", config.view.leadPx, "view", logger);
+    config.view.followRate =
+        readNumber(view, "follow_rate", config.view.followRate, "view", logger);
     const auto& ping = groupOrEmpty(data, "ping", empty);
     config.ping.smallRadius =
         readNumber(ping, "small_radius", config.ping.smallRadius, "ping", logger);
@@ -83,6 +87,9 @@ Config Config::load(const std::string& path, Logger& logger) {
     config.noise.shot = readNumber(noise, "shot", config.noise.shot, "noise", logger);
     config.noise.laser = readNumber(noise, "laser", config.noise.laser, "noise", logger);
     const auto& guard = groupOrEmpty(data, "guard", empty);
+    config.guard.radius = readNumber(guard, "radius", config.guard.radius, "guard", logger);
+    config.guard.stationaryTurnSpeed = readNumber(
+        guard, "stationary_turn_speed", config.guard.stationaryTurnSpeed, "guard", logger);
     config.guard.patrolSpeed =
         readNumber(guard, "patrol_speed", config.guard.patrolSpeed, "guard", logger);
     config.guard.searchSpeed =

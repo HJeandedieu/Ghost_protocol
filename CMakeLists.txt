@@ -10,9 +10,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(FetchContent)
 option(GP_BUILD_TESTS "Build desktop logic tests" ON)
+option(GP_BUILD_RENDER_TESTS "Build desktop tests requiring an OpenGL context" OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BUILD_EXAMPLES OFF CACHE BOOL "Build raylib examples" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "Build raylib games" FORCE)
+if(EMSCRIPTEN)
+    set(PLATFORM Web CACHE STRING "raylib platform" FORCE)
+endif()
 FetchContent_Declare(raylib
     URL https://github.com/raysan5/raylib/archive/refs/tags/5.5.tar.gz
 )
@@ -53,21 +57,41 @@ endfunction()
 
 add_library(ghost_core STATIC
     src/core/Config.cpp src/core/Logger.cpp src/core/Rng.cpp src/core/Time.cpp
+    src/states/StateMachine.cpp src/render/Letterbox.cpp
+    src/world/TileMap.cpp src/world/LevelLoader.cpp
+    src/core/Assets.cpp
+    src/entities/Player.cpp src/entities/Guard.cpp
+    src/render/FollowCamera.cpp
+    src/world/Raycast.cpp src/systems/RippleSystem.cpp
+    src/systems/NoiseSystem.cpp src/systems/InteractionSystem.cpp
+    src/systems/VisionSystem.cpp
 )
 target_include_directories(ghost_core PUBLIC src)
 target_link_libraries(ghost_core PRIVATE nlohmann_json::nlohmann_json)
 gp_enable_warnings(ghost_core)
 
-add_executable(ghost_game src/main.cpp src/core/Game.cpp src/render/Renderer.cpp)
+add_executable(ghost_game src/main.cpp src/core/Game.cpp src/render/Renderer.cpp
+    src/states/BootState.cpp src/states/MenuState.cpp src/states/PlayState.cpp)
 target_link_libraries(ghost_game PRIVATE ghost_core raylib)
 gp_enable_warnings(ghost_game)
 gp_copy_mingw_runtime(ghost_game)
+if(EMSCRIPTEN)
+    set_target_properties(ghost_game PROPERTIES OUTPUT_NAME index SUFFIX ".html")
+    target_link_options(ghost_game PRIVATE
+        "--preload-file" "${CMAKE_CURRENT_SOURCE_DIR}/assets@assets"
+        "--shell-file" "${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html"
+        "-sINITIAL_MEMORY=134217728" "-sALLOW_MEMORY_GROWTH=1"
+        "-sMAXIMUM_MEMORY=536870912"
+        "-sEXPORTED_RUNTIME_METHODS=HEAPF32")
+    add_custom_target(ghost_web DEPENDS ghost_game)
+endif()
 
-add_custom_command(TARGET ghost_game POST_BUILD
+add_custom_target(ghost_assets
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:ghost_game>/assets"
     COMMENT "Copying game assets"
 )
+add_dependencies(ghost_game ghost_assets)
 
 if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
     enable_testing()
@@ -78,10 +102,21 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
     FetchContent_MakeAvailable(googletest)
     add_executable(ghost_tests
         tests/ConfigTests.cpp tests/LoggerTests.cpp tests/RngTests.cpp tests/TimeTests.cpp
+        tests/StateMachineTests.cpp tests/LetterboxTests.cpp
+        tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
+        tests/AssetsTests.cpp
+        tests/PlayerTests.cpp tests/GuardTests.cpp
+        tests/FollowCameraTests.cpp
+        tests/RaycastTests.cpp tests/RippleSystemTests.cpp
+        tests/EventBusTests.cpp tests/NoiseSystemTests.cpp tests/InteractionSystemTests.cpp
+        tests/VisionSystemTests.cpp
     )
     target_link_libraries(ghost_tests PRIVATE ghost_core GTest::gtest_main
         nlohmann_json::nlohmann_json)
     gp_enable_warnings(ghost_tests)
+    add_dependencies(ghost_tests ghost_game)
+    target_compile_definitions(ghost_tests PRIVATE
+        GP_RUNTIME_TEST_DIRECTORY="$<TARGET_FILE_DIR:ghost_game>")
     gp_copy_mingw_runtime(ghost_tests)
     include(GoogleTest)
     gtest_discover_tests(ghost_tests
@@ -89,4 +124,22 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         DISCOVERY_TIMEOUT 30
         PROPERTIES TIMEOUT 15
     )
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+    add_test(NAME LevelValidator
+        COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_level.py")
+    add_test(NAME LevelValidatorTests
+        COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tests/ValidateLevelTests.py")
+    set_tests_properties(LevelValidator LevelValidatorTests PROPERTIES TIMEOUT 15)
+    if(GP_BUILD_RENDER_TESTS)
+        add_executable(ghost_render_tests tests/RenderTests.cpp src/render/Renderer.cpp)
+        target_link_libraries(ghost_render_tests PRIVATE ghost_core raylib GTest::gtest_main)
+        add_dependencies(ghost_render_tests ghost_game)
+        gp_enable_warnings(ghost_render_tests)
+        target_compile_definitions(ghost_render_tests PRIVATE
+            GP_RENDER_OUTPUT_DIRECTORY="$<TARGET_FILE_DIR:ghost_render_tests>")
+        gp_copy_mingw_runtime(ghost_render_tests)
+        gtest_discover_tests(ghost_render_tests
+            WORKING_DIRECTORY "$<TARGET_FILE_DIR:ghost_game>"
+            DISCOVERY_TIMEOUT 30 PROPERTIES TIMEOUT 30)
+    endif()
 endif()

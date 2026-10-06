@@ -13,6 +13,8 @@ TEST(Config, LoadsDocumentedTuningWithoutWarnings) {
     Logger logger(console, "");
     const auto config = Config::load("assets/config/tuning.json", logger);
     EXPECT_FLOAT_EQ(config.player.walk, 160.0f);
+    EXPECT_FLOAT_EQ(config.view.leadPx, 60.0f);
+    EXPECT_FLOAT_EQ(config.view.followRate, 8.0f);
     EXPECT_FLOAT_EQ(config.ping.bigRadius, 520.0f);
     EXPECT_FLOAT_EQ(config.mission.thermiteBurn, 75.0f);
     EXPECT_FLOAT_EQ(config.difficulty.hard.maxAlive, 16.0f);
@@ -32,6 +34,40 @@ TEST(Config, MissingKeyFallsBackAndPreservesOtherOverrides) {
     EXPECT_FLOAT_EQ(config.player.sprint, 275.0f);
     EXPECT_NE(console.str().find("[WARN] Missing or invalid tuning key: player.walk"),
               std::string::npos);
+}
+
+TEST(Config, CameraTuningOverridesAndMissingValuesUseDocumentedDefaults) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    data["view"]["lead_px"] = 40;
+    data["view"].erase("follow_rate");
+    std::ostringstream console;
+    Logger logger(console, "");
+    const auto config = Config::load(files.write("view.json", data.dump()), logger);
+    EXPECT_FLOAT_EQ(config.view.leadPx, 40);
+    EXPECT_FLOAT_EQ(config.view.followRate, 8);
+    EXPECT_NE(console.str().find("view.follow_rate"), std::string::npos);
+}
+
+TEST(Config, GuardRadiusAndStationaryTurnTuningLoadAndRejectInvalidValues) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    data["guard"]["radius"] = 12;
+    data["guard"]["stationary_turn_speed"] = 15;
+    std::ostringstream console;
+    Logger logger(console, "");
+    const auto custom = Config::load(files.write("guard.json", data.dump()), logger);
+    EXPECT_FLOAT_EQ(custom.guard.radius, 12);
+    EXPECT_FLOAT_EQ(custom.guard.stationaryTurnSpeed, 15);
+    data["guard"]["radius"] = -1;
+    data["guard"].erase("stationary_turn_speed");
+    const auto fallback = Config::load(files.write("guard-invalid.json", data.dump()), logger);
+    EXPECT_FLOAT_EQ(fallback.guard.radius, 14);
+    EXPECT_FLOAT_EQ(fallback.guard.stationaryTurnSpeed, 20);
+    EXPECT_NE(console.str().find("guard.radius"), std::string::npos);
+    EXPECT_NE(console.str().find("guard.stationary_turn_speed"), std::string::npos);
 }
 
 TEST(Config, MissingFileAndMalformedJsonUseDefaults) {
