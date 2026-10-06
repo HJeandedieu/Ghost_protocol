@@ -104,7 +104,7 @@ A second job for the web build is added in Week 4. A red CI blocks merging.
 | `CombatSystem` | Damage, armor order, shield block, ammo, reload |
 | `Enemy` / `Cop` | Documented enemy data, range/LOS acquisition, reaction reset, burst timing and seeded accuracy, blocked movement, dead-target exclusion and one death/drop notification |
 | `PickupSystem` | Seeded police-only drop outcomes, duplicate death rejection, collection range/LOS and interaction priority, capped restoration, full/dead-player rejection |
-| `WaveSpawner` | Timing, composition, cap on alive enemies |
+| `WaveSpawner` | Wave-data validation, timing/events, composition, alive/pending cap, discarded overflow, visible/blocked entry waits |
 | `ObjectiveSystem` | Stage order; presets for checkpoint retry |
 | `ScoreSystem` | Payout maths, ghost bonus, deductions, ranks |
 | `Config` | Loads good file; missing key falls back with a warning |

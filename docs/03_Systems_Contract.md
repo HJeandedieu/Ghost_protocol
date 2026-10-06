@@ -95,6 +95,16 @@ New noise or meter above 0 interrupts any of this and returns the guard to Suspi
 - While Advancing, use A* toward the player and refresh the path every `enemy_combat.path_refresh` (0.5 s). If no path exists, remain in place and retry on that interval; never walk through blocking tiles.
 - At HP 0 an enemy enters Dead immediately, stops moving/firing and no longer blocks hitscan shots. `EntityDied` is raised once. Its presentation fades over `enemy_combat.death_fade` (0.6 s), independently of entity reveal. Police recovery drops follow §3.7, once per death.
 
+#### 3.2.2 Day 18 waves and specialist enemies (author approved 6 October 2026)
+- The assault clock starts on entering Loud. Wave 1 is due after `alarm.first_wave_delay` (30 s); later waves are due every `alarm.wave_interval` (25 s). The schedule continues even if an entry is temporarily unavailable. `WaveSpawned.waveIndex` is one-based and is raised once when each wave becomes due; the HUD shows this assault wave index.
+- `enemies.json` wave `at` values 0 through 4 select waves 1 through 5. The `repeat` entry supplies wave 6 and every later wave. Composition and entry names come from that file.
+- The alive cap applies to police enemies only: guards and Dead police do not count. Use `alarm.max_alive` (12 for the current Normal preset; Hard uses its documented difficulty cap). Pending accepted spawns reserve capacity too, so delayed entries cannot exceed the cap when they become available.
+- When a wave becomes due, accept only the remaining capacity, processing its composition in `cop`, `shield_cop`, then `heavy` order. Discard excess enemies permanently; they are not queued and later deaths do not restore the discarded portion of an old wave.
+- Accepted enemies wait if all of that wave's listed entries are on screen or blocked. A usable entry must fit the enemy's collision circle on passable tiles and place the entire circle outside the gameplay camera viewport. Spawn at the documented entry tile centre; never relocate an entry or spawn through a wall. Retry accepted pending enemies each tick. Iterate entries in their listed order, rotating after each successful spawn; an unavailable entry can be skipped for another usable entry in the same list.
+- Shield cops face the player and move toward them at their configured speed, including while Engaged. Their configured `shield_arc_deg` is the total frontal arc (120 degrees, inclusive at both edges); a player hitscan arriving from inside it retains `1 - shield_block` of its damage (10%). Side/rear hits retain full damage. Apply this per pellet before the normal armor/HP damage step.
+- Heavies advance with A* until range and LOS allow Engage, then hold position while firing. They do not strafe. Shield and heavy single-shot `rate` values mean shots per second; acquisition, reaction reset, seeded accuracy, death fade and police drops follow §§3.2.1 and 3.7.
+- Collision radii match Design Docs §1.3 and are stored in each enemy data record: guard/cop 14 px, shield cop 16 px, heavy 20 px. Rendering reads those radii and presents the shield arc and bulky armored silhouette; it does not decide whether a hit is blocked.
+
 
 ### 3.3 Alarm
 `Quiet -> CallIn (at least one active call-in) -> Quiet (all cancelled) or Loud`. `Loud` is permanent for the mission; once Loud, ping is disabled and all lights are on.
