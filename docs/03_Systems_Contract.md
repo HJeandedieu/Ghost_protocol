@@ -239,6 +239,8 @@ class ScoreSystem {
 ## 5. Interaction contract
 Every interactable provides `holdSeconds`, `prompt` text, `canInteract(Player&)`, and `onComplete(World&)`. The Interaction system advances progress while E is held and the player is within 48 px; releasing or moving away resets progress to zero except the quiet crack, which decays at 1/3 of the fill rate.
 
+Vault and cash controls: E selects quiet cracking or cash pickup; Shift+E selects thermite placement or dye-pack disarming. Both vault routes are available before an alarm when power is on. E permits intentional pickup of armed or spoiled cash. All other interactables retain E. The selected action uses the hold and range rules above.
+
 | Interactable | Hold | Needs | On complete |
 |---|---|---|---|
 | Service Door | 4.0 s | none | Door opens; noise LOCKPICK |
