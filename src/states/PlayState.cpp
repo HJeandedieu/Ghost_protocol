@@ -7,7 +7,7 @@
 #include "render/Renderer.h"
 
 PlayState::PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed,
-                     Renderer& renderer)
+                     Renderer& renderer, Logger& logger)
     : world_(std::move(level), config.player, config.guard),
       input_(input),
       camera_(world_.player.pos, config.view),
@@ -16,6 +16,7 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       renderer_(renderer),
       noise_(events_),
       interaction_(events_),
+      detection_(events_, logger, config.difficulty.normal.detectFill),
       config_(config) {
     interaction_.loadBank(world_, config_);
     renderer_.prepareLevel(world_.level);
@@ -23,6 +24,7 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
     hearers.reserve(world_.level.guards.size());
     revealables_.reserve(world_.guards.size());
     for (auto& guard : world_.guards) {
+        guardAi_.push_back(std::make_unique<GuardAI>(guard, world_.level.map, events_, logger));
         hearers.push_back({guard.id, guard.pos});
         revealables_.push_back(&guard);
     }
@@ -33,10 +35,6 @@ void PlayState::enter() {}
 void PlayState::exit() {}
 void PlayState::update(float dt) {
     noise_.beginTick();
-    for (std::size_t i = 0; i < world_.guards.size(); ++i) {
-        world_.guards[i].update(dt, world_.level.map);
-        noise_.setHearerPosition(i, world_.guards[i].pos);
-    }
     auto& player = world_.player;
     player.update(dt, input_, world_.level.map);
     if (player.pos.x != player.prevPos.x || player.pos.y != player.prevPos.y)
@@ -46,6 +44,10 @@ void PlayState::update(float dt) {
                         : (player.isSprinting() ? config_.noise.sprint : config_.noise.walk),
                     NoiseType::Step, player.id);
     interaction_.update(dt, input_.interactHeld || input_.interactPressed, world_);
+    for (std::size_t i = 0; i < world_.guards.size(); ++i) {
+        guardAi_[i]->update(dt);
+        noise_.setHearerPosition(i, world_.guards[i].pos);
+    }
     Vec2 cursorOffset{};
     if (input_.mouseInViewport && !debugView_) {
         cursorOffset = {
@@ -60,6 +62,7 @@ void PlayState::update(float dt) {
     if (before <= 0 && ripple_.waveActive() && ripple_.waveRadius() == 0)
         noise_.emit(ripple_.origin(), ripple_.maxRadius() * config_.ping.noiseMult, NoiseType::Ping,
                     player.id);
+    detection_.update(dt, player, world_.level.map, world_.guards);
     ripple_.update(dt, world_.level.map, revealables_);
     events_.dispatch();
 #ifndef NDEBUG

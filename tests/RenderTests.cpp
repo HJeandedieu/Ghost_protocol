@@ -7,6 +7,7 @@
 #include "entities/Guard.h"
 #include "entities/Player.h"
 #include "render/Renderer.h"
+#include "systems/DetectionSystem.h"
 #include "systems/InteractionSystem.h"
 #include "systems/RippleSystem.h"
 #include "world/LevelLoader.h"
@@ -233,5 +234,58 @@ TEST_F(Render, RevealedVisionConeStopsAtClosedDoorsAndUsesTargetLighting) {
     ASSERT_FLOAT_EQ(world.guards.front().reveal, 0);
     image = capture();
     EXPECT_LT(GetImageColor(image, 312, 216).r, 15);
+    UnloadImage(image);
+}
+
+TEST_F(Render, DetectionPieFillsClockwiseAndStaysHiddenWithItsGuard) {
+    std::ostringstream console;
+    Logger logger(console, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    Level level;
+    std::string rows;
+    for (int y = 0; y < 10; ++y) rows += std::string(20, '.') + '\n';
+    std::istringstream source(rows);
+    level.map = TileMap::parse(source, 48);
+    level.playerSpawn = {1, 1};
+    GuardSpawn spawn;
+    spawn.id = "G01";
+    spawn.mode = PatrolMode::Stationary;
+    spawn.waypoints = {{4, 4}};
+    level.guards.push_back(spawn);
+    World world(std::move(level), PlayerConfig{});
+    EventBus events;
+    DetectionSystem detection(events, logger);
+    RippleSystem ripple(PingConfig{}, world.level.map);
+    world.player.pos = world.guards.front().pos;
+    detection.update(0.5f, world.player, world.level.map, world.guards);
+    ASSERT_FLOAT_EQ(world.guards.front().detection(), 50);
+    world.player.pos = world.player.prevPos;
+    const auto capture = [&] {
+        renderer.beginFrame();
+        renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, false, 1234,
+                           world.guards);
+        renderer.present();
+        auto image = LoadImageFromTexture(renderer.frameTexture());
+        ImageFlipVertical(&image);
+        return image;
+    };
+    auto image = capture();
+    EXPECT_LT(GetImageColor(image, 221, 190).r, 15);
+    UnloadImage(image);
+    std::vector<Entity*> entities{&world.guards.front()};
+    ripple.startPing(world.guards.front().pos, 0);
+    ripple.update(0.01f, world.level.map, entities);
+    image = capture();
+    EXPECT_GT(GetImageColor(image, 221, 190).r, 200);
+    EXPECT_LT(GetImageColor(image, 211, 190).r, 35);
+    UnloadImage(image);
+    world.player.pos = world.guards.front().pos;
+    detection.update(0.5f, world.player, world.level.map, world.guards);
+    world.player.pos = world.player.prevPos;
+    image = capture();
+    EXPECT_GT(GetImageColor(image, 211, 190).r, 200);
+    EXPECT_GT(GetImageColor(image, 312, 216).r, GetImageColor(image, 312, 216).g);
+    EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day10-detection-preview.png"));
     UnloadImage(image);
 }

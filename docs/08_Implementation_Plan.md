@@ -125,9 +125,10 @@ Every day lists: **Goal**, **Tasks** (do them in order), and **Done when** (the 
 ### Day 11: Thu 15 Oct (light, 1.5 h) Hearing
 **Branch:** `feature/hearing` | **FR-06, FR-07**
 **Tasks**
-1. Guards subscribe to `NoiseEmitted`; those inside the radius go Suspicious then Investigating (walk straight to the point, 130 px/s), then Searching 8 s, then Patrol.
-2. Tests: right guard notified, walls do not block noise.
-**Done when:** sprinting near a guard makes him turn and walk to you; crouching past him does not.
+1. Guards subscribe to `NoiseEmitted`; those inside the radius go Suspicious (1.5 s), then follow `03_Systems_Contract.md` sections 3.1.1 to 3.1.5: `canReach()` via `Raycast::isPathClear` (unreachable noise means Suspicious then Returning), Investigating at 130 px/s with the look-around sweep, the stuck fallback, Searching (4-point loop, 8 s max), and Returning by breadcrumbs.
+2. Add the new `guard` keys to `tuning.json` and `Config` (see `04_Data_Formats.md` section 2).
+3. Tests: right guard notified; walls do not block noise; wall in the way means no Investigating; gap narrower than 28 px is unreachable; search points filtered and ordered correctly; search ends at 8.0 s; stuck detection fires; breadcrumb return reaches the route position.
+**Done when:** sprinting near a guard in the same room makes him turn and walk to you; sprinting behind a wall makes him turn then go back to his route; crouching past him does nothing.
 
 ### Day 12: Fri 16 Oct (light, 2 h) Takedown and bodies
 **Branch:** `feature/takedown` | **FR-08**
@@ -141,7 +142,7 @@ Every day lists: **Goal**, **Tasks** (do them in order), and **Done when** (the 
 ### Day 13: Sat 17 Oct (HEAVY, 8 h) Alarm, pathfinding, pagers, cameras, lasers
 **Branch:** `feature/stealth-systems` | **FR-09, FR-10, FR-11 (core), FR-26**
 **Tasks**
-1. `Pathfinder` (A*, 8 directions, doors passable) with tests; use it for Investigating.
+1. `Pathfinder` (A*, 8 directions, doors passable) with tests. Switch `GuardAI::canReach()` from `isPathClear` to `findPath` non-empty and make Investigating follow the path (`03_Systems_Contract.md` 3.1.1). Nothing else from Day 11 changes; add a test that a noise behind a wall is now reached by going around.
 2. `AlarmDirector` states Quiet/CallIn/Loud; implement all six triggers from GDD 4.6; test that each triggers exactly once. For now the alarm only logs and sets a flag.
 3. Pagers: 4 s ring delay, 12 s answer window, hold E 1.5 s; `PagerMissed` raises the alarm.
 4. Cameras: sweep, cone, detection (2 s call-in), draw lens only when revealed.

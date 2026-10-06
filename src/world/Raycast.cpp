@@ -6,6 +6,40 @@
 
 #include "world/TileMap.h"
 
+bool Raycast::isPathClear(Vec2 from, Vec2 to, float radius, const TileMap& map, float step) {
+    if (!std::isfinite(from.x) || !std::isfinite(from.y) || !std::isfinite(to.x) ||
+        !std::isfinite(to.y) || !std::isfinite(radius) || radius < 0 || !std::isfinite(step) ||
+        step <= 0 || map.tileSize() <= 0)
+        return false;
+    const float distance = std::hypot(to.x - from.x, to.y - from.y);
+    if (!std::isfinite(distance)) return false;
+    const float size = static_cast<float>(map.tileSize());
+    const auto clear = [&](Vec2 point) {
+        if (point.x - radius < 0 || point.y - radius < 0 ||
+            point.x + radius >= map.width() * size || point.y + radius >= map.height() * size)
+            return false;
+        const int x0 = static_cast<int>(std::floor((point.x - radius) / size));
+        const int x1 = static_cast<int>(std::floor((point.x + radius) / size));
+        const int y0 = static_cast<int>(std::floor((point.y - radius) / size));
+        const int y1 = static_cast<int>(std::floor((point.y + radius) / size));
+        for (int y = y0; y <= y1; ++y)
+            for (int x = x0; x <= x1; ++x) {
+                if (map.isPassable(x, y) || map.tile(x, y) == TileType::Door) continue;
+                const float dx = point.x - std::clamp(point.x, x * size, (x + 1) * size);
+                const float dy = point.y - std::clamp(point.y, y * size, (y + 1) * size);
+                if (dx * dx + dy * dy < radius * radius || radius == 0) return false;
+            }
+        return true;
+    };
+    if (!clear(from) || !clear(to)) return false;
+    for (float travelled = step; travelled < distance; travelled += step) {
+        const float fraction = travelled / distance;
+        if (!clear({from.x + (to.x - from.x) * fraction, from.y + (to.y - from.y) * fraction}))
+            return false;
+    }
+    return true;
+}
+
 bool Raycast::hasLineOfSight(Vec2 from, Vec2 to, const TileMap& map, bool revealBlockingTarget) {
     const float size = static_cast<float>(map.tileSize());
     if (size <= 0 || !std::isfinite(from.x) || !std::isfinite(from.y) || !std::isfinite(to.x) ||

@@ -1,10 +1,42 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <limits>
 #include <sstream>
 
 #include "world/Raycast.h"
 #include "world/TileMap.h"
+
+TEST(Raycast, MovementClearanceUsesCircleAndAllowsOnlyNormalOrOpenedDoors) {
+    for (const char tile : std::string("#dSRGVFb")) {
+        std::istringstream source(std::string(".....\n..") + tile + "..\n.....");
+        auto map = TileMap::parse(source, 48);
+        EXPECT_EQ(Raycast::isPathClear({72, 72}, {168, 72}, 14, map), tile == 'd') << tile;
+        if (tile != '#') {
+            map.setOpen(2, 1, true);
+            EXPECT_TRUE(Raycast::isPathClear({72, 72}, {168, 72}, 14, map)) << tile;
+        }
+    }
+    std::istringstream narrow("#######\n#.....#\n#######");
+    const auto map = TileMap::parse(narrow, 24);
+    EXPECT_FALSE(Raycast::isPathClear({36, 36}, {132, 36}, 14, map));
+    EXPECT_TRUE(Raycast::isPathClear({36, 36}, {132, 36}, 10, map));
+    EXPECT_TRUE(Raycast::hasLineOfSight({36, 36}, {132, 36}, map));
+}
+
+TEST(Raycast, PathSamplesEndpointsAndIntermediateTilesAndRejectsInvalidInputs) {
+    std::istringstream source(".......\n...#...\n.......");
+    const auto map = TileMap::parse(source, 48);
+    EXPECT_FALSE(Raycast::isPathClear({72, 72}, {264, 72}, 14, map));
+    EXPECT_FALSE(Raycast::isPathClear({72, 72}, {168, 72}, 14, map));
+    EXPECT_TRUE(Raycast::isPathClear({72, 24}, {264, 24}, 14, map));
+    EXPECT_TRUE(Raycast::isPathClear({72, 24}, {72, 24}, 14, map));
+    EXPECT_FALSE(Raycast::isPathClear({10, 24}, {72, 24}, 14, map));
+    EXPECT_FALSE(Raycast::isPathClear({72, 24}, {72, 24}, -1, map));
+    EXPECT_FALSE(Raycast::isPathClear({72, 24}, {72, 24}, 14, map, 0));
+    EXPECT_FALSE(
+        Raycast::isPathClear({72, 24}, {std::numeric_limits<float>::quiet_NaN(), 24}, 14, map));
+}
 
 TEST(Raycast, SightDistanceStopsAtWallDoorCornerAndMapBoundary) {
     std::istringstream source(".....\n..S..\n.....");
