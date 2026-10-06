@@ -225,13 +225,13 @@ A guard hearing a noise turns Suspicious and walks to its source (Investigating)
 | S1 | Back Door | Get inside the bank | Service Door lockpicked (hold E 4 s) and passed |
 | S2 | Red Card | Find the red keycard (Manager's Office). Optional: loop security (Security Room panel) | Keycard collected |
 | S3 | Lights Out | Cut power to the vault gate (breaker, Power Room, hold E 5 s) | Breaker thrown; electric gate opens |
-| S4 | Open Sesame | Open the vault: **Quiet crack** (hold E 25 s) or **Thermite** (place, hold E 2 s, burns 75 s) | Vault door opens |
+| S4 | Open Sesame | Open the vault: **Quiet crack** (hold E 25 s) or **Thermite** (place, hold Shift+E 2 s, burns 75 s) | Vault door opens |
 | S5 | Cash and Dye | Collect bags from the ten money stacks | At least one bag picked up |
 | S6 | Get Out | Lower bollards (panel, hold E 4 s); van arrives 10 s later; deliver bags to the pickup zone; press E to leave | Player leaves with at least 1 delivered bag |
 
 Notes:
 - The vault door needs S3 done first. The thermite and the quiet crack both require power.
-- Dye packs arm when the vault opens. Disarm: hold E 2 s at the stack. Picking up an armed stack spoils it (bag worth $10,000). Any armed pack bursts 45 s after the vault opens (spoiled).
+- Dye packs arm when the vault opens. Disarm: hold Shift+E 2 s at the stack. Pick up cash with E, including an armed or spoiled stack. Picking up an armed stack spoils it (bag worth $10,000). Any armed pack bursts 45 s after the vault opens (spoiled).
 - Carry one bag at a time. Throw (G) travels 300 px. A bag inside the pickup zone counts as delivered.
 - The van waits indefinitely. Pressure comes from police waves.
 
