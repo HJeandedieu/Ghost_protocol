@@ -165,7 +165,7 @@ Sprinting outruns every enemy; walking outruns patrolling guards; bullets outrun
 
 Rules:
 - The wave is blocked by walls and doors. It reveals tiles, items, entities, and guard cones that have line of sight to the origin within its radius.
-- Lasers and camera lenses are revealed only by a ping or when within 120 px of the player.
+- Lasers and camera lenses are revealed only by a ping, or when within 120 px of the player with a clear line of sight (tuning key `ping.hazard_reveal_radius`).
 - **Lit zones** (security room, counting room, foyer, street) are always visible. The main hall is **dim** (always faintly visible). Everything else is **dark**.
 - In the Loud phase the lights are on, so ping is disabled.
 
@@ -204,7 +204,7 @@ A guard hearing a noise turns Suspicious and walks to its source (Investigating)
 
 **Pagers:** four guards (G01, G04, G05, G06) carry pagers. 4 s after their takedown the pager rings; hold E at the body for 1.5 s within 12 s. Failure fires the alarm.
 
-**Cameras:** five cameras sweep a 60° cone (range 340 px). The detection meter applies; at 100 the alarm fires after a 2.0 s call-in. A **security loop** at the Security Room panel disables all cameras and lasers for 120 s (one use).
+**Cameras:** five cameras sweep a 60° cone (range 340 px). The detection meter applies; at 100 the alarm fires after a 2.0 s call-in. A **security loop** at the Security Room panel disables all cameras and lasers for 120 s (one use). Completing the loop also cancels any camera call-in already counting down; guard call-ins are unaffected (`03_Systems_Contract.md` section 3.6).
 
 **Lasers:** three beam rows in the vault corridor, invisible until pinged. First touch: noise 400 px at the beam and nearby guards investigate. Second touch within 30 s: alarm. Contact counts once per 1.5 s.
 
