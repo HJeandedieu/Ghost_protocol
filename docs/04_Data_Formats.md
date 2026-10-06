@@ -31,6 +31,8 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
 {
   "player": { "radius": 14, "walk": 160, "sprint": 260, "crouch": 80, "accel": 1200, "decel": 1600,
               "bag_speed_mult": 0.75, "hp": 100, "armor": 50, "armor_regen": 8, "armor_regen_delay": 5 },
+  "pickup": { "medkit_chance": 0.20, "armor_chance": 0.10,
+              "medkit_amount": 50, "armor_amount": 50, "collect_radius": 50 },
   "view": { "lead_px": 60, "follow_rate": 8 },
   "ping": { "small_radius": 260, "big_radius": 520, "tap_max": 0.25, "charge_max": 0.8,
             "speed": 800, "fade": 2.5, "cooldown": 3.0, "noise_mult": 0.6, "halo": 96,
@@ -72,6 +74,8 @@ the exponential follow rate per second: lerp weight `1 - exp(-follow_rate * dt)`
 Zero lead disables look-ahead; zero rate freezes camera follow. A cursor outside
 the letterboxed game picture contributes no lead. The `camera` group above
 continues to configure security cameras.
+
+Recovery pickup tuning (author approved 6 October 2026): `pickup.medkit_chance` and `pickup.armor_chance` are probabilities in [0, 1], with a sum at most 1. Missing or invalid individual values use the documented default; if the resulting sum exceeds 1, reset both probabilities to their defaults and log a WARN. Amounts and collection radius must be finite and non-negative; missing or invalid values use the defaults above and log a WARN. The remaining probability is no drop (0.70 by default). All three police types use these values; guards do not drop recovery items. Selection, collection, overflow, and lifetime rules are in Systems Contract §3.7. Pickups are created at runtime and add no level or save format.
 
 ## 3. weapons.json and enemies.json
 ```json

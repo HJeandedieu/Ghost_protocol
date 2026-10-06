@@ -263,7 +263,7 @@ Notes:
 
 Enemy accuracy 0.3 to 0.4, reaction time 0.4 s, pathing by A* on the tile grid.
 
-**Player health:** 100 HP + 50 armor. Armor regenerates at 8/s after 5 s without damage. HP does not regenerate; medkits (+50) and armor plates (+50) drop from police.
+**Player health:** 100 HP + 50 armor. Armor regenerates at 8/s after 5 s without damage. HP does not regenerate; medkits (+50) and armor plates (+50) drop from police. Each defeated police enemy drops a medkit with 20% probability, a plate with 10%, or nothing with 70%; guards drop neither. Collect with E within 50 px and clear line of sight, after available mission/pager interactions. Restoration caps at the configured maximum; a pickup for an already-full resource stays on the floor. Drops persist until collected or a stage restart (Systems Contract §3.7).
 
 **Weapons (carry two, chosen at loadout)**
 | Weapon | Damage | Magazine / reserve | Rate | Reload | Range | Noise |

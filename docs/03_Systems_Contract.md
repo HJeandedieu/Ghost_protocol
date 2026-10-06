@@ -115,6 +115,19 @@ If the alarm was already Loud when the player died, the retry keeps the Loud sta
 - **Why cancel camera call-ins:** the loop disables the cameras, so a countdown started by a now-disabled camera must not still be able to end the stealth phase. On the shipped map no camera covers the panel, so this edge case is rare, but the rule is fixed so behaviour is the same on any map.
 
 
+### 3.7 Police recovery pickups (FR-14)
+Author-approved tuning, 6 October 2026:
+- Each defeated police enemy (`cop`, `shield_cop`, or `heavy`) gets exactly one seeded RNG roll on death. Patrol guards and takedown bodies never drop recovery pickups. Repeated death notifications for the same enemy must not roll again.
+- With `r` sampled uniformly in [0, 1), drop a medkit if `r < pickup.medkit_chance` (0.20), an armor plate if `r < pickup.medkit_chance + pickup.armor_chance` (0.30), otherwise nothing. Outcomes are mutually exclusive: at most one pickup per enemy, at the enemy's death position.
+- Medkits restore `pickup.medkit_amount` (50) HP; plates restore `pickup.armor_amount` (50) armor. Clamp to the player's configured maximum. Pickups cannot revive a Downed player and do not reset the armor regeneration damage timer.
+- Collect instantly with E while the distance between player centre and pickup position is at most `pickup.collect_radius` (50 px), with clear `Raycast::hasLineOfSight` to that position. No automatic collection or consumable inventory.
+- An available mission or pager interaction takes priority over pickups for that tick, including an interaction completed on the same tick. A single E press collects at most one pickup: choose the nearest eligible pickup, keeping creation order for equal distances.
+- If the relevant resource is already full, leave the pickup on the floor and allow another eligible pickup to be selected. Partial restoration consumes the whole pickup; there is no leftover amount.
+- Drops remain until collected or the level is reloaded for a stage restart. They are world state, not save-file data or a new level-file schema.
+- `PickupSystem` owns drop rolls and collection selection. `CombatSystem` applies capped restoration. Successful collection raises the existing `InteractionDone { interactableId = pickupId }`; no damage event or hit flash is raised by healing.
+- Rendering only reads pickups. In Stealth, pickup markers use their normal entity reveal; only `RippleSystem` writes that reveal. In Loud, pickups are visible like other entities. Show an E prompt only for the selected eligible pickup when no higher-priority interaction is available.
+- Day 16 provides the pickup logic, rendering, and debug fixtures. Day 17 connects police deaths to the drop roll; Day 18 uses the same rule for shield cops and heavies.
+
 ## 4. Interfaces (C++ signatures, abbreviated)
 ```cpp
 struct Vec2 { float x, y; };
