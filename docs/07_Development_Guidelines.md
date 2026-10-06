@@ -95,10 +95,10 @@ A second job for the web build is added in Week 4. A red CI blocks merging.
 |---|---|
 | `TileMap` / `LevelLoader` | Parse sample map; passability; light zones; bad file rejected |
 | `Raycast` | Line of sight blocked by wall; hitscan hits circle; misses |
-| `RippleSystem` | Tap vs hold radius; cooldown; reveal decay; wall blocks reveal |
+| `RippleSystem` | Tap vs hold radius; cooldown; reveal decay; wall blocks reveal; hazard proximity reveal (120 px, needs line of sight) |
 | `NoiseSystem` | Hearing radius; walls do not block noise; right guard notified |
 | `VisionSystem` | Inside/outside cone; range by light level; blocked by wall |
-| `DetectionSystem` | Fill/decay rates; call-in countdown; takedown cancels |
+| `DetectionSystem` | Fill/decay rates; call-in countdown; takedown cancels; security loop cancels camera call-ins only |
 | `AlarmDirector` | Every trigger in GDD 4.6 raises the alarm exactly once |
 | `Pathfinder` | Finds a path; no path returns empty; avoids walls |
 | `CombatSystem` | Damage, armor order, shield block, ammo, reload |
@@ -122,7 +122,7 @@ Three sessions with classmates: end of week 2 (Sun 18 Oct), end of week 3 (Sun 2
 - [ ] Guards turn to noises; cones match the drawn cone
 - [ ] Takedown works; body discovery starts a call-in; call-in can be cancelled
 - [ ] Pager rings, can be answered, missing it raises the alarm
-- [ ] Security loop disables cameras and lasers for 120 s
+- [ ] Security loop disables cameras and lasers for 120 s and cancels an active camera call-in
 **Mission**
 - [ ] S1 to S6 complete in order on both routes (quiet and thermite)
 - [ ] Vault door needs power; keycard door needs keycard

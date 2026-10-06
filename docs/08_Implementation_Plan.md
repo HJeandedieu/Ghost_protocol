@@ -145,9 +145,9 @@ Every day lists: **Goal**, **Tasks** (do them in order), and **Done when** (the 
 1. `Pathfinder` (A*, 8 directions, doors passable) with tests. Switch `GuardAI::canReach()` from `isPathClear` to `findPath` non-empty and make Investigating follow the path (`03_Systems_Contract.md` 3.1.1). Nothing else from Day 11 changes; add a test that a noise behind a wall is now reached by going around.
 2. `AlarmDirector` states Quiet/CallIn/Loud; implement all six triggers from GDD 4.6; test that each triggers exactly once. For now the alarm only logs and sets a flag.
 3. Pagers: 4 s ring delay, 12 s answer window, hold E 1.5 s; `PagerMissed` raises the alarm.
-4. Cameras: sweep, cone, detection (2 s call-in), draw lens only when revealed.
-5. Lasers: 3 beam rows from JSON, revealed by ping or within 120 px; first touch noise 400 px; second touch within 30 s alarms.
-6. Security panel: hold E 6 s, loop 120 s with a countdown on the HUD.
+4. Cameras: sweep, cone, detection (2 s call-in), draw lens only when revealed (ping, or `ping.hazard_reveal_radius` with line of sight via `RippleSystem::applyProximity`, `03_Systems_Contract.md` 3.6). `CallInStarted`/`CallInCancelled` now use `sourceId` + `sourceType`; rename the Day 10 `guardId` field.
+5. Lasers: 3 beam rows from JSON, revealed by ping or by proximity (same rule as cameras); first touch noise 400 px; second touch within 30 s alarms.
+6. Security panel: hold E 6 s, loop 120 s with a countdown on the HUD. Follow 3.6: cameras and lasers disabled, camera meters reset, camera call-ins cancelled (guard call-ins untouched), `SecurityLoopEnded` after 120 s, single use, unusable once Loud. Tests: loop cancels a camera call-in but not a guard call-in; same-tick tie goes to the loop; lasers ignore touches during the loop; proximity reveal needs line of sight.
 7. Call-in indicator on HUD ("SPOTTED 3...").
 **Done when:** every item in the QA "Stealth" section works at least once; you can cross the laser corridor by pinging; missing a pager sets the alarm flag.
 

@@ -16,13 +16,14 @@ The equivalent of an API specification: how systems, entities and events talk to
 | `NoiseEmitted` | origin, radius, type (STEP, PING, LOCKPICK, CRACK, SHOT_SUPP, SHOT, LASER), sourceId | Player, Interactables, Combat, Lasers | NoiseSystem |
 | `GuardSuspicious` | guardId, point | NoiseSystem, Detection | Guard, Voice |
 | `GuardSpotted` | guardId | DetectionSystem | AlarmDirector, Voice |
-| `CallInStarted` | guardId, seconds | DetectionSystem | AlarmDirector, Hud |
-| `CallInCancelled` | guardId | Combat/Takedown | AlarmDirector, Hud |
+| `CallInStarted` | sourceId (guard or camera id), sourceType (GUARD, CAMERA), seconds | DetectionSystem | AlarmDirector, Hud |
+| `CallInCancelled` | sourceId, sourceType (GUARD, CAMERA), reason (TAKEDOWN, LOOP) | Combat/Takedown, Interactables (security loop) | AlarmDirector, Hud |
 | `GuardTakenDown` | guardId, hasPager | Player | Pager logic, Voice |
 | `BodyFound` | guardId (finder), bodyId | VisionSystem | DetectionSystem |
 | `PagerRang` / `PagerAnswered` / `PagerMissed` | bodyId | Pager logic | Hud, AlarmDirector, Voice |
 | `LaserTouched` | laserId, count | Lasers | NoiseSystem, AlarmDirector |
-| `SecurityLooped` | secondsLeft | Interactables | Cameras, Lasers, Hud |
+| `SecurityLooped` | secondsLeft (120 at start) | Interactables | Cameras, Lasers, Detection, Hud |
+| `SecurityLoopEnded` | none | Interactables (timer) | Cameras, Lasers, Hud |
 | `AlarmTriggered` | reason (CALLIN, LASER, PAGER, SHOT, THERMITE, COMBAT) | AlarmDirector | WaveSpawner, Audio, Voice, Render, Hud |
 | `WaveSpawned` | waveIndex | WaveSpawner | Hud, Voice |
 | `ShotFired` | shooterId, weaponId, from, dir | Combat | Noise, Audio, Render |
@@ -101,6 +102,19 @@ If the alarm was already Loud when the player died, the retry keeps the Loud sta
 ### 3.5 Player
 `Alive -> (HP 0) Downed -> GameState: Busted`. There is no bleed-out or revive in the MVP.
 
+### 3.6 Hazards: proximity reveal and the security loop
+**Proximity reveal (tuning key `ping.hazard_reveal_radius` = 120 px).** Lasers and camera lenses are hazards. Each tick, after `RippleSystem::update`, `RippleSystem::applyProximity(playerPos, tileMap, hazards)` computes the distance from the player's centre to the nearest point of each hazard (laser: nearest point on its segment; camera: its position). If that distance is at most `hazard_reveal_radius` **and** `Raycast::hasLineOfSight(playerPos, nearestPoint)` is true, the hazard's `reveal` is set to 1.0 for this tick (pinned). Otherwise its reveal decays by the normal `ping.fade` rule. Pings reveal hazards like any other entity. This applies in the Stealth phase only (in the Loud phase everything is visible). A looped (disabled) hazard can still be revealed. `RippleSystem` remains the only writer of `reveal`.
+
+**Security loop.** Completing the Security panel interaction raises `SecurityLooped { secondsLeft = camera.loop_seconds (120) }`. For those 120 s:
+- **Cameras are disabled:** their detection meters do not fill and they cannot start a call-in.
+- **Lasers are disabled:** touches are ignored (no `LaserTouched`), and the laser touch counter and its 30 s window are reset to zero.
+- **On the start tick:** every camera detection meter is set to 0 and **every camera-sourced call-in that is already counting down is cancelled** with `CallInCancelled { sourceType = CAMERA, reason = LOOP }` (one per camera). **Guard-sourced call-ins are not affected.**
+- **Tie-break:** the Interaction system runs before `DetectionSystem` and `AlarmDirector` in the tick order (`02_Architecture.md` section 7), so a camera call-in that would have reached zero on the same tick as the loop completing is cancelled first and does **not** fire the alarm.
+- **After 120 s:** `SecurityLoopEnded` is raised; cameras and lasers re-enable with meters at 0 and the laser touch counter at 0.
+- **Limits:** the panel is single-use and `canInteract` is false once it has been used. It is also false once the alarm is Loud, because the loop cannot undo an alarm that has already fired.
+- **Why cancel camera call-ins:** the loop disables the cameras, so a countdown started by a now-disabled camera must not still be able to end the stealth phase. On the shipped map no camera covers the panel, so this edge case is rare, but the rule is fixed so behaviour is the same on any map.
+
+
 ## 4. Interfaces (C++ signatures, abbreviated)
 ```cpp
 struct Vec2 { float x, y; };
@@ -134,6 +148,7 @@ class RippleSystem {
  public:
   void startPing(Vec2 origin, float chargeSeconds);   // returns silently if on cooldown
   void update(float dt, const TileMap&, std::vector<Entity*>&);
+  void applyProximity(Vec2 playerPos, const TileMap&, std::vector<Entity*>& hazards);  // see 3.6
   float tileReveal(int tx, int ty) const;
   float cooldownRemaining() const;
 };
