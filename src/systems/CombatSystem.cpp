@@ -23,6 +23,8 @@ CombatSystem::CombatSystem(EventBus& events, const std::vector<WeaponSpec>& spec
       rng_(seed) {}
 void CombatSystem::update(float dt, const Input& input, float dirDeg, World& world) {
     if (!std::isfinite(dt) || dt <= 0) return;
+    updateHealth(dt, world.player);
+    if (world.player.dead()) return;
     shotAge_ += dt;
     for (auto& weapon : weapons_) weapon.update(dt);
     if (input.weaponSlot >= 0 && input.weaponSlot < 2) activeSlot_ = input.weaponSlot;
@@ -64,4 +66,27 @@ HitResult CombatSystem::fire(const Weapon& weapon, Vec2 from, float dirDeg, Rng&
         result.pellets.push_back({from, end, angle, target, spec.damage});
     }
     return result;
+}
+
+void CombatSystem::applyDamage(Entity& target, float amount, const std::string& sourceId) {
+    if (!std::isfinite(amount) || amount <= 0 || target.maximumHp_ <= 0 || target.dead()) return;
+    const float absorbed = std::min(target.armor_, amount);
+    target.armor_ -= absorbed;
+    target.hp_ = std::max(0.0f, target.hp_ - (amount - absorbed));
+    target.secondsSinceDamage_ = 0;
+    events_.publish(EntityDamaged{target.id, amount, sourceId});
+    if (target.dead()) {
+        events_.publish(EntityDied{target.id});
+        if (dynamic_cast<Player*>(&target)) events_.publish(PlayerDowned{});
+    }
+}
+void CombatSystem::updateHealth(float dt, Player& player) {
+    if (!std::isfinite(dt) || dt <= 0 || player.dead()) return;
+    const auto& config = player.healthConfig();
+    const double before = player.secondsSinceDamage_;
+    player.secondsSinceDamage_ += dt;
+    const double active = std::max(0.0, player.secondsSinceDamage_ - config.armorRegenDelay) -
+                          std::max(0.0, before - config.armorRegenDelay);
+    player.armor_ = std::min(player.maximumArmor_,
+                             player.armor_ + static_cast<float>(active) * config.armorRegen);
 }

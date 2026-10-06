@@ -6,6 +6,7 @@
 #include "core/Config.h"
 #include "core/Vec2.h"
 #include "raylib.h"
+#include "render/HealthHud.h"
 
 struct Level;
 class Player;
@@ -36,6 +37,12 @@ class Renderer {
                             float noiseRadius, float maximumNoise) const;
     static void drawPlaceholder(const char* title, const char* subtitle);
     static void drawError(const char* message);
+    void resetHealthHud(const Player& player) {
+        healthHud_ = HealthHud{};
+        healthHud_.update(0, player);
+    }
+    void notifyHealthDamage() { healthHud_.damaged(); }
+    void updateHealthHud(float dt, const Player& player) { healthHud_.update(dt, player); }
     void drawWeaponHud(const CombatSystem& combat) const;
     void drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pagers,
                         const std::vector<Guard>& guards) const;
@@ -50,6 +57,7 @@ class Renderer {
     RenderTexture2D surface_;
     RenderTexture2D world_;
     RenderConfig config_;
+    HealthHud healthHud_;
     Shader post_{};
     int timeLocation_ = -1;
     bool composed_ = false;

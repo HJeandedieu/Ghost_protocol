@@ -27,6 +27,10 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
     interaction_.loadBank(world_, config_);
     detection_.bindCameras(world_.cameras);
     renderer_.prepareLevel(world_.level);
+    renderer_.resetHealthHud(world_.player);
+    events_.subscribe<EntityDamaged>([this](const EntityDamaged& event) {
+        if (event.targetId == world_.player.id) renderer_.notifyHealthDamage();
+    });
     std::vector<Hearer> hearers;
     hearers.reserve(world_.level.guards.size());
     revealables_.reserve(world_.guards.size() + world_.cameras.size() + world_.lasers.size());
@@ -45,6 +49,10 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
 void PlayState::enter() {}
 void PlayState::exit() {}
 void PlayState::update(float dt) {
+    if (world_.player.dead()) {
+        renderer_.updateHealthHud(dt, world_.player);
+        return;
+    }
     noise_.beginTick();
     auto& player = world_.player;
     player.update(dt, input_, world_.level.map);
@@ -84,6 +92,11 @@ void PlayState::update(float dt) {
     ripple_.update(dt, world_.level.map, revealables_);
     if (!world_.alarmLoud) ripple_.applyProximity(player.pos, world_.level.map, hazards_);
     combat_.update(dt, input_, facing_ * (180.0f / 3.14159265358979323846f), world_);
+#ifndef NDEBUG
+    if (input_.debugDamagePressed)
+        combat_.applyDamage(world_.player, config_.player.armor, "debug");
+#endif
+    renderer_.updateHealthHud(dt, world_.player);
     alarm_.update();
     events_.dispatch();
 #ifndef NDEBUG

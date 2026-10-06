@@ -73,3 +73,13 @@ struct ShotFired {
     Vec2 from;
     Vec2 dir;
 };
+
+struct EntityDamaged {
+    std::string targetId;
+    float amount = 0;
+    std::string sourceId;
+};
+struct EntityDied {
+    std::string targetId;
+};
+struct PlayerDowned {};

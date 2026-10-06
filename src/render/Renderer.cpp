@@ -497,6 +497,10 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
     }
     EndMode2D();
     compose(true);
+    if (!reduceEffects_ && healthHud_.flashFraction() > 0)
+        DrawRectangle(0, 64, Letterbox::kWidth, Letterbox::kHeight - 112,
+                      Fade({255, 59, 92, 255}, healthHud_.flashFraction() * 0.12f));
+
     DrawRectangle(0, 0, Letterbox::kWidth, 64, {20, 22, 27, 255});
     DrawText(level.name.c_str(), 160, 20, 24, kBone);
     DrawText(player.isCrouched() ? "CROUCH" : (player.isSprinting() ? "SPRINT" : "WALK"), 440, 24,
@@ -570,16 +574,25 @@ void Renderer::drawWeaponHud(const CombatSystem& combat) const {
     const auto& weapon = combat.activeWeapon();
     constexpr Color kBone{233, 228, 208, 255};
     constexpr Color kGold{242, 183, 5, 255};
-    DrawRectangle(24, 564, 264, 88, {20, 22, 27, 255});
-    DrawRectangleLinesEx({24, 564, 264, 88}, 1, Fade(kBone, 0.6f));
+    DrawRectangle(24, 510, 272, 146, {20, 22, 27, 255});
+    DrawRectangleLinesEx({24, 510, 272, 146}, 1, Fade(kBone, 0.6f));
     const std::string name = std::to_string(combat.activeSlot() + 1) + "  " + weapon.spec().name;
-    DrawText(name.c_str(), 40, 576, 22, kBone);
+    DrawText(name.c_str(), 40, 522, 22, kBone);
     const std::string ammunition =
         std::to_string(weapon.ammunition()) + " / " + std::to_string(weapon.reserve());
-    DrawText(ammunition.c_str(), 40, 608, 26, kGold);
+    DrawText(ammunition.c_str(), 40, 554, 26, kGold);
     if (weapon.reloadRemaining() > 0) {
-        DrawText("RELOADING", 158, 614, 16, kBone);
+        DrawText("RELOADING", 158, 560, 16, kBone);
         const float progress = 1 - weapon.reloadRemaining() / weapon.spec().reload;
-        DrawRectangle(40, 643, static_cast<int>(232 * progress), 3, kGold);
+        DrawRectangle(40, 584, static_cast<int>(232 * progress), 3, kGold);
     }
+    if (!healthHud_.initialized()) return;
+    const auto meter = [](float shown, float maximum, float y, Color color, const char* label) {
+        DrawText(label, 40, static_cast<int>(y) - 14, 10, {233, 228, 208, 255});
+        DrawRectangleRounded({40, y, 240, 12}, 1, 8, {40, 44, 50, 255});
+        const float fraction = maximum > 0 ? std::clamp(shown / maximum, 0.0f, 1.0f) : 0;
+        if (fraction > 0) DrawRectangleRounded({40, y, 240 * fraction, 12}, 1, 8, color);
+    };
+    meter(healthHud_.displayedHp(), healthHud_.maximumHp(), 606, {255, 59, 92, 255}, "HEALTH");
+    meter(healthHud_.displayedArmor(), healthHud_.maximumArmor(), 636, kBone, "ARMOR");
 }

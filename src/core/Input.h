@@ -6,6 +6,7 @@ struct Input {
     bool confirmPressed = false;
     bool startClicked = false;
     bool debugPressed = false;
+    bool debugDamagePressed = false;
     bool crouchPressed = false;
     bool sprintHeld = false;
     Vec2 move;
@@ -25,6 +26,7 @@ struct Input {
         confirmPressed = false;
         startClicked = false;
         debugPressed = false;
+        debugDamagePressed = false;
         crouchPressed = false;
         pingPressed = false;
         interactPressed = false;
