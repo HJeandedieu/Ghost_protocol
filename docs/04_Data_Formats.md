@@ -49,6 +49,9 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
              "search_loop_radius": 96, "search_point_pause": 0.5, "search_turn_rate": 90,
              "look_sweep_deg": 60, "stuck_window": 1.0, "stuck_min_progress": 8,
              "arrive_tolerance": 8, "path_clear_step": 12, "crumb_spacing": 32, "crumb_max": 64 },
+  "enemy_combat": { "reaction_time": 0.4, "burst_interval": 0.12,
+                    "strafe_speed": 80, "strafe_reverse_time": 1.5,
+                    "path_refresh": 0.5, "death_fade": 0.6 },
   "camera": { "cone_deg": 60, "range": 340, "callin": 2.0, "loop_seconds": 120, "sweep_speed": 20 },
   "laser": { "touch_cooldown": 1.5, "second_touch_window": 30 },
   "pager": { "ring_delay": 4, "answer_window": 12, "answer_hold": 1.5 },
@@ -108,6 +111,8 @@ Spawn points: `front` = tile (51,46), `service` = tile (21,44), `east` = tile (6
 Author clarification (6 October 2026): `spread_deg` is the total cone width. Each hitscan pellet samples a direction within `aim - spread_deg / 2` and `aim + spread_deg / 2` using the seeded RNG. Whisper/Chatter/Gavel therefore use ±1°/±3°/±9°.
 
 ## 4. Level files
+
+Day 17 combat tuning (author approved 6 October 2026): the `enemy_combat` values above are seconds, except `strafe_speed` in px/s. Values must be finite; `reaction_time` and `strafe_speed` may be zero, while `burst_interval`, `strafe_reverse_time`, `path_refresh`, and `death_fade` must be strictly positive. Missing or invalid keys use the documented defaults and log a WARN. Enemy `accuracy` is per-bullet hit probability; cop `rate` counts burst starts per second (other single-shot rates count shots per second). See Systems Contract §3.2.1 for acquisition, cancellation, movement, and death rules.
 
 ### 4.1 Terrain: `gotham_central.map`
 Plain text, 56 lines of 80 characters. Line number = tile y, column = tile x (both from 0). Tiles are 48 px.
