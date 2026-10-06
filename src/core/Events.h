@@ -22,6 +22,17 @@ struct CallInStarted {
     std::string guardId;
     float seconds = 0;
 };
+struct CallInCancelled {
+    std::string guardId;
+};
+struct GuardTakenDown {
+    std::string guardId;
+    bool hasPager = false;
+};
+struct BodyFound {
+    std::string guardId;
+    std::string bodyId;
+};
 struct InteractionProgress {
     std::string interactableId;
     float progress = 0;

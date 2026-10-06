@@ -336,6 +336,14 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
         const float visible =
             overview ? 1.0f : std::max(guard.reveal, ripple.visibility(tx, ty, player.pos, map));
         if (visible <= 0) continue;
+        if (guard.state() == GuardState::Unconscious) {
+            DrawEllipse(static_cast<int>(position.x), static_cast<int>(position.y),
+                        guard.radius * 1.3f, guard.radius * 0.55f, Fade(kBone, visible));
+            if (overview)
+                DrawText(guard.id.c_str(), static_cast<int>(position.x + guard.radius),
+                         static_cast<int>(position.y), 24, kBone);
+            continue;
+        }
         drawGuardCone(guard, position, map, player.isCrouched(), visible);
         DrawCircleV({position.x, position.y}, guard.radius, Fade(kBone, visible));
         const Vector2 direction{std::cos(guard.facing()), std::sin(guard.facing())};

@@ -6,6 +6,8 @@
 #include "entities/Entity.h"
 #include "world/Level.h"
 
+class EventBus;
+
 enum class GuardState {
     Patrol,
     Suspicious,
@@ -31,6 +33,7 @@ class Guard : public Entity {
     float callInRemaining() const { return callInRemaining_; }
     void beginSuspicion(Vec2 point, bool fromNoise);
     void returnToRoute();
+    bool takeDown(EventBus& events);
 
    private:
     friend class DetectionSystem;

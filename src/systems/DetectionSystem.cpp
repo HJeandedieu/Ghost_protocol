@@ -9,8 +9,32 @@
 #include "entities/Player.h"
 #include "systems/VisionSystem.h"
 
-DetectionSystem::DetectionSystem(EventBus& events, Logger& logger, float difficultyFill)
-    : events_(events), logger_(logger), difficultyFill_(difficultyFill) {}
+DetectionSystem::DetectionSystem(EventBus& events, Logger& logger, std::vector<Guard>& guards,
+                                 float difficultyFill)
+    : events_(events), logger_(logger), difficultyFill_(difficultyFill) {
+    events_.subscribe<BodyFound>([this, &guards](const BodyFound& event) {
+        const auto body = std::find_if(guards.begin(), guards.end(), [&](const Guard& guard) {
+            return guard.id == event.bodyId && guard.state() == GuardState::Unconscious;
+        });
+        if (body == guards.end()) return;
+        for (auto& guard : guards) {
+            if (guard.id != event.guardId || guard.state_ == GuardState::Unconscious ||
+                guard.state_ == GuardState::Combat || guard.state_ == GuardState::Alerted)
+                continue;
+            startCallIn(guard);
+            break;
+        }
+    });
+}
+
+void DetectionSystem::startCallIn(Guard& guard) {
+    guard.state_ = GuardState::Alerted;
+    guard.detection_ = 100;
+    guard.callInRemaining_ = guard.visionConfig().callin;
+    guard.callInCompleted_ = false;
+    events_.publish(CallInStarted{guard.id, guard.callInRemaining_});
+    logger_.log(LogLevel::Info, guard.id + ": call-in started");
+}
 
 void DetectionSystem::advanceCallIn(float dt, Guard& guard) {
     if (guard.callInCompleted_) return;
@@ -55,12 +79,8 @@ void DetectionSystem::update(float dt, const Player& player, const TileMap& map,
             const float timeToSpot = (100.0f - guard.detection_) / rate;
             guard.detection_ = std::min(100.0f, guard.detection_ + rate * dt);
             if (guard.detection_ >= 100) {
-                guard.state_ = GuardState::Alerted;
-                guard.callInRemaining_ = config.callin;
-                guard.callInCompleted_ = false;
                 events_.publish(GuardSpotted{guard.id});
-                events_.publish(CallInStarted{guard.id, config.callin});
-                logger_.log(LogLevel::Info, guard.id + ": call-in started");
+                startCallIn(guard);
                 // Only time after the meter filled belongs to the call-in.
                 advanceCallIn(std::max(0.0f, dt - timeToSpot), guard);
             }

@@ -4,6 +4,8 @@
 #include <cmath>
 #include <stdexcept>
 
+#include "core/EventBus.h"
+
 namespace {
 constexpr float kPi = 3.14159265358979323846f;
 }
@@ -34,6 +36,19 @@ void Guard::advanceWaypoint() {
         else
             --target_;
     }
+}
+
+bool Guard::takeDown(EventBus& events) {
+    if (state_ == GuardState::Combat || state_ == GuardState::Unconscious) return false;
+    if (state_ == GuardState::Alerted && !callInCompleted_) events.publish(CallInCancelled{id});
+    state_ = GuardState::Unconscious;
+    detection_ = 0;
+    callInRemaining_ = 0;
+    callInCompleted_ = true;
+    noiseInterest_ = false;
+    crumbs_.clear();
+    events.publish(GuardTakenDown{id, pager_});
+    return true;
 }
 
 void Guard::beginSuspicion(Vec2 point, bool fromNoise) {

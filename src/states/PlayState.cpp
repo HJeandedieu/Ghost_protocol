@@ -5,6 +5,7 @@
 
 #include "render/Letterbox.h"
 #include "render/Renderer.h"
+#include "systems/VisionSystem.h"
 
 PlayState::PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed,
                      Renderer& renderer, Logger& logger)
@@ -16,7 +17,7 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       renderer_(renderer),
       noise_(events_),
       interaction_(events_),
-      detection_(events_, logger, config.difficulty.normal.detectFill),
+      detection_(events_, logger, world_.guards, config.difficulty.normal.detectFill),
       config_(config) {
     interaction_.loadBank(world_, config_);
     renderer_.prepareLevel(world_.level);
@@ -37,6 +38,7 @@ void PlayState::update(float dt) {
     noise_.beginTick();
     auto& player = world_.player;
     player.update(dt, input_, world_.level.map);
+    if (input_.takedownPressed) player.tryTakedown(world_.guards, events_);
     if (player.pos.x != player.prevPos.x || player.pos.y != player.prevPos.y)
         noise_.emit(player.pos,
                     player.isCrouched()
@@ -63,6 +65,7 @@ void PlayState::update(float dt) {
         noise_.emit(ripple_.origin(), ripple_.maxRadius() * config_.ping.noiseMult, NoiseType::Ping,
                     player.id);
     detection_.update(dt, player, world_.level.map, world_.guards);
+    VisionSystem(config_.guard).findBodies(world_.guards, world_.level.map, events_);
     ripple_.update(dt, world_.level.map, revealables_);
     events_.dispatch();
 #ifndef NDEBUG

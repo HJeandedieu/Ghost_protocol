@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "entities/Guard.h"
 #include "world/TileMap.h"
 
 Player::Player(Vec2 spawn, const PlayerConfig& config) : config_(config) {
@@ -41,4 +42,20 @@ void Player::update(float dt, const Input& input, const TileMap& map) {
 Vec2 Player::interpolatedPosition(float alpha) const {
     alpha = std::clamp(alpha, 0.0f, 1.0f);
     return {prevPos.x + (pos.x - prevPos.x) * alpha, prevPos.y + (pos.y - prevPos.y) * alpha};
+}
+
+bool Player::tryTakedown(std::vector<Guard>& guards, EventBus& events) {
+    Guard* nearest = nullptr;
+    float nearestDistance = 0;
+    for (auto& guard : guards) {
+        if (guard.state() == GuardState::Combat || guard.state() == GuardState::Unconscious)
+            continue;
+        const float distance = std::hypot(guard.pos.x - pos.x, guard.pos.y - pos.y);
+        if (!std::isfinite(distance) || distance > guard.visionConfig().takedownRange) continue;
+        if (!nearest || distance < nearestDistance) {
+            nearest = &guard;
+            nearestDistance = distance;
+        }
+    }
+    return nearest && nearest->takeDown(events);
 }

@@ -220,8 +220,8 @@ TEST_F(GuardAITest, DetectionInterruptsInvestigationAndNoiseCannotCancelCallIn) 
     ai->update(config.suspiciousTime + 0.1f);
     ASSERT_EQ(guard->state(), GuardState::Investigating);
     Player player(guard->pos, PlayerConfig{});
-    DetectionSystem detection(events, logger);
     std::vector<Guard> copies{*guard};
+    DetectionSystem detection(events, logger, copies);
     detection.update(0.1f, player, map, copies);
     EXPECT_EQ(copies.front().state(), GuardState::Suspicious);
     detection.update(1, player, map, copies);
