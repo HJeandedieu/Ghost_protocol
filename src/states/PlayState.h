@@ -7,6 +7,7 @@
 #include "core/Input.h"
 #include "entities/GuardAI.h"
 #include "entities/Player.h"
+#include "render/AlarmSequence.h"
 #include "render/FollowCamera.h"
 #include "states/IState.h"
 #include "systems/AlarmDirector.h"
@@ -60,5 +61,6 @@ class PlayState : public IState {
     PickupSystem pickups_;
     EnemyCombatSystem enemyCombat_;
     WaveSpawner waves_;
+    AlarmSequence alarmSequence_;
     const Config& config_;
 };

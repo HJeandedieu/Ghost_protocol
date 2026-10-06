@@ -24,6 +24,7 @@ class CombatSystem;
 class EnemyCombatSystem;
 class Enemy;
 class WaveSpawner;
+class AlarmSequence;
 class PagerSystem;
 struct World;
 
@@ -50,6 +51,7 @@ class Renderer {
     void updateHealthHud(float dt, const Player& player) { healthHud_.update(dt, player); }
     void drawWeaponHud(const CombatSystem& combat) const;
     void drawWaveHud(const WaveSpawner& waves) const;
+    void drawAlarmSequence(const AlarmSequence& sequence) const;
     void drawPickupHud(const RecoveryPickup* pickup) const;
     void drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pagers,
                         const std::vector<Guard>& guards) const;
@@ -61,7 +63,8 @@ class Renderer {
                    const CombatSystem* combat = nullptr,
                    const std::vector<std::unique_ptr<RecoveryPickup>>& pickups = {},
                    bool pickupsLit = false, const std::vector<std::unique_ptr<Enemy>>& enemies = {},
-                   const EnemyCombatSystem* enemyCombat = nullptr);
+                   const EnemyCombatSystem* enemyCombat = nullptr,
+                   const AlarmSequence* alarmSequence = nullptr);
 
    private:
     RenderTexture2D surface_;
@@ -70,6 +73,8 @@ class Renderer {
     HealthHud healthHud_;
     Shader post_{};
     int timeLocation_ = -1;
+    int alarmPulseLocation_ = -1;
+    float alarmPulse_ = 0;
     bool composed_ = false;
     bool reduceEffects_ = false;
     std::vector<float> coneAngles_;

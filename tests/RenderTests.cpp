@@ -6,6 +6,7 @@
 #include "core/Logger.h"
 #include "entities/Guard.h"
 #include "entities/Player.h"
+#include "render/AlarmSequence.h"
 #include "render/Renderer.h"
 #include "states/PlayState.h"
 #include "systems/CombatSystem.h"
@@ -673,4 +674,90 @@ TEST_F(Render, LoudUsesFullRedVisibilityBoneRimAndHidesNoiseAndPingEffects) {
     EXPECT_FLOAT_EQ(ripple.tileReveal(4, 7), 0);
     ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day19-loud-preview.png");
     UnloadImage(image);
+}
+
+TEST_F(Render, AlarmPaletteBarsAndBannerRespectRealTimeAndStableHud) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    Level level;
+    std::string rows;
+    for (int y = 0; y < 15; ++y) rows += std::string(40, '.') + '\n';
+    std::istringstream source(rows);
+    level.map = TileMap::parse(source, 48);
+    level.playerSpawn = {13, 7};
+    World world(std::move(level), PlayerConfig{});
+    world.player.pos = world.player.prevPos = {640, 360};
+    world.alarmLoud = true;
+    RippleSystem ripple(PingConfig{}, world.level.map);
+    EventBus bus;
+    InteractionSystem interaction(bus);
+    AlarmSequence sequence(bus, AlarmConfig{}, 42);
+    bus.publish(AlarmTriggered{AlarmReason::Shot});
+    bus.dispatch();
+    auto draw = [&]() {
+        renderer.beginFrame();
+        renderer.drawLevel(world.level, world.player, ripple, world.player.pos, 0, 1, false, 42, {},
+                           {}, {}, false, nullptr, {}, true, {}, nullptr, &sequence);
+        renderer.drawInteractionHud(world, interaction, 1000, 500);
+        renderer.drawAlarmSequence(sequence);
+        renderer.present();
+        auto image = LoadImageFromTexture(renderer.frameTexture());
+        ImageFlipVertical(&image);
+        return image;
+    };
+    sequence.advance(0.2f);
+    auto image = draw();
+    const auto floor = GetImageColor(image, 300, 360);
+    EXPECT_EQ(floor.r, 76);
+    EXPECT_EQ(floor.g, 50);
+    EXPECT_EQ(floor.b, 58);
+    EXPECT_EQ(GetImageColor(image, 100, 20).r, 255);
+    EXPECT_EQ(GetImageColor(image, 100, 4).r, 10);
+    EXPECT_EQ(GetImageColor(image, 30, 100).r, 20);
+    ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day19-alarm-midpoint.png");
+    UnloadImage(image);
+    sequence.advance(2.4f);
+    image = draw();
+    EXPECT_EQ(GetImageColor(image, 300, 360).r, 122);
+    EXPECT_EQ(GetImageColor(image, 100, 20).r, 20);
+    EXPECT_EQ(GetImageColor(image, 100, 4).r, 20);
+    ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day19-alarm-settled.png");
+    UnloadImage(image);
+}
+
+TEST_F(Render, AlarmSequenceRendersShippedBankWithoutWritingReveal) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    auto level = LevelLoader::load("assets/levels/gotham_central.json", logger);
+    ASSERT_TRUE(level);
+    World world(std::move(*level), PlayerConfig{});
+    world.player.pos = world.player.prevPos = world.level.map.tileCenter({50, 32});
+    RippleSystem ripple(PingConfig{}, world.level.map);
+    EventBus bus;
+    AlarmDirector alarm(bus, logger, world);
+    AlarmSequence sequence(bus, AlarmConfig{}, 42);
+    alarm.trigger(AlarmReason::Pager);
+    bus.dispatch();
+    for (const auto& stage : {std::pair<float, const char*>{0.2f, "day19-bank-midpoint.png"},
+                              {0.4f, "day19-bank-bars.png"},
+                              {2.0f, "day19-bank-loud.png"}}) {
+        sequence.advance(stage.first);
+        renderer.beginFrame();
+        renderer.drawLevel(world.level, world.player, ripple, world.player.pos, 0, 1, false, 42,
+                           world.guards, world.cameras, world.lasers, false, nullptr, {}, true, {},
+                           nullptr, &sequence);
+        renderer.drawAlarmSequence(sequence);
+        renderer.present();
+        auto image = LoadImageFromTexture(renderer.frameTexture());
+        ImageFlipVertical(&image);
+        const std::string path = std::string(GP_RENDER_OUTPUT_DIRECTORY) + "/" + stage.second;
+        EXPECT_TRUE(ExportImage(image, path.c_str()));
+        UnloadImage(image);
+    }
+    for (const auto& guard : world.guards) EXPECT_FLOAT_EQ(guard.reveal, 0);
+    for (const auto& camera : world.cameras) EXPECT_FLOAT_EQ(camera.reveal, 0);
+    for (const auto& laser : world.lasers) EXPECT_FLOAT_EQ(laser.reveal, 0);
 }
