@@ -9,6 +9,8 @@
 struct Level;
 class Player;
 class Guard;
+class SecurityCamera;
+class Laser;
 class RippleSystem;
 class Logger;
 class InteractionSystem;
@@ -36,7 +38,9 @@ class Renderer {
                         const std::vector<Guard>& guards) const;
     void drawLevel(const Level& level, const Player& player, const RippleSystem& ripple,
                    Vec2 cameraTarget, float facing, float alpha, bool overview, std::uint32_t seed,
-                   const std::vector<Guard>& guards = {});
+                   const std::vector<Guard>& guards = {},
+                   const std::vector<SecurityCamera>& cameras = {},
+                   const std::vector<Laser>& lasers = {}, bool securityLooped = false);
 
    private:
     RenderTexture2D surface_;

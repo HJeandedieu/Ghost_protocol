@@ -41,7 +41,8 @@ class DetectionSystemTest : public testing::Test {
             ++spotted;
         });
         events.subscribe<CallInStarted>([this](const auto& event) {
-            EXPECT_EQ(event.guardId, "G01");
+            EXPECT_EQ(event.sourceId, "G01");
+            EXPECT_EQ(event.sourceType, CallInSource::Guard);
             announcedSeconds = event.seconds;
             ++callIns;
         });

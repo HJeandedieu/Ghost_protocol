@@ -50,7 +50,7 @@ class EventBus {
     using Event = std::variant<NoiseEmitted, GuardSuspicious, GuardSpotted, CallInStarted,
                                CallInCancelled, GuardTakenDown, BodyFound, InteractionProgress,
                                InteractionDone, SecurityLooped, PagerRang, PagerAnswered,
-                               PagerMissed, LaserTouched, AlarmTriggered>;
+                               PagerMissed, LaserTouched, AlarmTriggered, SecurityLoopEnded>;
     std::vector<Event> pending_, delivering_;
     std::tuple<std::vector<std::function<void(const NoiseEmitted&)>>,
                std::vector<std::function<void(const GuardSuspicious&)>>,
@@ -66,7 +66,8 @@ class EventBus {
                std::vector<std::function<void(const PagerAnswered&)>>,
                std::vector<std::function<void(const PagerMissed&)>>,
                std::vector<std::function<void(const LaserTouched&)>>,
-               std::vector<std::function<void(const AlarmTriggered&)>>>
+               std::vector<std::function<void(const AlarmTriggered&)>>,
+               std::vector<std::function<void(const SecurityLoopEnded&)>>>
         listeners_;
     bool dispatching_ = false;
 };

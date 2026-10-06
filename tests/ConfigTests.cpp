@@ -16,6 +16,7 @@ TEST(Config, LoadsDocumentedTuningWithoutWarnings) {
     EXPECT_FLOAT_EQ(config.view.leadPx, 60.0f);
     EXPECT_FLOAT_EQ(config.view.followRate, 8.0f);
     EXPECT_FLOAT_EQ(config.ping.bigRadius, 520.0f);
+    EXPECT_FLOAT_EQ(config.ping.hazardRevealRadius, 120.0f);
     EXPECT_FLOAT_EQ(config.mission.thermiteBurn, 75.0f);
     EXPECT_FLOAT_EQ(config.difficulty.hard.maxAlive, 16.0f);
     EXPECT_EQ(console.str().find("[WARN]"), std::string::npos);
@@ -34,6 +35,26 @@ TEST(Config, MissingKeyFallsBackAndPreservesOtherOverrides) {
     EXPECT_FLOAT_EQ(config.player.sprint, 275.0f);
     EXPECT_NE(console.str().find("[WARN] Missing or invalid tuning key: player.walk"),
               std::string::npos);
+}
+
+TEST(Config, HazardRevealRadiusLoadsOverrideAndRejectsMissingOrNegativeValues) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    std::ostringstream console;
+    Logger logger(console, "");
+    data["ping"]["hazard_reveal_radius"] = 75;
+    EXPECT_FLOAT_EQ(
+        Config::load(files.write("override.json", data.dump()), logger).ping.hazardRevealRadius,
+        75);
+    data["ping"].erase("hazard_reveal_radius");
+    EXPECT_FLOAT_EQ(
+        Config::load(files.write("missing.json", data.dump()), logger).ping.hazardRevealRadius,
+        120);
+    data["ping"]["hazard_reveal_radius"] = -1;
+    EXPECT_FLOAT_EQ(
+        Config::load(files.write("invalid.json", data.dump()), logger).ping.hazardRevealRadius,
+        120);
 }
 
 TEST(Config, HearingTuningLoadsOverridesAndMissingInvalidValuesFallBack) {

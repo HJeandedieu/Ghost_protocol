@@ -296,3 +296,52 @@ TEST_F(Render, DetectionPieFillsClockwiseAndStaysHiddenWithItsGuard) {
     EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day12-body-preview.png"));
     UnloadImage(image);
 }
+
+TEST_F(Render, HazardsStayHiddenInLitRoomsUntilRevealedAndCameraConeStopsAtDoor) {
+    std::ostringstream console;
+    Logger logger(console, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    Level level;
+    std::string rows;
+    for (int y = 0; y < 10; ++y) {
+        std::string row(20, '.');
+        if (y == 4) row[7] = 'S';
+        rows += row + '\n';
+    }
+    std::istringstream source(rows);
+    level.map = TileMap::parse(source, 48);
+    level.map.fillLight(LightLevel::Lit);
+    level.playerSpawn = {1, 1};
+    CameraSpawn spawn;
+    spawn.id = "C01";
+    spawn.position = {4, 4};
+    spawn.range = 340;
+    level.cameras.push_back(spawn);
+    level.lasers.push_back({"L01", {4, 6}, {12, 6}});
+    World world(std::move(level), PlayerConfig{});
+    RippleSystem ripple(PingConfig{}, world.level.map);
+    std::vector<Entity*> hazards{&world.cameras.front(), &world.lasers.front()};
+    const auto capture = [&] {
+        renderer.beginFrame();
+        renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, false, 1234,
+                           world.guards, world.cameras, world.lasers);
+        renderer.present();
+        auto image = LoadImageFromTexture(renderer.frameTexture());
+        ImageFlipVertical(&image);
+        return image;
+    };
+    auto image = capture();
+    EXPECT_LT(GetImageColor(image, 216, 216).r, 35);
+    EXPECT_LT(GetImageColor(image, 360, 312).r, 35);
+    UnloadImage(image);
+    ripple.startPing(world.cameras.front().pos, 0);
+    ripple.update(0.2f, world.level.map, hazards);
+    image = capture();
+    EXPECT_GT(GetImageColor(image, 216, 216).r, 200);
+    EXPECT_GT(GetImageColor(image, 312, 216).r, 35);
+    EXPECT_LT(GetImageColor(image, 408, 216).r, 35);
+    EXPECT_GT(GetImageColor(image, 360, 312).r, 200);
+    EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day13-hazards-preview.png"));
+    UnloadImage(image);
+}

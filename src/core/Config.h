@@ -28,6 +28,7 @@ struct PingConfig {
     float cooldown = 3.0f;
     float noiseMult = 0.6f;
     float halo = 96.0f;
+    float hazardRevealRadius = 120.0f;
 };
 
 struct ViewConfig {

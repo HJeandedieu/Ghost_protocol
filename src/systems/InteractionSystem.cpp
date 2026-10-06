@@ -55,7 +55,9 @@ void InteractionSystem::loadBank(World& world, const Config& config) {
                      }});
             } else if (tile == TileType::SecurityPanel) {
                 add({id, position, config.mission.securityHold, "Hold E: loop security",
-                     [&world](const Player&) { return !world.securityLoopUsed; },
+                     [&world](const Player&) {
+                         return !world.securityLoopUsed && !world.alarmLoud;
+                     },
                      [this, seconds = config.camera.loopSeconds](World& state) {
                          state.securityLoopUsed = true;
                          state.securityLoopRemaining = seconds;
@@ -84,7 +86,9 @@ void InteractionSystem::openNormalDoors(World& world) {
 void InteractionSystem::update(float dt, bool held, World& world) {
     if (!std::isfinite(dt) || dt <= 0) return;
     openNormalDoors(world);
-    world.securityLoopRemaining = std::max(0.0f, world.securityLoopRemaining - dt);
+    const float loopBefore = world.securityLoopRemaining;
+    world.securityLoopRemaining = std::max(0.0f, loopBefore - dt);
+    if (loopBefore > 0 && world.securityLoopRemaining == 0) bus_.publish(SecurityLoopEnded{});
     target_ = -1;
     float nearest = static_cast<float>(world.level.map.tileSize());
     for (std::size_t i = 0; i < items_.size(); ++i) {

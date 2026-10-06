@@ -25,7 +25,8 @@
     "fade": 2.5,
     "cooldown": 3.0,
     "noise_mult": 0.6,
-    "halo": 96
+    "halo": 96,
+    "hazard_reveal_radius": 120
   },
   "noise": {
     "crouch": 40,
