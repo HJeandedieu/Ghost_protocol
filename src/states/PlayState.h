@@ -16,6 +16,7 @@
 #include "systems/LaserSystem.h"
 #include "systems/NoiseSystem.h"
 #include "systems/PagerSystem.h"
+#include "systems/PickupSystem.h"
 #include "systems/RippleSystem.h"
 #include "world/Level.h"
 #include "world/World.h"
@@ -52,5 +53,6 @@ class PlayState : public IState {
     PagerSystem pagers_;
     LaserSystem lasers_;
     CombatSystem combat_;
+    PickupSystem pickups_;
     const Config& config_;
 };

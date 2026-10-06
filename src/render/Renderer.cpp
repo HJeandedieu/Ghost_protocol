@@ -286,7 +286,9 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                          std::uint32_t seed, const std::vector<Guard>& guards,
                          const std::vector<SecurityCamera>& cameras,
                          const std::vector<Laser>& lasers, bool securityLooped,
-                         const CombatSystem* combat) {
+                         const CombatSystem* combat,
+                         const std::vector<std::unique_ptr<RecoveryPickup>>& pickups,
+                         bool pickupsLit) {
     constexpr Color kBone = {233, 228, 208, 255};
     constexpr Color kTeal = {63, 143, 140, 255};
     constexpr Color kDeepTeal = {30, 74, 74, 255};
@@ -411,6 +413,26 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                 DrawText(TextFormat("%.1fs", guard.callInRemaining()),
                          static_cast<int>(meter.x + 12), static_cast<int>(meter.y - 8), 16,
                          Fade(kAlarm, visible));
+        }
+    }
+    for (const auto& pickup : pickups) {
+        const int tx = static_cast<int>(pickup->pos.x / map.tileSize());
+        const int ty = static_cast<int>(pickup->pos.y / map.tileSize());
+        const float visible =
+            overview || pickupsLit
+                ? 1.0f
+                : std::max(pickup->reveal, ripple.visibility(tx, ty, player.pos, map));
+        if (visible <= 0) continue;
+        const auto bone = Fade(kBone, visible);
+        const auto gold = Fade(kGold, visible);
+        const float x = pickup->pos.x, y = pickup->pos.y;
+        DrawRectangleRounded({x - 12, y - 10, 24, 20}, 0.2f, 4, Fade({20, 22, 27, 255}, visible));
+        DrawRectangleLinesEx({x - 12, y - 10, 24, 20}, 2, bone);
+        if (pickup->type == PickupType::Medkit) {
+            DrawRectangle(static_cast<int>(x - 2), static_cast<int>(y - 6), 4, 12, gold);
+            DrawRectangle(static_cast<int>(x - 6), static_cast<int>(y - 2), 12, 4, gold);
+        } else {
+            DrawPoly({x, y}, 5, 7, -90, gold);
         }
     }
     for (const auto& laser : lasers) {
@@ -545,12 +567,19 @@ void Renderer::drawInteractionHud(const World& world, const InteractionSystem& i
         DrawText(TextFormat("SECURITY LOOP %.0fs", world.securityLoopRemaining), 288, 136, 14,
                  kTeal);
     if (const auto* target = interaction.target()) {
-        DrawRectangle(264, Letterbox::kHeight - 112, 752, 56, kSlate);
-        DrawText(target->prompt.c_str(), 288, Letterbox::kHeight - 96, 20, kBone);
+        DrawRectangle(312, Letterbox::kHeight - 112, 704, 56, kSlate);
+        DrawText(target->prompt.c_str(), 336, Letterbox::kHeight - 96, 20, kBone);
         if (interaction.progress() > 0)
             DrawRing({960, static_cast<float>(Letterbox::kHeight - 84)}, 14, 18, -90,
                      -90 + 360 * interaction.progress(), 64, kBone);
     }
+}
+
+void Renderer::drawPickupHud(const RecoveryPickup* pickup) const {
+    if (!pickup) return;
+    DrawRectangle(312, Letterbox::kHeight - 112, 704, 56, {20, 22, 27, 255});
+    DrawText(pickup->type == PickupType::Medkit ? "E: collect medkit" : "E: collect armor plate",
+             336, Letterbox::kHeight - 96, 20, {233, 228, 208, 255});
 }
 
 void Renderer::drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pagers,

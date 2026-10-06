@@ -70,7 +70,7 @@ add_library(ghost_core STATIC
     src/systems/VisionSystem.cpp
     src/systems/DetectionSystem.cpp
     src/systems/AlarmDirector.cpp src/systems/PagerSystem.cpp
-    src/systems/LaserSystem.cpp src/systems/CombatSystem.cpp
+    src/systems/LaserSystem.cpp src/systems/CombatSystem.cpp src/systems/PickupSystem.cpp
 )
 target_include_directories(ghost_core PUBLIC src)
 target_link_libraries(ghost_core PRIVATE nlohmann_json::nlohmann_json)
@@ -122,7 +122,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/TakedownTests.cpp
         tests/AlarmDirectorTests.cpp tests/PagerSystemTests.cpp
         tests/CameraTests.cpp tests/LaserSystemTests.cpp tests/HazardRevealTests.cpp
-        tests/StealthRunTests.cpp tests/CombatSystemTests.cpp tests/HealthTests.cpp
+        tests/StealthRunTests.cpp tests/CombatSystemTests.cpp tests/HealthTests.cpp tests/PickupSystemTests.cpp
     )
     target_link_libraries(ghost_tests PRIVATE ghost_core GTest::gtest_main
         nlohmann_json::nlohmann_json)

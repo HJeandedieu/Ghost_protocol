@@ -22,6 +22,7 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       pagers_(events_, config.pager, world_, interaction_),
       lasers_(events_, config.laser, config.noise.laser),
       combat_(events_, weapons, seed),
+      pickups_(events_, config.pickup, seed),
       config_(config) {
     noise_.setWeapons(weapons, config.noise);
     interaction_.loadBank(world_, config_);
@@ -65,6 +66,15 @@ void PlayState::update(float dt) {
                     NoiseType::Step, player.id);
     pagers_.update(dt);
     interaction_.update(dt, input_.interactHeld || input_.interactPressed, world_);
+#ifndef NDEBUG
+    if (input_.debugMedkitPressed)
+        pickups_.spawn(PickupType::Medkit, {player.pos.x + player.radius * 2, player.pos.y},
+                       world_);
+    if (input_.debugArmorPressed)
+        pickups_.spawn(PickupType::ArmorPlate, {player.pos.x, player.pos.y + player.radius * 2},
+                       world_);
+#endif
+    pickups_.update(input_.interactPressed, interaction_.claimedThisTick(), world_, combat_);
     for (std::size_t i = 0; i < world_.guards.size(); ++i) {
         guardAi_[i]->update(dt);
         noise_.setHearerPosition(i, world_.guards[i].pos);
@@ -89,7 +99,9 @@ void PlayState::update(float dt) {
     detection_.updateCameras(dt, player, world_.level.map, world_.cameras, config_.guard, looped);
     lasers_.update(dt, player, world_.lasers, looped);
     VisionSystem(config_.guard).findBodies(world_.guards, world_.level.map, events_);
-    ripple_.update(dt, world_.level.map, revealables_);
+    auto tickRevealables = revealables_;
+    for (auto& pickup : world_.pickups) tickRevealables.push_back(pickup.get());
+    ripple_.update(dt, world_.level.map, tickRevealables);
     if (!world_.alarmLoud) ripple_.applyProximity(player.pos, world_.level.map, hazards_);
     combat_.update(dt, input_, facing_ * (180.0f / 3.14159265358979323846f), world_);
 #ifndef NDEBUG
@@ -106,9 +118,11 @@ void PlayState::update(float dt) {
 void PlayState::render(float alpha) {
     renderer_.drawLevel(world_.level, world_.player, ripple_, camera_.interpolatedTarget(alpha),
                         facing_, alpha, debugView_, seed_, world_.guards, world_.cameras,
-                        world_.lasers, world_.securityLoopRemaining > 0, &combat_);
+                        world_.lasers, world_.securityLoopRemaining > 0, &combat_, world_.pickups,
+                        world_.alarmLoud);
     renderer_.drawInteractionHud(world_, interaction_, noise_.currentRadius(),
                                  config_.noise.sprint);
     renderer_.drawWeaponHud(combat_);
+    renderer_.drawPickupHud(pickups_.target(world_, interaction_.claimedThisTick()));
     renderer_.drawStealthHud(alarm_, pagers_, world_.guards);
 }

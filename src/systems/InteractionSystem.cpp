@@ -84,6 +84,7 @@ void InteractionSystem::openNormalDoors(World& world) {
 }
 
 void InteractionSystem::update(float dt, bool held, World& world) {
+    claimedThisTick_ = false;
     if (!std::isfinite(dt) || dt <= 0) return;
     openNormalDoors(world);
     const float loopBefore = world.securityLoopRemaining;
@@ -118,6 +119,7 @@ void InteractionSystem::update(float dt, bool held, World& world) {
         }
     }
     if (target_ < 0) return;
+    claimedThisTick_ = true;
     auto& item = items_[static_cast<std::size_t>(target_)];
     auto& elapsed = elapsed_[static_cast<std::size_t>(target_)];
     if (held) {

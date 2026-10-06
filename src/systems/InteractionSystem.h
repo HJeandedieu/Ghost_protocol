@@ -30,6 +30,7 @@ class InteractionSystem {
     float progress() const;
     const Interactable* target() const;
     bool targetAvailable(const World& world) const;
+    bool claimedThisTick() const { return claimedThisTick_; }
 
    private:
     EventBus& bus_;
@@ -37,5 +38,6 @@ class InteractionSystem {
     std::vector<float> elapsed_;
     int target_ = -1;
     float lockpickNoise_ = 0;
+    bool claimedThisTick_ = false;
     void openNormalDoors(World& world);
 };
