@@ -4,6 +4,7 @@
 
 #include "core/Input.h"
 #include "core/Rng.h"
+#include "entities/RecoveryPickup.h"
 #include "entities/Weapon.h"
 class EventBus;
 class Entity;
@@ -25,6 +26,7 @@ class CombatSystem {
     void update(float dt, const Input& input, float dirDeg, World& world);
     void applyDamage(Entity& target, float amount, const std::string& sourceId);
     void updateHealth(float dt, Player& player);
+    float restore(Player& player, PickupType type, float amount);
     HitResult fire(const Weapon& weapon, Vec2 from, float dirDeg, Rng& rng, World& world);
     const Weapon& activeWeapon() const { return weapons_[activeSlot_]; }
     int activeSlot() const { return activeSlot_; }

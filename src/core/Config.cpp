@@ -60,6 +60,22 @@ Config Config::load(const std::string& path, Logger& logger) {
         readNumber(player, "armor_regen", config.player.armorRegen, "player", logger);
     config.player.armorRegenDelay =
         readNumber(player, "armor_regen_delay", config.player.armorRegenDelay, "player", logger);
+    const auto& pickup = groupOrEmpty(data, "pickup", empty);
+    config.pickup.medkitChance =
+        readNumber(pickup, "medkit_chance", config.pickup.medkitChance, "pickup", logger, 1);
+    config.pickup.armorChance =
+        readNumber(pickup, "armor_chance", config.pickup.armorChance, "pickup", logger, 1);
+    if (config.pickup.medkitChance + config.pickup.armorChance > 1) {
+        logger.log(LogLevel::Warn, "Invalid pickup probability sum; using defaults");
+        config.pickup.medkitChance = PickupConfig{}.medkitChance;
+        config.pickup.armorChance = PickupConfig{}.armorChance;
+    }
+    config.pickup.medkitAmount =
+        readNumber(pickup, "medkit_amount", config.pickup.medkitAmount, "pickup", logger);
+    config.pickup.armorAmount =
+        readNumber(pickup, "armor_amount", config.pickup.armorAmount, "pickup", logger);
+    config.pickup.collectRadius =
+        readNumber(pickup, "collect_radius", config.pickup.collectRadius, "pickup", logger);
     const auto& view = groupOrEmpty(data, "view", empty);
     config.view.leadPx = readNumber(view, "lead_px", config.view.leadPx, "view", logger);
     config.view.followRate =

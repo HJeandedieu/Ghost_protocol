@@ -1,10 +1,12 @@
 #pragma once
 
+#include <memory>
 #include <utility>
 
 #include "entities/Guard.h"
 #include "entities/Laser.h"
 #include "entities/Player.h"
+#include "entities/RecoveryPickup.h"
 #include "entities/SecurityCamera.h"
 #include "world/Level.h"
 
@@ -25,6 +27,7 @@ struct World {
     std::vector<Guard> guards;
     std::vector<SecurityCamera> cameras;
     std::vector<Laser> lasers;
+    std::vector<std::unique_ptr<RecoveryPickup>> pickups;
     bool alarmLoud = false;
     bool powerOn = false;
     bool securityLoopUsed = false;

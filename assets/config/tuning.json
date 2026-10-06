@@ -12,6 +12,13 @@
     "armor_regen": 8,
     "armor_regen_delay": 5
   },
+  "pickup": {
+    "medkit_chance": 0.20,
+    "armor_chance": 0.10,
+    "medkit_amount": 50,
+    "armor_amount": 50,
+    "collect_radius": 50
+  },
   "view": {
     "lead_px": 60,
     "follow_rate": 8

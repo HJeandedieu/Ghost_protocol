@@ -79,6 +79,8 @@ Zero lead disables look-ahead; zero rate freezes camera follow. A cursor outside
 the letterboxed game picture contributes no lead. The `camera` group above
 continues to configure security cameras.
 
+Reference-first visibility (author confirmed 6 October 2026): `render.ambient_floor_alpha` and `render.ambient_wall_alpha` are presentation alpha values in [0, 1]. Missing/invalid values fall back to 0.18 and 0.45. They apply only to environmental geometry/decor, never entity reveal, interaction markers, gameplay light levels or detection. Wall baseline is drawn only on edges facing walkable space, leaving the solid mass Ink. See Visual Reference §2.
+
 Recovery pickup tuning (author approved 6 October 2026): `pickup.medkit_chance` and `pickup.armor_chance` are probabilities in [0, 1], with a sum at most 1. Missing or invalid individual values use the documented default; if the resulting sum exceeds 1, reset both probabilities to their defaults and log a WARN. Amounts and collection radius must be finite and non-negative; missing or invalid values use the defaults above and log a WARN. The remaining probability is no drop (0.70 by default). All three police types use these values; guards do not drop recovery items. Selection, collection, overflow, and lifetime rules are in Systems Contract §3.7. Pickups are created at runtime and add no level or save format.
 
 ## 3. weapons.json and enemies.json

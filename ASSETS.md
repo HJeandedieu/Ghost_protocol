@@ -16,6 +16,7 @@ this register does not grant redistribution rights or claim ownership.
 | `docs/levels/gotham_central_blueprint.png` | Supplied by project author; source URL not supplied | Not supplied | Not supplied | Unknown | Bank composition reference only |
 | `assets/shaders/glsl330/post.fs` | Original project code | Ghost Protocol project | Project-owned | None | Desktop vignette and grain |
 | `assets/shaders/glsl100/post.fs` | Original project code | Ghost Protocol project | Project-owned | None | Web variant of vignette and grain |
+| `assets/config/enemies.json` | Enemy and wave catalog from Data Formats §3 | Ghost Protocol project | Project-owned | None | Enemy tuning and planned assault composition |
 
 Log each future runtime font, texture, sound, and music file with its source,
 author, licence, and attribution requirements before adding it to a release.

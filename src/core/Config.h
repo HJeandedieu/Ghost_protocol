@@ -18,6 +18,14 @@ struct PlayerConfig {
     float armorRegenDelay = 5.0f;
 };
 
+struct PickupConfig {
+    float medkitChance = 0.20f;
+    float armorChance = 0.10f;
+    float medkitAmount = 50;
+    float armorAmount = 50;
+    float collectRadius = 50;
+};
+
 struct PingConfig {
     float smallRadius = 260.0f;
     float bigRadius = 520.0f;
@@ -162,6 +170,7 @@ class Config {
     static Config load(const std::string& path, Logger& logger);
 
     PlayerConfig player;
+    PickupConfig pickup;
     ViewConfig view;
     RenderConfig render;
     PingConfig ping;

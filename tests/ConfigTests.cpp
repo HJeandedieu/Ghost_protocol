@@ -37,6 +37,57 @@ TEST(Config, MissingKeyFallsBackAndPreservesOtherOverrides) {
               std::string::npos);
 }
 
+TEST(Config, PickupTuningLoadsOverridesAndDefaults) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    std::ostringstream console;
+    Logger logger(console, "");
+    const auto shipped = Config::load("assets/config/tuning.json", logger).pickup;
+    EXPECT_FLOAT_EQ(shipped.medkitChance, 0.2f);
+    EXPECT_FLOAT_EQ(shipped.armorChance, 0.1f);
+    EXPECT_FLOAT_EQ(shipped.medkitAmount, 50);
+    EXPECT_FLOAT_EQ(shipped.armorAmount, 50);
+    EXPECT_FLOAT_EQ(shipped.collectRadius, 50);
+    data["pickup"] = {{"medkit_chance", 0.4},
+                      {"armor_chance", 0.3},
+                      {"medkit_amount", 25},
+                      {"armor_amount", 15},
+                      {"collect_radius", 30}};
+    const auto custom = Config::load(files.write("pickup.json", data.dump()), logger).pickup;
+    EXPECT_FLOAT_EQ(custom.medkitChance, 0.4f);
+    EXPECT_FLOAT_EQ(custom.armorChance, 0.3f);
+    EXPECT_FLOAT_EQ(custom.medkitAmount, 25);
+    EXPECT_FLOAT_EQ(custom.armorAmount, 15);
+    EXPECT_FLOAT_EQ(custom.collectRadius, 30);
+}
+
+TEST(Config, PickupTuningRejectsProbabilitySumAndInvalidMissingKeys) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    std::ostringstream console;
+    Logger logger(console, "");
+    data["pickup"] = {{"medkit_chance", 0.8},
+                      {"armor_chance", 0.5},
+                      {"medkit_amount", -1},
+                      {"collect_radius", "bad"}};
+    const auto invalid =
+        Config::load(files.write("invalid-pickup.json", data.dump()), logger).pickup;
+    EXPECT_FLOAT_EQ(invalid.medkitChance, 0.2f);
+    EXPECT_FLOAT_EQ(invalid.armorChance, 0.1f);
+    EXPECT_FLOAT_EQ(invalid.medkitAmount, 50);
+    EXPECT_FLOAT_EQ(invalid.armorAmount, 50);
+    EXPECT_FLOAT_EQ(invalid.collectRadius, 50);
+    EXPECT_NE(console.str().find("Invalid pickup probability sum"), std::string::npos);
+    data["pickup"]["medkit_chance"] = 2;
+    data["pickup"]["armor_chance"] = -0.1;
+    const auto badProbabilities =
+        Config::load(files.write("bad-probabilities.json", data.dump()), logger).pickup;
+    EXPECT_FLOAT_EQ(badProbabilities.medkitChance, 0.2f);
+    EXPECT_FLOAT_EQ(badProbabilities.armorChance, 0.1f);
+}
+
 TEST(Config, HazardRevealRadiusLoadsOverrideAndRejectsMissingOrNegativeValues) {
     TestFiles files;
     nlohmann::json data;

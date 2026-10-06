@@ -1,10 +1,12 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 #include "core/Config.h"
 #include "core/Vec2.h"
+#include "entities/RecoveryPickup.h"
 #include "raylib.h"
 #include "render/HealthHud.h"
 
@@ -44,6 +46,7 @@ class Renderer {
     void notifyHealthDamage() { healthHud_.damaged(); }
     void updateHealthHud(float dt, const Player& player) { healthHud_.update(dt, player); }
     void drawWeaponHud(const CombatSystem& combat) const;
+    void drawPickupHud(const RecoveryPickup* pickup) const;
     void drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pagers,
                         const std::vector<Guard>& guards) const;
     void drawLevel(const Level& level, const Player& player, const RippleSystem& ripple,
@@ -51,7 +54,9 @@ class Renderer {
                    const std::vector<Guard>& guards = {},
                    const std::vector<SecurityCamera>& cameras = {},
                    const std::vector<Laser>& lasers = {}, bool securityLooped = false,
-                   const CombatSystem* combat = nullptr);
+                   const CombatSystem* combat = nullptr,
+                   const std::vector<std::unique_ptr<RecoveryPickup>>& pickups = {},
+                   bool pickupsLit = false);
 
    private:
     RenderTexture2D surface_;
