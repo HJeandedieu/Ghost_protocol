@@ -15,6 +15,7 @@ class Player : public Entity {
     Player(Vec2 spawn, const PlayerConfig& config);
     void update(float dt, const Input& input, const TileMap& map);
     bool tryTakedown(std::vector<Guard>& guards, EventBus& events);
+    const PlayerConfig& healthConfig() const { return config_; }
     Vec2 velocity() const { return velocity_; }
     bool isCrouched() const { return crouched_; }
     bool isSprinting() const { return sprinting_; }

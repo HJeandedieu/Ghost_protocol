@@ -10,10 +10,11 @@ Player::Player(Vec2 spawn, const PlayerConfig& config) : config_(config) {
     pos = prevPos = spawn;
     radius = config.radius;
     id = "Ghost";
+    initializeVitals(config.hp, config.armor);
 }
 
 void Player::update(float dt, const Input& input, const TileMap& map) {
-    if (!std::isfinite(dt) || dt <= 0.0f) return;
+    if (dead() || !std::isfinite(dt) || dt <= 0.0f) return;
     prevPos = pos;
     if (input.crouchPressed) crouched_ = !crouched_;
     sprinting_ = input.sprintHeld && !crouched_;
