@@ -47,41 +47,52 @@ inspected; the author chose to retain the generated variants. The Windows
 ZIP's executable, runtime DLLs and every asset were checked against the
 Release build and source files. A second-machine run remains unverified.
 
-## Classmate sessions — pending
+## Agent review — replaces classmate sessions
 
-The author will run two or three uncoached sessions, 30 minutes each.
-Give testers the build and controls, then observe without route instructions.
-Ask them to reach the vault corridor silently. Record the time and location
-of each stuck point, spontaneous questions and laughter, alarms, and a final
-fun score from 1 to 5. Record a participant alias rather than personal details.
+On 6 October 2026 the author explicitly skipped the student playtests and
+requested agent testing against the expected game, reporting that the view
+is "way too dark." No participant sessions or fun scores are claimed.
+This review can check behavior and visual conformance; it cannot measure
+first-time human learning or enjoyment.
 
-| Participant | Build / platform | Stuck points and timestamps | Questions / laughter | Fun (1–5) |
-|---|---|---|---|---|
-| A | Pending | Pending | Pending | Pending |
-| B | Pending | Pending | Pending | Pending |
-| C (optional) | Pending | Pending | Pending | Pending |
+The live browser view was inspected both at the sidebar's normal size and
+at the documented 1280×720 gameplay resolution, before and after a ping.
+The halo provides only a small patch of visible alley between pings.
+The revealed floors are visible, but most of the viewport remains Ink.
+This follows the current 96 px halo, 2.5 s fade, light zones and hidden-world
+rules. It supports the author's readability concern; it does not establish
+a broken shader or an incorrect reveal radius. The furnished reference
+image has much more readable room identity than the present flat tiles.
 
-## Five candidates to assess with testers
+All 17 focused Release route/render checks passed again during this review.
+The runtime sources are unchanged from the previously passing 165-check Debug
+and Release builds. Darkness review capture: ignored
+`build/day14-darkness-review.png`.
 
-These are development observations, not fabricated classmate feedback:
+## Five observed issues and priorities
 
-1. The objective prompt still uses one general instruction rather than showing
-   S1–S3 progression. Measure navigation confusion (objective HUD is scheduled later).
-2. The safe route depends on finding the security panel before entering camera
-   coverage. Measure whether players discover it and understand the loop timer.
-3. Guards and the player still use early geometric silhouettes. Assess threat
-   readability against the finished visual requirements.
-4. The Handler portrait, tutorial voice, and subtitle presentation are pending
-   their planned implementation. Record where guidance is needed.
-5. The menu currently offers Enter-to-start and the play state has no completed
-   pause/retry flow. Observe its effect on repeated attempts.
+1. **Visibility/readability (author feedback):** the between-ping view is too
+   sparse to orient comfortably. Resolve the visibility design first. A larger
+   halo or longer fade requires updated GDD §4.4, Data Formats §2 and Visual
+   Reference §2; faint persistent outlines would also change the hidden-world
+   contract. No new values or visibility rules have been implemented.
+2. **World presentation:** bare tiles and simple character shapes do not match
+   the documented furnished bank, distinctive silhouettes and layered geometry.
+   Improve the revealed scenery under its existing reveal/light rules.
+3. **Objective guidance:** the prompt remains the same general instruction after
+   keycard and breaker progression, rather than displaying the active S1–S3 goal.
+4. **Tutorial/presentation:** Handler portrait, voice hints and subtitles are
+   absent, so the current build provides no narrated explanation of the
+   security route or ping tradeoff.
+5. **Repeated attempts:** the menu only offers Enter-to-start; a completed
+   pause/retry flow is absent. Restarting the executable is currently required.
 
-After the sessions, replace this candidate list with the five observed fixes.
-Put the top two into the next workday's follow-up list without silently changing
-the weapons day's contract or scope.
+The top two follow-ups are visibility design and revealed-world readability.
+Track them alongside the next workday rather than silently replacing the
+weapons day's scope. Later scheduled presentation features remain outstanding.
 
 ## Milestone
 
-`v0.2-week2` remains pending the human sessions, review/merge, and applicable
-QA checks. Do not present these automated runs as classmate playtests or tag
-an unreviewed build as the finished milestone.
+The classmate-session requirement is waived by the author. `v0.2-week2`
+remains pending resolution of the visibility feedback, review/merge and
+applicable QA. Do not present this agent review as human playtest evidence.
