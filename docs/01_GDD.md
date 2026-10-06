@@ -164,7 +164,7 @@ Sprinting outruns every enemy; walking outruns patrolling guards; bullets outrun
 | Halo | 96 px circle always visible around the player |
 
 Rules:
-- Author decision (6 October 2026): the gameplay reference image takes priority over conflicting older blackout descriptions. Static floors, room-facing wall edges and decoration retain a faint presentation baseline (`render.ambient_floor_alpha = 0.06`, `render.ambient_wall_alpha = 0.16`). This never exposes threats or interaction markers or changes detection; see Visual Reference §2.
+- Author decision (6 October 2026): the gameplay reference image takes priority over conflicting older blackout descriptions. Static floors, room-facing wall edges and decoration retain a faint presentation baseline (`render.ambient_floor_alpha = 0.18`, `render.ambient_wall_alpha = 0.45`). This never exposes threats or interaction markers or changes detection; see Visual Reference §2.
 - The wave is blocked by walls and doors. It reveals tiles, items, entities, and guard cones that have line of sight to the origin within its radius.
 - Lasers and camera lenses are revealed only by a ping, or when within 120 px of the player with a clear line of sight (tuning key `ping.hazard_reveal_radius`).
 - **Lit zones** (security room, counting room, foyer, street) are always visible. The main hall is **dim** (always faintly visible). Everything else is **dark**.
