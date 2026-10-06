@@ -196,7 +196,7 @@ A guard hearing a noise turns Suspicious and walks to its source (Investigating)
 - Detection meter fills from 35/s at max range to 100/s at point blank. Sprinting x1.25, crouching x0.7. Decays at 25/s when unseen.
 - Meter 100 means **spotted**: the guard starts the **call-in** (3.0 s). If it reaches zero the alarm fires.
 
-**Guard states:** Patrol, Suspicious, Investigating, Searching, Alerted (call-in), Combat, Unconscious. Details in `03_Systems_Contract.md`.
+**Guard states:** Patrol, Suspicious, Investigating, Searching, Returning, Alerted (call-in), Combat, Unconscious. A guard that hears a noise it cannot reach (a wall is in the way) turns toward it for 1.5 s and then returns to its route. Details, including the search loop and the return rule, in `03_Systems_Contract.md` section 3.1.
 
 **Takedown:** RMB within 50 px of a guard that is not in Combat. It works from any angle, including during call-in (this is the **second chance**). The guard becomes an Unconscious body.
 
