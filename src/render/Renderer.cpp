@@ -13,6 +13,7 @@
 #include "entities/SecurityCamera.h"
 #include "raylib.h"
 #include "render/Letterbox.h"
+#include "render/Palette.h"
 #include "systems/AlarmDirector.h"
 #include "systems/CombatSystem.h"
 #include "systems/EnemyCombatSystem.h"
@@ -30,9 +31,9 @@ constexpr float kPi = 3.14159265358979323846f;
 constexpr int kConeArcSegments = 64;
 
 // Original decorative geometry; collision and interactions remain map-owned.
-void drawBankFurniture(int x, int y, float size, float visibility) {
-    const Color outline = Fade({63, 143, 140, 255}, visibility);
-    const Color surface = Fade({30, 74, 74, 255}, visibility);
+void drawBankFurniture(int x, int y, float size, float visibility, Color wall, Color floor) {
+    const Color outline = Fade(wall, visibility);
+    const Color surface = Fade(floor, visibility);
     const float left = x * size;
     const float top = y * size;
     const bool office = (x == 27 || x == 31) && (y == 22 || y == 25 || y == 30 || y == 34);
@@ -294,10 +295,10 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                          bool pickupsLit, const std::vector<std::unique_ptr<Enemy>>& enemies,
                          const EnemyCombatSystem* enemyCombat) {
     constexpr Color kBone = {233, 228, 208, 255};
-    constexpr Color kTeal = {63, 143, 140, 255};
-    constexpr Color kDeepTeal = {30, 74, 74, 255};
     constexpr Color kGold = {242, 183, 5, 255};
     constexpr Color kAlarm = {255, 59, 92, 255};
+    const Color wallColor = pickupsLit ? Palette::Alarm : Palette::Teal;
+    const Color floorColor = pickupsLit ? Palette::DarkAlarm : Palette::DeepTeal;
     const auto& map = level.map;
     if (!guards.empty()) prepareLevel(level);
     const float size = static_cast<float>(map.tileSize());
@@ -320,11 +321,12 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
             if (topLeft.x + screenSize < 0 || topLeft.y + screenSize < 0 ||
                 topLeft.x >= Letterbox::kWidth || topLeft.y >= Letterbox::kHeight)
                 continue;
-            const float reveal = overview ? 1.0f : ripple.visibility(x, y, player.pos, map);
+            const float reveal =
+                overview || pickupsLit ? 1.0f : ripple.visibility(x, y, player.pos, map);
             if (tile == TileType::Wall) {
                 if (reveal > 0)
-                    DrawRectangleRec({x * size, y * size, size, size}, Fade(kTeal, reveal));
-                const Color edge = Fade(kTeal, std::max(reveal, config_.ambientWallAlpha));
+                    DrawRectangleRec({x * size, y * size, size, size}, Fade(wallColor, reveal));
+                const Color edge = Fade(wallColor, std::max(reveal, config_.ambientWallAlpha));
                 if (map.isPassable(x - 1, y)) DrawRectangleRec({x * size, y * size, 2, size}, edge);
                 if (map.isPassable(x + 1, y))
                     DrawRectangleRec({(x + 1) * size - 2, y * size, 2, size}, edge);
@@ -333,10 +335,11 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                     DrawRectangleRec({x * size, (y + 1) * size - 2, size, 2}, edge);
             } else {
                 DrawRectangleRec({x * size, y * size, size, size},
-                                 Fade(kDeepTeal, std::max(reveal, config_.ambientFloorAlpha)));
+                                 Fade(floorColor, std::max(reveal, config_.ambientFloorAlpha)));
             }
             if (level.name == "Gotham Central Bank" && tile == TileType::Floor)
-                drawBankFurniture(x, y, size, std::max(reveal, config_.ambientFloorAlpha));
+                drawBankFurniture(x, y, size, std::max(reveal, config_.ambientFloorAlpha),
+                                  wallColor, floorColor);
             if (reveal > 0 && tile != TileType::Wall && tile != TileType::Floor &&
                 !map.isOpen(x, y) && tile != TileType::PlayerSpawn) {
                 const auto center = map.tileCenter({x, y});
@@ -351,7 +354,7 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                              static_cast<int>(size * 0.5f), {10, 10, 12, 255});
                 }
             }
-            if (!overview) {
+            if (!overview && !pickupsLit) {
                 const auto center = map.tileCenter({x, y});
                 const bool halo = std::hypot(center.x - player.pos.x, center.y - player.pos.y) <=
                                       ripple.haloRadius() + size &&
@@ -400,7 +403,10 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                          static_cast<int>(position.y), 24, kBone);
             continue;
         }
-        drawGuardCone(guard, position, map, player.isCrouched(), visible);
+        if (!pickupsLit) drawGuardCone(guard, position, map, player.isCrouched(), visible);
+        if (pickupsLit)
+            DrawRing({position.x, position.y}, guard.radius, guard.radius + 2, 0, 360, 64,
+                     Fade(kBone, visible));
         DrawCircleV({position.x, position.y}, guard.radius, Fade(kBone, visible));
         const Vector2 direction{std::cos(guard.facing()), std::sin(guard.facing())};
         DrawLineEx({position.x, position.y},
@@ -443,7 +449,9 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
         DrawEllipse(static_cast<int>(p.x), static_cast<int>(p.y), enemy->radius * 1.2f,
                     enemy->radius * 0.72f, Fade(body, visible));
         DrawCircleV({p.x, p.y}, enemy->radius, Fade(body, visible));
-        DrawCircleLinesV({p.x, p.y}, enemy->radius, Fade(kBone, visible));
+        if (pickupsLit)
+            DrawRing({p.x, p.y}, enemy->radius, enemy->radius + 2, 0, 360, 64,
+                     Fade(kBone, visible));
         DrawRectangle(static_cast<int>(p.x - 6), static_cast<int>(p.y - 3), 12, 6,
                       Fade(heavy ? kGold : kBone, visible));
         DrawLineEx({p.x, p.y},
@@ -485,7 +493,7 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
         }
     }
     for (const auto& laser : lasers) {
-        const float visible = overview ? 1.0f : laser.reveal;
+        const float visible = overview || pickupsLit ? 1.0f : laser.reveal;
         if (visible <= 0) continue;
         const auto color = Fade(securityLooped ? kBone : kAlarm, visible);
         DrawLineEx({laser.pos.x, laser.pos.y}, {laser.end().x, laser.end().y}, 3, color);
@@ -495,7 +503,7 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
     }
     constexpr float kDegreesToRadians = 3.14159265358979323846f / 180;
     for (const auto& camera : cameras) {
-        const float visible = overview ? 1.0f : camera.reveal;
+        const float visible = overview || pickupsLit ? 1.0f : camera.reveal;
         if (visible <= 0) continue;
         const Vector2 eye{camera.pos.x, camera.pos.y};
         if (!securityLooped) {
@@ -541,7 +549,9 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
     DrawLineEx({spawn.x, spawn.y},
                {spawn.x + aim.x * player.radius * 1.7f, spawn.y + aim.y * player.radius * 1.7f},
                player.radius * 0.25f, kBone);
-    if (!overview)
+    if (pickupsLit)
+        DrawRing({spawn.x, spawn.y}, player.radius, player.radius + 2, 0, 360, 64, kBone);
+    if (!overview && !pickupsLit)
         DrawRing({spawn.x, spawn.y}, player.radius + 4, player.radius + 6, -90,
                  -90 + 360 * ripple.cooldownFraction(), 64, kBone);
     if (combat && combat->shotAge() < 0.08f) {
@@ -584,7 +594,7 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
         const auto details = std::to_string(map.width()) + " x " + std::to_string(map.height()) +
                              " | Tile " + std::to_string(map.tileSize()) + " px | Seed " +
                              std::to_string(seed);
-        DrawText(details.c_str(), 600, 24, 18, kTeal);
+        DrawText(details.c_str(), 600, 24, 18, Palette::Teal);
     }
 #else
     (void)seed;
@@ -605,13 +615,15 @@ void Renderer::drawInteractionHud(const World& world, const InteractionSystem& i
                                                    : "Enter the bank and find the red keycard");
     DrawRectangle(24, 80, 520, 88, kSlate);
     DrawText(objective, 40, 96, 18, kBone);
-    const int filled =
-        maximumNoise > 0
-            ? std::clamp(static_cast<int>(std::ceil(noiseRadius / maximumNoise * 6)), 0, 6)
-            : 0;
-    DrawText("NOISE", 40, 136, 14, kBone);
-    for (int i = 0; i < 6; ++i)
-        DrawRectangle(104 + i * 24, 136, 16, 12, i < filled ? kTeal : Color{40, 44, 50, 255});
+    if (!world.alarmLoud) {
+        const int filled =
+            maximumNoise > 0
+                ? std::clamp(static_cast<int>(std::ceil(noiseRadius / maximumNoise * 6)), 0, 6)
+                : 0;
+        DrawText("NOISE", 40, 136, 14, kBone);
+        for (int i = 0; i < 6; ++i)
+            DrawRectangle(104 + i * 24, 136, 16, 12, i < filled ? kTeal : Color{40, 44, 50, 255});
+    }
     if (world.securityLoopRemaining > 0)
         DrawText(TextFormat("SECURITY LOOP %.0fs", world.securityLoopRemaining), 288, 136, 14,
                  kTeal);
@@ -651,7 +663,7 @@ void Renderer::drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pag
 void Renderer::drawWaveHud(const WaveSpawner& waves) const {
     constexpr Color kBone{233, 228, 208, 255};
     constexpr Color kGold{242, 183, 5, 255};
-    DrawRectangleRounded({1010, 80, 246, 88}, 0.1f, 4, {20, 22, 27, 245});
+    DrawRectangleRounded({1010, 80, 246, 88}, 0.1f, 4, {20, 22, 27, 255});
     DrawRectangleLinesEx({1010, 80, 246, 88}, 1, Fade(kBone, 0.65f));
     DrawText(TextFormat("ASSAULT  %d", waves.waveIndex()), 1026, 96, 22, kGold);
     DrawText(TextFormat("NEXT WAVE  %.0fs", std::ceil(waves.nextWaveRemaining())), 1026, 130, 16,

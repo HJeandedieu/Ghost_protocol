@@ -133,3 +133,27 @@ TEST_F(AlarmDirectorTest, CombatShoutIsAnIndependentTrigger) {
     EXPECT_EQ(reason, AlarmReason::Combat);
     EXPECT_EQ(alarms, 1);
 }
+
+TEST(AlarmDirector, LoudLightsEveryTileAndOpensOnlyFrontEntriesOnce) {
+    Level level;
+    std::istringstream source("#####\n#@FS#\n#####\n");
+    level.map = TileMap::parse(source, 48);
+    level.playerSpawn = {1, 1};
+    World world(std::move(level), PlayerConfig{});
+    EventBus bus;
+    std::ostringstream output;
+    Logger logger(output, "");
+    AlarmDirector alarm(bus, logger, world);
+    EXPECT_FALSE(world.level.map.isOpen(2, 1));
+    EXPECT_EQ(world.level.map.light(1, 1), LightLevel::Dark);
+    alarm.trigger(AlarmReason::Pager);
+    EXPECT_TRUE(world.alarmLoud);
+    EXPECT_TRUE(world.level.map.isOpen(2, 1));
+    EXPECT_FALSE(world.level.map.isOpen(3, 1));
+    for (int y = 0; y < world.level.map.height(); ++y)
+        for (int x = 0; x < world.level.map.width(); ++x)
+            EXPECT_EQ(world.level.map.light(x, y), LightLevel::Lit);
+    world.level.map.setLight(1, 1, LightLevel::Dim);
+    alarm.trigger(AlarmReason::Shot);
+    EXPECT_EQ(world.level.map.light(1, 1), LightLevel::Dim);
+}

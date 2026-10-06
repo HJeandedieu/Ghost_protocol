@@ -35,7 +35,14 @@ AlarmDirector::AlarmDirector(EventBus& events, Logger& logger, const std::vector
 void AlarmDirector::trigger(AlarmReason reason) {
     if (state_ == AlarmState::Loud) return;
     state_ = AlarmState::Loud;
-    if (world_) world_->alarmLoud = true;
+    if (world_) {
+        world_->alarmLoud = true;
+        auto& map = world_->level.map;
+        map.fillLight(LightLevel::Lit);
+        for (int y = 0; y < map.height(); ++y)
+            for (int x = 0; x < map.width(); ++x)
+                if (map.tile(x, y) == TileType::FrontDoor) map.setOpen(x, y, true);
+    }
     logger_.log(LogLevel::Info, "Alarm triggered");
     events_.publish(AlarmTriggered{reason});
 }
