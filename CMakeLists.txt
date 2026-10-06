@@ -61,6 +61,7 @@ add_library(ghost_core STATIC
     src/world/TileMap.cpp src/world/LevelLoader.cpp
     src/core/Assets.cpp
     src/entities/Player.cpp src/entities/Guard.cpp
+    src/entities/GuardAI.cpp
     src/render/FollowCamera.cpp
     src/world/Raycast.cpp src/systems/RippleSystem.cpp
     src/systems/NoiseSystem.cpp src/systems/InteractionSystem.cpp
@@ -107,6 +108,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
         tests/AssetsTests.cpp
         tests/PlayerTests.cpp tests/GuardTests.cpp
+        tests/GuardAITests.cpp
         tests/FollowCameraTests.cpp
         tests/RaycastTests.cpp tests/RippleSystemTests.cpp
         tests/EventBusTests.cpp tests/NoiseSystemTests.cpp tests/InteractionSystemTests.cpp

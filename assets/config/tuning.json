@@ -58,7 +58,17 @@
     "takedown_range": 50,
     "suspicious_time": 1.5,
     "search_time": 8,
-    "investigate_look": 3
+    "investigate_look": 3,
+    "search_loop_radius": 96,
+    "search_point_pause": 0.5,
+    "search_turn_rate": 90,
+    "look_sweep_deg": 60,
+    "stuck_window": 1.0,
+    "stuck_min_progress": 8,
+    "arrive_tolerance": 8,
+    "path_clear_step": 12,
+    "crumb_spacing": 32,
+    "crumb_max": 64
   },
   "camera": {
     "cone_deg": 60,

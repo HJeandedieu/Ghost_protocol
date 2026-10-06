@@ -30,7 +30,7 @@ void DetectionSystem::update(float dt, const Player& player, const TileMap& map,
             advanceCallIn(dt, guard);
             continue;
         }
-        if (guard.state_ != GuardState::Patrol && guard.state_ != GuardState::Suspicious) continue;
+        if (guard.state_ == GuardState::Combat || guard.state_ == GuardState::Unconscious) continue;
         const auto& config = guard.visionConfig();
         const VisionSystem vision(config);
         if (vision.sees(guard, player, map)) {
@@ -46,12 +46,11 @@ void DetectionSystem::update(float dt, const Player& player, const TileMap& map,
             const float rate = (config.fillNear + (config.fillFar - config.fillNear) * fraction) *
                                movement * difficultyFill_;
             if (!std::isfinite(rate) || rate <= 0) continue;
-            if (guard.state_ == GuardState::Patrol) {
-                guard.state_ = GuardState::Suspicious;
-                guard.suspiciousElapsed_ = 0;
+            if (guard.state_ != GuardState::Suspicious) {
+                guard.beginSuspicion(player.pos, false);
                 events_.publish(GuardSuspicious{guard.id, player.pos});
             }
-            guard.suspiciousElapsed_ += dt;
+            if (!guard.noiseInterest_) guard.suspiciousElapsed_ += dt;
             guard.facing_ = std::atan2(player.pos.y - guard.pos.y, player.pos.x - guard.pos.x);
             const float timeToSpot = (100.0f - guard.detection_) / rate;
             guard.detection_ = std::min(100.0f, guard.detection_ + rate * dt);
@@ -67,10 +66,10 @@ void DetectionSystem::update(float dt, const Player& player, const TileMap& map,
             }
         } else {
             guard.detection_ = std::max(0.0f, guard.detection_ - config.decay * dt);
-            if (guard.state_ == GuardState::Suspicious) {
+            if (guard.state_ == GuardState::Suspicious && !guard.noiseInterest_) {
                 guard.suspiciousElapsed_ += dt;
                 if (guard.detection_ == 0 && guard.suspiciousElapsed_ >= config.suspiciousTime)
-                    guard.state_ = GuardState::Patrol;
+                    guard.returnToRoute();
             }
         }
     }

@@ -1,9 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 
 #include "core/EventBus.h"
 #include "core/Input.h"
+#include "entities/GuardAI.h"
 #include "entities/Player.h"
 #include "render/FollowCamera.h"
 #include "states/IState.h"
@@ -29,6 +31,7 @@ class PlayState : public IState {
    private:
     EventBus events_;
     World world_;
+    std::vector<std::unique_ptr<GuardAI>> guardAi_;
     const Input& input_;
     FollowCamera camera_;
     float facing_ = 0.0f;

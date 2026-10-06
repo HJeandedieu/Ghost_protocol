@@ -36,6 +36,38 @@ TEST(Config, MissingKeyFallsBackAndPreservesOtherOverrides) {
               std::string::npos);
 }
 
+TEST(Config, HearingTuningLoadsOverridesAndMissingInvalidValuesFallBack) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    std::ostringstream console;
+    Logger logger(console, "");
+    const auto shipped = Config::load("assets/config/tuning.json", logger);
+    EXPECT_FLOAT_EQ(shipped.guard.searchLoopRadius, 96);
+    EXPECT_FLOAT_EQ(shipped.guard.searchPointPause, 0.5f);
+    EXPECT_FLOAT_EQ(shipped.guard.searchTurnRate, 90);
+    EXPECT_FLOAT_EQ(shipped.guard.lookSweepDeg, 60);
+    EXPECT_FLOAT_EQ(shipped.guard.stuckWindow, 1);
+    EXPECT_FLOAT_EQ(shipped.guard.stuckMinProgress, 8);
+    EXPECT_FLOAT_EQ(shipped.guard.arriveTolerance, 8);
+    EXPECT_FLOAT_EQ(shipped.guard.pathClearStep, 12);
+    EXPECT_FLOAT_EQ(shipped.guard.crumbSpacing, 32);
+    EXPECT_FLOAT_EQ(shipped.guard.crumbMax, 64);
+    data["guard"]["search_loop_radius"] = 72;
+    data["guard"]["search_point_pause"] = 0.25;
+    data["guard"]["path_clear_step"] = 6;
+    data["guard"].erase("crumb_max");
+    data["guard"]["stuck_window"] = -1;
+    const auto custom = Config::load(files.write("hearing.json", data.dump()), logger);
+    EXPECT_FLOAT_EQ(custom.guard.searchLoopRadius, 72);
+    EXPECT_FLOAT_EQ(custom.guard.searchPointPause, 0.25f);
+    EXPECT_FLOAT_EQ(custom.guard.pathClearStep, 6);
+    EXPECT_FLOAT_EQ(custom.guard.crumbMax, 64);
+    EXPECT_FLOAT_EQ(custom.guard.stuckWindow, 1);
+    EXPECT_NE(console.str().find("guard.crumb_max"), std::string::npos);
+    EXPECT_NE(console.str().find("guard.stuck_window"), std::string::npos);
+}
+
 TEST(Config, CameraTuningOverridesAndMissingValuesUseDocumentedDefaults) {
     TestFiles files;
     nlohmann::json data;

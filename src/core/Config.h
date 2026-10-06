@@ -68,6 +68,16 @@ struct GuardConfig {
     float suspiciousTime = 1.5f;
     float searchTime = 8.0f;
     float investigateLook = 3.0f;
+    float searchLoopRadius = 96.0f;
+    float searchPointPause = 0.5f;
+    float searchTurnRate = 90.0f;
+    float lookSweepDeg = 60.0f;
+    float stuckWindow = 1.0f;
+    float stuckMinProgress = 8.0f;
+    float arriveTolerance = 8.0f;
+    float pathClearStep = 12.0f;
+    float crumbSpacing = 32.0f;
+    float crumbMax = 64.0f;
 };
 
 struct CameraConfig {
