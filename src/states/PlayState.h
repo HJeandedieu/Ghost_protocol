@@ -9,9 +9,11 @@
 #include "entities/Player.h"
 #include "render/FollowCamera.h"
 #include "states/IState.h"
+#include "systems/AlarmDirector.h"
 #include "systems/DetectionSystem.h"
 #include "systems/InteractionSystem.h"
 #include "systems/NoiseSystem.h"
+#include "systems/PagerSystem.h"
 #include "systems/RippleSystem.h"
 #include "world/Level.h"
 #include "world/World.h"
@@ -43,5 +45,7 @@ class PlayState : public IState {
     NoiseSystem noise_;
     InteractionSystem interaction_;
     DetectionSystem detection_;
+    AlarmDirector alarm_;
+    PagerSystem pagers_;
     const Config& config_;
 };

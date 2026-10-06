@@ -106,6 +106,29 @@ TEST_F(GuardAITest, NormalDoorIsReachableAndOpensDuringInvestigation) {
     EXPECT_GT(guard->pos.x, 300);
 }
 
+TEST_F(GuardAITest, NoiseBehindWallIsReachedAroundItAndBreadcrumbsReturn) {
+    std::string rows;
+    for (int y = 0; y < 16; ++y) {
+        std::string row(20, '.');
+        if (y >= 3 && y <= 7) row[6] = '#';
+        rows += row + '\n';
+    }
+    ai.reset();
+    events = EventBus{};
+    load(rows);
+    const auto route = guard->pos;
+    const Vec2 target{360, 264};
+    EXPECT_TRUE(ai->canReach(target));
+    hear(target);
+    tickUntil(GuardState::Investigating);
+    tickUntil(GuardState::Searching);
+    EXPECT_NEAR(guard->pos.x, target.x, config.arriveTolerance);
+    EXPECT_NEAR(guard->pos.y, target.y, config.arriveTolerance);
+    tickUntil(GuardState::Patrol, 30);
+    EXPECT_FLOAT_EQ(guard->pos.x, route.x);
+    EXPECT_FLOAT_EQ(guard->pos.y, route.y);
+}
+
 TEST_F(GuardAITest, ArrivalSweepsThenSearchesClockwiseAndReturnsToRoute) {
     const auto route = guard->pos;
     hear({312, 264});

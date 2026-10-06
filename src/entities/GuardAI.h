@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "core/Vec2.h"
+#include "world/Pathfinder.h"
 
 class Guard;
 class TileMap;
@@ -25,6 +26,7 @@ class GuardAI {
     Guard& guard_;
     TileMap& map_;
     Logger& logger_;
+    Pathfinder pathfinder_;
     std::vector<Vec2> searchPoints_;
     Vec2 searchCenter_{};
     std::size_t searchIndex_ = 0;
@@ -38,6 +40,8 @@ class GuardAI {
     std::deque<std::pair<double, float>> progress_;
     Vec2 stuckTarget_{};
     bool trackingProgress_ = false;
+    mutable std::vector<Vec2> investigatePath_;
+    std::size_t pathIndex_ = 0;
     void hear(const NoiseEmitted& event);
     void startSearching(Vec2 center);
     bool moveToward(Vec2 target, float speed, float dt, bool record);

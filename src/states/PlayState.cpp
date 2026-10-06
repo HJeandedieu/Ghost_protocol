@@ -18,6 +18,8 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       noise_(events_),
       interaction_(events_),
       detection_(events_, logger, world_.guards, config.difficulty.normal.detectFill),
+      alarm_(events_, logger, world_.guards),
+      pagers_(events_, config.pager, world_, interaction_),
       config_(config) {
     interaction_.loadBank(world_, config_);
     renderer_.prepareLevel(world_.level);
@@ -45,6 +47,7 @@ void PlayState::update(float dt) {
                         ? config_.noise.crouch
                         : (player.isSprinting() ? config_.noise.sprint : config_.noise.walk),
                     NoiseType::Step, player.id);
+    pagers_.update(dt);
     interaction_.update(dt, input_.interactHeld || input_.interactPressed, world_);
     for (std::size_t i = 0; i < world_.guards.size(); ++i) {
         guardAi_[i]->update(dt);
@@ -67,6 +70,7 @@ void PlayState::update(float dt) {
     detection_.update(dt, player, world_.level.map, world_.guards);
     VisionSystem(config_.guard).findBodies(world_.guards, world_.level.map, events_);
     ripple_.update(dt, world_.level.map, revealables_);
+    alarm_.update();
     events_.dispatch();
 #ifndef NDEBUG
     if (input_.debugPressed) debugView_ = !debugView_;
@@ -77,4 +81,5 @@ void PlayState::render(float alpha) {
                         facing_, alpha, debugView_, seed_, world_.guards);
     renderer_.drawInteractionHud(world_, interaction_, noise_.currentRadius(),
                                  config_.noise.sprint);
+    renderer_.drawStealthHud(alarm_, pagers_, world_.guards);
 }
