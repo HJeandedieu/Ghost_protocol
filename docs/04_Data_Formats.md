@@ -32,7 +32,7 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
   "player": { "radius": 14, "walk": 160, "sprint": 260, "crouch": 80, "accel": 1200, "decel": 1600,
               "bag_speed_mult": 0.75, "hp": 100, "armor": 50, "armor_regen": 8, "armor_regen_delay": 5 },
   "view": { "lead_px": 60, "follow_rate": 8 },
-  "render": { "ambient_floor_alpha": 0.06, "ambient_wall_alpha": 0.16 },
+  "render": { "ambient_floor_alpha": 0.18, "ambient_wall_alpha": 0.45 },
   "ping": { "small_radius": 260, "big_radius": 520, "tap_max": 0.25, "charge_max": 0.8,
             "speed": 800, "fade": 2.5, "cooldown": 3.0, "noise_mult": 0.6, "halo": 96,
             "hazard_reveal_radius": 120 },
@@ -74,7 +74,7 @@ Zero lead disables look-ahead; zero rate freezes camera follow. A cursor outside
 the letterboxed game picture contributes no lead. The `camera` group above
 continues to configure security cameras.
 
-Reference-first visibility (author confirmed 6 October 2026): `render.ambient_floor_alpha` and `render.ambient_wall_alpha` are presentation alpha values in [0, 1]. Missing/invalid values fall back to 0.06 and 0.16. They apply only to environmental geometry/decor, never entity reveal, interaction markers, gameplay light levels or detection. Wall baseline is drawn only on edges facing walkable space, leaving the solid mass Ink. See Visual Reference §2.
+Reference-first visibility (author confirmed 6 October 2026): `render.ambient_floor_alpha` and `render.ambient_wall_alpha` are presentation alpha values in [0, 1]. Missing/invalid values fall back to 0.18 and 0.45. They apply only to environmental geometry/decor, never entity reveal, interaction markers, gameplay light levels or detection. Wall baseline is drawn only on edges facing walkable space, leaving the solid mass Ink. See Visual Reference §2.
 
 ## 3. weapons.json and enemies.json
 ```json
