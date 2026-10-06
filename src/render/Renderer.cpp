@@ -13,6 +13,7 @@
 #include "raylib.h"
 #include "render/Letterbox.h"
 #include "systems/AlarmDirector.h"
+#include "systems/CombatSystem.h"
 #include "systems/InteractionSystem.h"
 #include "systems/PagerSystem.h"
 #include "systems/RippleSystem.h"
@@ -24,6 +25,31 @@
 namespace {
 constexpr float kPi = 3.14159265358979323846f;
 constexpr int kConeArcSegments = 64;
+
+// Original decorative geometry; collision and interactions remain map-owned.
+void drawBankFurniture(int x, int y, float size, float visibility) {
+    const Color outline = Fade({63, 143, 140, 255}, visibility);
+    const Color surface = Fade({30, 74, 74, 255}, visibility);
+    const float left = x * size;
+    const float top = y * size;
+    const bool office = (x == 27 || x == 31) && (y == 22 || y == 25 || y == 30 || y == 34);
+    const bool console = (x == 27 || x == 30 || x == 32) && y == 14;
+    const bool counter = x >= 43 && x <= 59 && y == 18;
+    const bool bench = (x == 44 || x == 57) && (y == 28 || y == 36);
+    const bool crate = (x == 6 || x == 10 || x == 14) && y == 34;
+    if (office || console || counter || bench || crate) {
+        Rectangle body{left + size * 0.12f, top + size * 0.2f, size * 0.76f, size * 0.55f};
+        DrawRectangleRec(body, surface);
+        DrawRectangleLinesEx(body, 2, outline);
+        if (office || console) {
+            DrawRectangleRec({left + size * 0.4f, top + size * 0.3f, size * 0.22f, size * 0.18f},
+                             outline);
+            if (office) DrawCircleV({left + size * 0.5f, top + size * 0.9f}, size * 0.09f, outline);
+        }
+        if (crate)
+            DrawLineEx({body.x, body.y}, {body.x + body.width, body.y + body.height}, 2, outline);
+    }
+}
 
 void drawClippedTriangle(Vector2 eye, Vector2 right, Vector2 left, Rectangle tile, Color color) {
     std::array<Vector2, 8> polygon{eye, right, left};
@@ -179,9 +205,10 @@ void Renderer::drawGuardCone(const Guard& guard, Vec2 position, const TileMap& m
     }
 }
 
-Renderer::Renderer(Logger& logger)
+Renderer::Renderer(Logger& logger, const RenderConfig& config)
     : surface_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)),
-      world_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)) {
+      world_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)),
+      config_(config) {
 #ifdef __EMSCRIPTEN__
     const char* path = "assets/shaders/glsl100/post.fs";
 #else
@@ -258,7 +285,8 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                          Vec2 cameraTarget, float facing, float alpha, bool overview,
                          std::uint32_t seed, const std::vector<Guard>& guards,
                          const std::vector<SecurityCamera>& cameras,
-                         const std::vector<Laser>& lasers, bool securityLooped) {
+                         const std::vector<Laser>& lasers, bool securityLooped,
+                         const CombatSystem* combat) {
     constexpr Color kBone = {233, 228, 208, 255};
     constexpr Color kTeal = {63, 143, 140, 255};
     constexpr Color kDeepTeal = {30, 74, 74, 255};
@@ -287,11 +315,24 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                 topLeft.x >= Letterbox::kWidth || topLeft.y >= Letterbox::kHeight)
                 continue;
             const float reveal = overview ? 1.0f : ripple.visibility(x, y, player.pos, map);
-            if (reveal <= 0) continue;
-            DrawRectangleRec({x * size, y * size, size, size},
-                             Fade(tile == TileType::Wall ? kTeal : kDeepTeal, reveal));
-            if (tile != TileType::Wall && tile != TileType::Floor && !map.isOpen(x, y) &&
-                tile != TileType::PlayerSpawn) {
+            if (tile == TileType::Wall) {
+                if (reveal > 0)
+                    DrawRectangleRec({x * size, y * size, size, size}, Fade(kTeal, reveal));
+                const Color edge = Fade(kTeal, std::max(reveal, config_.ambientWallAlpha));
+                if (map.isPassable(x - 1, y)) DrawRectangleRec({x * size, y * size, 2, size}, edge);
+                if (map.isPassable(x + 1, y))
+                    DrawRectangleRec({(x + 1) * size - 2, y * size, 2, size}, edge);
+                if (map.isPassable(x, y - 1)) DrawRectangleRec({x * size, y * size, size, 2}, edge);
+                if (map.isPassable(x, y + 1))
+                    DrawRectangleRec({x * size, (y + 1) * size - 2, size, 2}, edge);
+            } else {
+                DrawRectangleRec({x * size, y * size, size, size},
+                                 Fade(kDeepTeal, std::max(reveal, config_.ambientFloorAlpha)));
+            }
+            if (level.name == "Gotham Central Bank" && tile == TileType::Floor)
+                drawBankFurniture(x, y, size, std::max(reveal, config_.ambientFloorAlpha));
+            if (reveal > 0 && tile != TileType::Wall && tile != TileType::Floor &&
+                !map.isOpen(x, y) && tile != TileType::PlayerSpawn) {
                 const auto center = map.tileCenter({x, y});
                 const auto color = map.isPassable(x, y) ? kGold : kBone;
                 DrawRectangleRec(
@@ -432,6 +473,28 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
     if (!overview)
         DrawRing({spawn.x, spawn.y}, player.radius + 4, player.radius + 6, -90,
                  -90 + 360 * ripple.cooldownFraction(), 64, kBone);
+    if (combat && combat->shotAge() < 0.08f) {
+        const float opacity = 1.0f - combat->shotAge() / 0.08f;
+        for (const auto& pellet : combat->lastShot().pellets) {
+            const float distance =
+                std::hypot(pellet.to.x - pellet.from.x, pellet.to.y - pellet.from.y);
+            if (distance <= player.radius * 1.7f) continue;
+            const float fraction = player.radius * 1.7f / distance;
+            const Vector2 muzzle{pellet.from.x + (pellet.to.x - pellet.from.x) * fraction,
+                                 pellet.from.y + (pellet.to.y - pellet.from.y) * fraction};
+            DrawLineEx(muzzle, {pellet.to.x, pellet.to.y}, 2, Fade(kGold, opacity));
+        }
+        if (!reduceEffects_ && combat->shotAge() < 0.05f && !combat->lastShot().pellets.empty()) {
+            const auto& shot = combat->lastShot().pellets.front();
+            const float angle = shot.dirDeg * (kPi / 180.0f);
+            const Vector2 forward{std::cos(angle), std::sin(angle)};
+            const Vector2 muzzle{shot.from.x + forward.x * player.radius * 1.7f,
+                                 shot.from.y + forward.y * player.radius * 1.7f};
+            DrawTriangle({muzzle.x + forward.x * 14, muzzle.y + forward.y * 14},
+                         {muzzle.x + forward.y * 6, muzzle.y - forward.x * 6},
+                         {muzzle.x - forward.y * 6, muzzle.y + forward.x * 6}, kGold);
+        }
+    }
     EndMode2D();
     compose(true);
     DrawRectangle(0, 0, Letterbox::kWidth, 64, {20, 22, 27, 255});
@@ -501,4 +564,22 @@ void Renderer::drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pag
                      560, y, 18, kBone);
             y += 24;
         }
+}
+
+void Renderer::drawWeaponHud(const CombatSystem& combat) const {
+    const auto& weapon = combat.activeWeapon();
+    constexpr Color kBone{233, 228, 208, 255};
+    constexpr Color kGold{242, 183, 5, 255};
+    DrawRectangle(24, 564, 264, 88, {20, 22, 27, 255});
+    DrawRectangleLinesEx({24, 564, 264, 88}, 1, Fade(kBone, 0.6f));
+    const std::string name = std::to_string(combat.activeSlot() + 1) + "  " + weapon.spec().name;
+    DrawText(name.c_str(), 40, 576, 22, kBone);
+    const std::string ammunition =
+        std::to_string(weapon.ammunition()) + " / " + std::to_string(weapon.reserve());
+    DrawText(ammunition.c_str(), 40, 608, 26, kGold);
+    if (weapon.reloadRemaining() > 0) {
+        DrawText("RELOADING", 158, 614, 16, kBone);
+        const float progress = 1 - weapon.reloadRemaining() / weapon.spec().reload;
+        DrawRectangle(40, 643, static_cast<int>(232 * progress), 3, kGold);
+    }
 }

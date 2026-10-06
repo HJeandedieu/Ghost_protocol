@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "core/Config.h"
 #include "core/Vec2.h"
 #include "raylib.h"
 
@@ -16,12 +17,13 @@ class Logger;
 class InteractionSystem;
 class TileMap;
 class AlarmDirector;
+class CombatSystem;
 class PagerSystem;
 struct World;
 
 class Renderer {
    public:
-    explicit Renderer(Logger& logger);
+    explicit Renderer(Logger& logger, const RenderConfig& config = {});
     ~Renderer();
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
@@ -34,17 +36,20 @@ class Renderer {
                             float noiseRadius, float maximumNoise) const;
     static void drawPlaceholder(const char* title, const char* subtitle);
     static void drawError(const char* message);
+    void drawWeaponHud(const CombatSystem& combat) const;
     void drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pagers,
                         const std::vector<Guard>& guards) const;
     void drawLevel(const Level& level, const Player& player, const RippleSystem& ripple,
                    Vec2 cameraTarget, float facing, float alpha, bool overview, std::uint32_t seed,
                    const std::vector<Guard>& guards = {},
                    const std::vector<SecurityCamera>& cameras = {},
-                   const std::vector<Laser>& lasers = {}, bool securityLooped = false);
+                   const std::vector<Laser>& lasers = {}, bool securityLooped = false,
+                   const CombatSystem* combat = nullptr);
 
    private:
     RenderTexture2D surface_;
     RenderTexture2D world_;
+    RenderConfig config_;
     Shader post_{};
     int timeLocation_ = -1;
     bool composed_ = false;

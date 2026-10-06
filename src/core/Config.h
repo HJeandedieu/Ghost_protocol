@@ -31,6 +31,11 @@ struct PingConfig {
     float hazardRevealRadius = 120.0f;
 };
 
+struct RenderConfig {
+    float ambientFloorAlpha = 0.18f;
+    float ambientWallAlpha = 0.45f;
+};
+
 struct ViewConfig {
     float leadPx = 60.0f;
     float followRate = 8.0f;
@@ -158,6 +163,7 @@ class Config {
 
     PlayerConfig player;
     ViewConfig view;
+    RenderConfig render;
     PingConfig ping;
     NoiseConfig noise;
     GuardConfig guard;

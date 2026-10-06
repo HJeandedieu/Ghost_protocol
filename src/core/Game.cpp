@@ -38,7 +38,7 @@ int Game::run() {
 #ifndef __EMSCRIPTEN__
     SetTargetFPS(60);
 #endif
-    renderer_ = std::make_unique<Renderer>(logger_);
+    renderer_ = std::make_unique<Renderer>(logger_, config_.render);
 #ifdef __EMSCRIPTEN__
     constexpr bool kWaitForClick = true;
 #else
@@ -71,11 +71,18 @@ void Game::tick() {
         if (key == KEY_F11) toggleFullscreen();
         if (key == KEY_C || key == KEY_LEFT_CONTROL) input_.crouchPressed = true;
         if (key == KEY_SPACE) input_.pingPressed = true;
+        if (key == KEY_R) input_.reloadPressed = true;
+        if (key == KEY_ONE) input_.weaponSlot = 0;
+        if (key == KEY_TWO) input_.weaponSlot = 1;
         if (key == KEY_E) input_.interactPressed = true;
 #ifndef NDEBUG
         if (key == KEY_F3) input_.debugPressed = true;
 #endif
     }
+    input_.firePressed = input_.firePressed || IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    input_.fireHeld = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+    const float wheel = GetMouseWheelMove();
+    if (wheel != 0) input_.weaponWheel += wheel > 0 ? 1 : -1;
     input_.startClicked = input_.startClicked || IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
     input_.takedownPressed = input_.takedownPressed || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
     input_.move = {static_cast<float>((IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) -
@@ -118,9 +125,14 @@ void Game::showMenu(const std::string& error) {
                 showMenu("Unable to load the bank. Check the level files and try again.");
                 return;
             }
+            const auto weapons = loadWeapons("assets/config/weapons.json", logger_);
+            if (!weapons) {
+                showMenu("Unable to load weapons. Check the weapons file and try again.");
+                return;
+            }
             logger_.log(LogLevel::Info, "State: Play");
-            states_.replace(std::make_unique<PlayState>(std::move(*level), input_, config_,
-                                                        rng_.seed(), *renderer_, logger_));
+            states_.replace(std::make_unique<PlayState>(
+                std::move(*level), input_, config_, rng_.seed(), *renderer_, logger_, *weapons));
         },
         error));
 }

@@ -8,7 +8,7 @@
 #include "systems/VisionSystem.h"
 
 PlayState::PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed,
-                     Renderer& renderer, Logger& logger)
+                     Renderer& renderer, Logger& logger, const std::vector<WeaponSpec>& weapons)
     : world_(std::move(level), config.player, config.guard, config.camera),
       input_(input),
       camera_(world_.player.pos, config.view),
@@ -21,7 +21,9 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       alarm_(events_, logger, world_),
       pagers_(events_, config.pager, world_, interaction_),
       lasers_(events_, config.laser, config.noise.laser),
+      combat_(events_, weapons, seed),
       config_(config) {
+    noise_.setWeapons(weapons, config.noise);
     interaction_.loadBank(world_, config_);
     detection_.bindCameras(world_.cameras);
     renderer_.prepareLevel(world_.level);
@@ -81,6 +83,7 @@ void PlayState::update(float dt) {
     VisionSystem(config_.guard).findBodies(world_.guards, world_.level.map, events_);
     ripple_.update(dt, world_.level.map, revealables_);
     if (!world_.alarmLoud) ripple_.applyProximity(player.pos, world_.level.map, hazards_);
+    combat_.update(dt, input_, facing_ * (180.0f / 3.14159265358979323846f), world_);
     alarm_.update();
     events_.dispatch();
 #ifndef NDEBUG
@@ -90,8 +93,9 @@ void PlayState::update(float dt) {
 void PlayState::render(float alpha) {
     renderer_.drawLevel(world_.level, world_.player, ripple_, camera_.interpolatedTarget(alpha),
                         facing_, alpha, debugView_, seed_, world_.guards, world_.cameras,
-                        world_.lasers, world_.securityLoopRemaining > 0);
+                        world_.lasers, world_.securityLoopRemaining > 0, &combat_);
     renderer_.drawInteractionHud(world_, interaction_, noise_.currentRadius(),
                                  config_.noise.sprint);
+    renderer_.drawWeaponHud(combat_);
     renderer_.drawStealthHud(alarm_, pagers_, world_.guards);
 }

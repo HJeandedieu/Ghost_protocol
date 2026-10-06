@@ -16,6 +16,11 @@ struct Input {
     bool interactHeld = false;
     bool interactPressed = false;
     bool takedownPressed = false;
+    bool firePressed = false;
+    bool fireHeld = false;
+    bool reloadPressed = false;
+    int weaponSlot = -1;
+    int weaponWheel = 0;
     void clearEdges() {
         confirmPressed = false;
         startClicked = false;
@@ -24,5 +29,9 @@ struct Input {
         pingPressed = false;
         interactPressed = false;
         takedownPressed = false;
+        firePressed = false;
+        reloadPressed = false;
+        weaponSlot = -1;
+        weaponWheel = 0;
     }
 };

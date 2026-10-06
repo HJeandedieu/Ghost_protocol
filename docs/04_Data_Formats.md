@@ -34,6 +34,7 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
   "pickup": { "medkit_chance": 0.20, "armor_chance": 0.10,
               "medkit_amount": 50, "armor_amount": 50, "collect_radius": 50 },
   "view": { "lead_px": 60, "follow_rate": 8 },
+  "render": { "ambient_floor_alpha": 0.18, "ambient_wall_alpha": 0.45 },
   "ping": { "small_radius": 260, "big_radius": 520, "tap_max": 0.25, "charge_max": 0.8,
             "speed": 800, "fade": 2.5, "cooldown": 3.0, "noise_mult": 0.6, "halo": 96,
             "hazard_reveal_radius": 120 },
@@ -103,6 +104,8 @@ Recovery pickup tuning (author approved 6 October 2026): `pickup.medkit_chance` 
     { "at": "repeat", "spawn": { "cop": 4, "shield_cop": 2, "heavy": 1 }, "points": ["front", "service", "east"] } ] }
 ```
 Spawn points: `front` = tile (51,46), `service` = tile (21,44), `east` = tile (67,38). Enemies appear just outside view and enter through those tiles.
+
+Author clarification (6 October 2026): `spread_deg` is the total cone width. Each hitscan pellet samples a direction within `aim - spread_deg / 2` and `aim + spread_deg / 2` using the seeded RNG. Whisper/Chatter/Gavel therefore use ±1°/±3°/±9°.
 
 ## 4. Level files
 

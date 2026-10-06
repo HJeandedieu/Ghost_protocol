@@ -17,15 +17,17 @@ The author confirmed on 5 October 2026: **images define gameplay appearance; vid
 The gameplay images are described in the supplied document as AI-generated concept art. Reproduce their composition, atmosphere, furnishing hierarchy, and readability using original code-drawn geometry. Fine texture is optional; a bare tile grid and unadorned circles are development placeholders, not the finished visual target.
 
 ## 2. Stealth reference: what to follow
+**Author decision, 6 October 2026:** match the image's darkness and readability ahead of conflicting older wording. Unrevealed architecture is faintly visible: a Deep Teal floor wash (`render.ambient_floor_alpha = 0.18`) and Teal wall edges facing walkable space (`render.ambient_wall_alpha = 0.45`). Solid wall mass and outside-map space remain Ink. This is presentation only: it does not raise `reveal`, change light zones/detection, or expose guards, bodies, cameras, lasers, pickups or interaction markers. Revealed rooms receive the documented original bank furnishing, which also remains faint at the environmental baseline. The 96 px halo and 2.5 s fade remain; additional numerical changes should follow visual comparisons rather than guesses from the concept image.
+
 | Element | What the image shows | Implement as |
 |---|---|---|
-| Darkness | Large near-black surroundings contrast with a localized reveal | Everything not revealed, not lit, and not in the halo is Ink. No fixed black-percentage quota; see GDD 4.4 |
+| Darkness | Near-black surroundings retain faint room structure around a clear localized reveal | Faint environmental floor/edge baseline as above; gameplay threats and markers still use reveal/light rules. No fixed black-percentage quota |
 | Camera | Straight top-down, no perspective, characters seen from above | Orthographic, follow camera with mouse lead (GDD 4.3, Architecture 5) |
 | Ping wave | Thin Bone ring (about 3 px) with a faint translucent fill, brightest at the edge | Additive ring + 8% disc (Design 5) |
 | Halo | Small soft Bone disc around the thief, inside the wave | 96 px radius at 12% alpha |
 | Cooldown ring | Thin ring hugging the thief | Refills during the 3 s cooldown |
 | Revealed world | Teal walls and deep-teal floors, cut off sharply behind corners | Per-tile reveal alpha with line of sight (Architecture 8) |
-| Wave trail | Older revealed regions become dimmer | Linear decay over 2.5 s; unrevealed dark geometry is not permanently outlined |
+| Wave trail | Older revealed regions become dimmer | Linear decay over 2.5 s down to the faint environmental baseline; entity reveal still decays to zero |
 | Guard | Dark circle with a cap and a flat triangular flashlight cone | Cone 75°, Bone at 18% alpha, drawn only while the guard is revealed |
 | Detection indicator | Small circle above the guard's head, partly filled | Filling pie, clockwise, driven by the detection meter |
 | Camera | Small wall-mounted triangle with a translucent red cone | Alarm red at 25% alpha, drawn only while revealed |

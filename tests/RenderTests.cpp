@@ -8,6 +8,7 @@
 #include "entities/Player.h"
 #include "render/Renderer.h"
 #include "systems/DetectionSystem.h"
+#include "systems/CombatSystem.h"
 #include "systems/InteractionSystem.h"
 #include "systems/RippleSystem.h"
 #include "world/LevelLoader.h"
@@ -50,7 +51,7 @@ TEST_F(Render, ShaderCompilesDarknessIsPreservedAndHudRemainsUnprocessed) {
     const auto lit = GetImageColor(image, 120, 312);
     const auto halo = GetImageColor(image, 680, 360);
     const auto hud = GetImageColor(image, 20, 10);
-    EXPECT_LT(dark.g, 15);
+    EXPECT_LT(dark.g, 30);
     EXPECT_GT(lit.g, 45);
     EXPECT_GT(halo.g, 45);
     EXPECT_EQ(hud.r, 20);
@@ -343,5 +344,89 @@ TEST_F(Render, HazardsStayHiddenInLitRoomsUntilRevealedAndCameraConeStopsAtDoor)
     EXPECT_LT(GetImageColor(image, 408, 216).r, 35);
     EXPECT_GT(GetImageColor(image, 360, 312).r, 200);
     EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day13-hazards-preview.png"));
+    UnloadImage(image);
+}
+
+TEST_F(Render, AmbientArchitecturePreservesHiddenMarkersAndGameplayVisibility) {
+    std::ostringstream console;
+    Logger logger(console, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    Level level;
+    std::string rows;
+    for (int y = 0; y < 15; ++y) rows += std::string(40, '.') + '\n';
+    rows[7 * 41 + 4] = '#';
+    rows[7 * 41 + 6] = 'S';
+    std::istringstream source(rows);
+    level.map = TileMap::parse(source, 48);
+    Player player({640, 360}, PlayerConfig{});
+    RippleSystem ripple(PingConfig{}, level.map);
+    EXPECT_FLOAT_EQ(ripple.visibility(6, 7, player.pos, level.map), 0);
+    renderer.beginFrame();
+    renderer.drawLevel(level, player, ripple, player.pos, 0, 1, false, 1234);
+    renderer.present();
+    auto image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    const auto floor = GetImageColor(image, 312, 360);
+    const auto wallMass = GetImageColor(image, 216, 360);
+    const auto wallEdge = GetImageColor(image, 193, 360);
+    EXPECT_GT(floor.g, 10);
+    EXPECT_LT(floor.g, 30);
+    EXPECT_EQ(floor.r, GetImageColor(image, 300, 360).r);
+    EXPECT_EQ(wallMass.g, 10);
+    EXPECT_GT(wallEdge.g, floor.g);
+    EXPECT_FLOAT_EQ(ripple.visibility(6, 7, player.pos, level.map), 0);
+    UnloadImage(image);
+}
+
+TEST_F(Render, WeaponTracerStopsAtWallAndAmmoPanelReflectsShotAndReload) {
+    std::ostringstream console;
+    Logger logger(console, "");
+    auto specs = loadWeapons("assets/config/weapons.json", logger);
+    ASSERT_TRUE(specs);
+    specs->front().spreadDeg = 0;
+    Level level;
+    std::string rows;
+    for (int y = 0; y < 15; ++y) rows += std::string(40, '.') + '\n';
+    rows[7 * 41 + 17] = '#';
+    std::istringstream source(rows);
+    level.map = TileMap::parse(source, 48);
+    level.playerSpawn = {13, 7};
+    World world(std::move(level), PlayerConfig{});
+    EventBus bus;
+    CombatSystem combat(bus, *specs, 42);
+    Input input;
+    input.firePressed = true;
+    input.mouseInViewport = true;
+    combat.update(1.0f / 60, input, 0, world);
+    EXPECT_EQ(combat.activeWeapon().ammunition(), 11);
+    Renderer renderer(logger);
+    RippleSystem ripple(PingConfig{}, world.level.map);
+    const auto draw = [&] {
+        renderer.beginFrame();
+        renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, false, 1234, {}, {},
+                           {}, false, &combat);
+        renderer.drawWeaponHud(combat);
+        renderer.present();
+        auto image = LoadImageFromTexture(renderer.frameTexture());
+        ImageFlipVertical(&image);
+        return image;
+    };
+    auto image = draw();
+    const auto tracer = GetImageColor(image, 780, 360);
+    EXPECT_GT(tracer.r, 200);
+    EXPECT_GT(tracer.g, 150);
+    EXPECT_GT(GetImageColor(image, 675, 357).r, 180);
+    EXPECT_GT(GetImageColor(image, 648, 360).g, 200);
+    EXPECT_LT(GetImageColor(image, 850, 360).r, 40);
+    EXPECT_EQ(GetImageColor(image, 30, 580).r, 20);
+    EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day15-weapons-preview.png"));
+    UnloadImage(image);
+    input.clearEdges();
+    input.reloadPressed = true;
+    combat.update(0.1f, input, 0, world);
+    EXPECT_GT(combat.activeWeapon().reloadRemaining(), 0);
+    image = draw();
+    EXPECT_LT(GetImageColor(image, 780, 360).r, 40);
     UnloadImage(image);
 }

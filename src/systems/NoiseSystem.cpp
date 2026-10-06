@@ -7,6 +7,15 @@
 #include "core/EventBus.h"
 
 NoiseSystem::NoiseSystem(EventBus& bus) : bus_(bus) {
+    bus_.subscribe<ShotFired>([this](const ShotFired& event) {
+        const auto weapon = std::find_if(weapons_.begin(), weapons_.end(), [&](const auto& entry) {
+            return entry.id == event.weaponId;
+        });
+        if (weapon != weapons_.end())
+            emit(event.from,
+                 weapon->noise == NoiseType::ShotSupp ? config_.shotSuppressed : config_.shot,
+                 weapon->noise, event.shooterId);
+    });
     bus_.subscribe<NoiseEmitted>([this](const NoiseEmitted& event) { hear(event); });
 }
 void NoiseSystem::setHearers(std::vector<Hearer> hearers) { hearers_ = std::move(hearers); }
@@ -23,4 +32,9 @@ void NoiseSystem::hear(const NoiseEmitted& event) {
                 event.radius)
             bus_.publish(GuardSuspicious{hearer.id, event.origin});
     }
+}
+
+void NoiseSystem::setWeapons(const std::vector<WeaponSpec>& weapons, const NoiseConfig& config) {
+    weapons_ = weapons;
+    config_ = config;
 }

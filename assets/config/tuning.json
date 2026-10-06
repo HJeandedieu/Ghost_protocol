@@ -16,6 +16,10 @@
     "lead_px": 60,
     "follow_rate": 8
   },
+  "render": {
+    "ambient_floor_alpha": 0.18,
+    "ambient_wall_alpha": 0.45
+  },
   "ping": {
     "small_radius": 260,
     "big_radius": 520,

@@ -10,6 +10,7 @@
 #include "render/FollowCamera.h"
 #include "states/IState.h"
 #include "systems/AlarmDirector.h"
+#include "systems/CombatSystem.h"
 #include "systems/DetectionSystem.h"
 #include "systems/InteractionSystem.h"
 #include "systems/LaserSystem.h"
@@ -25,7 +26,7 @@ class Logger;
 class PlayState : public IState {
    public:
     PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed,
-              Renderer& renderer, Logger& logger);
+              Renderer& renderer, Logger& logger, const std::vector<WeaponSpec>& weapons);
     void enter() override;
     void exit() override;
     void update(float dt) override;
@@ -50,5 +51,6 @@ class PlayState : public IState {
     AlarmDirector alarm_;
     PagerSystem pagers_;
     LaserSystem lasers_;
+    CombatSystem combat_;
     const Config& config_;
 };
