@@ -48,8 +48,8 @@ bool EnemyCombatSystem::spawnDebugCop() {
             best = d;
         }
     if (!std::isfinite(best)) return false;
-    world_.enemies.push_back(std::make_unique<Cop>("cop:" + std::to_string(nextCop_++), chosen,
-                                                   *spec, config_.guard.radius));
+    world_.enemies.push_back(
+        std::make_unique<Cop>("cop:" + std::to_string(nextCop_++), chosen, *spec, spec->radius));
     return true;
 }
 void EnemyCombatSystem::moveToward(Entity& entity, Actor& actor, float speed, float dt) {
@@ -93,6 +93,16 @@ void EnemyCombatSystem::updateActor(Entity& entity, float& facing, const EnemySp
         actor.bullet = 0;
         actor.strafeTime = 0;
         moveToward(entity, actor, speed, dt);
+    } else if (spec.id == "shield_cop") {
+        const float length = distance(entity.pos, world_.player.pos);
+        if (length > 0) {
+            const float step = std::min(speed * dt, length);
+            entity.pos =
+                world_.level.map.moveCircle(entity.pos,
+                                            {(world_.player.pos.x - entity.pos.x) / length * step,
+                                             (world_.player.pos.y - entity.pos.y) / length * step},
+                                            entity.radius);
+        }
     } else if (strafe) {
         const float length = distance(entity.pos, world_.player.pos);
         if (length > 0) {
@@ -176,7 +186,8 @@ void EnemyCombatSystem::update(float dt) {
             fade(*enemy);
             continue;
         }
-        updateActor(*enemy, enemy->facing_, enemy->spec(), enemy->spec().speed, true, dt);
+        updateActor(*enemy, enemy->facing_, enemy->spec(), enemy->spec().speed,
+                    enemy->spec().id == "cop", dt);
     }
     const auto spec = std::find_if(specs_.begin(), specs_.end(),
                                    [](const auto& s) { return s.id == "patrol_guard"; });

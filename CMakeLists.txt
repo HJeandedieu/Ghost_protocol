@@ -71,6 +71,7 @@ add_library(ghost_core STATIC
     src/systems/DetectionSystem.cpp
     src/systems/AlarmDirector.cpp src/systems/PagerSystem.cpp
     src/systems/LaserSystem.cpp src/systems/CombatSystem.cpp src/systems/PickupSystem.cpp src/systems/EnemyCombatSystem.cpp
+    src/systems/WaveSpawner.cpp
 )
 target_include_directories(ghost_core PUBLIC src)
 target_link_libraries(ghost_core PRIVATE nlohmann_json::nlohmann_json)
@@ -112,7 +113,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
         tests/AssetsTests.cpp
         tests/PlayerTests.cpp tests/GuardTests.cpp tests/WeaponTests.cpp tests/EnemySpecTests.cpp tests/EnemyCombatTests.cpp
-        tests/GuardAITests.cpp
+        tests/GuardAITests.cpp tests/WaveSpawnerTests.cpp
         tests/FollowCameraTests.cpp
         tests/RaycastTests.cpp tests/RippleSystemTests.cpp
         tests/PathfinderTests.cpp

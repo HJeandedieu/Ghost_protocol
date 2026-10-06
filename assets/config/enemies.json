@@ -19,7 +19,8 @@
       "burst": 3,
       "rate": 1.2,
       "accuracy": 0.4,
-      "engage": 300
+      "engage": 300,
+      "radius": 14
     },
     {
       "id": "shield_cop",
@@ -31,7 +32,8 @@
       "accuracy": 0.35,
       "engage": 200,
       "shield_arc_deg": 120,
-      "shield_block": 0.9
+      "shield_block": 0.9,
+      "radius": 16
     },
     {
       "id": "heavy",
@@ -41,7 +43,8 @@
       "dmg": 5,
       "rate": 8,
       "accuracy": 0.3,
-      "engage": 220
+      "engage": 220,
+      "radius": 20
     }
   ],
   "waves": [
