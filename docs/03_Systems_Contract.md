@@ -109,6 +109,11 @@ New noise or meter above 0 interrupts any of this and returns the guard to Suspi
 ### 3.3 Alarm
 `Quiet -> CallIn (at least one active call-in) -> Quiet (all cancelled) or Loud`. `Loud` is permanent for the mission; once Loud, ping is disabled and all lights are on.
 
+#### 3.3.1 Day 19 alarm presentation timing (author approved 6 October 2026)
+- The alarm presentation clock uses unscaled elapsed time. Movement, combat and the other gameplay systems use `alarm.slowmo_scale` (0.35) during the first `alarm.slowmo_time` (0.8 s); normal simulation speed resumes afterwards. The WaveSpawner assault clock continues in unscaled time, so the first wave remains due 30 s after entering Loud.
+- The palette flip starts with the alarm and completes over `alarm.flip_time` (0.4 s). Cinematic bars enter from 0 to `alarm.bars_in` (0.6 s), hold until `alarm.slowmo_time` (0.8 s), then leave over `alarm.bars_out` (1.2 s), disappearing at 2.0 s. The banner remains visible for 2.5 s from the alarm.
+- The sequence starts once on `AlarmTriggered`; repeated alarm triggers do not restart it. Presentation does not dispatch new gameplay events or write entity reveal. Reduce Effects keeps these timings, halves world shake, and removes decorative flashes; HUD anchors remain stable.
+
 ### 3.4 Mission
 `S1 -> S2 -> S3 -> S4 -> S5 -> S6 -> Complete`. Stage start presets (used by checkpoint retry):
 | Retry stage | Preset applied after reloading the level |
