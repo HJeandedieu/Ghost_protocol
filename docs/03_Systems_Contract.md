@@ -114,7 +114,7 @@ New noise or meter above 0 interrupts any of this and returns the guard to Suspi
 - The palette flip starts with the alarm and completes over `alarm.flip_time` (0.4 s). Cinematic bars enter from 0 to `alarm.bars_in` (0.6 s), hold until `alarm.slowmo_time` (0.8 s), then leave over `alarm.bars_out` (1.2 s), disappearing at 2.0 s. The banner remains visible for 2.5 s from the alarm.
 - The sequence starts once on `AlarmTriggered`; repeated alarm triggers do not restart it. Presentation does not dispatch new gameplay events or write entity reveal. Reduce Effects keeps these timings, halves world shake, and removes decorative flashes; HUD anchors remain stable.
 
-- Alarm presentation uses `alarm.trauma_decay` (1.5/s), `alarm.banner_time` (2.5 s), and `alarm.shake_pixels` (12 px). Trauma begins at `alarm.shake_trauma` (0.8), decays with unscaled time, and produces world-only translation amplitude `shake_pixels * traumaï¿½` (7.68 px initially). Reduce Effects halves that amplitude and removes the decorative vignette pulse. HUD coordinates and camera coordinates used for aiming/spawn checks remain unshaken.
+- Alarm presentation uses `alarm.trauma_decay` (1.5/s), `alarm.banner_time` (2.5 s), and `alarm.shake_pixels` (12 px). Trauma begins at `alarm.shake_trauma` (0.8), decays with unscaled time, and produces world-only translation amplitude `shake_pixels * trauma²` (7.68 px initially). Reduce Effects halves that amplitude and removes the decorative vignette pulse. HUD coordinates and camera coordinates used for aiming/spawn checks remain unshaken.
 
 ### 3.4 Mission
 `S1 -> S2 -> S3 -> S4 -> S5 -> S6 -> Complete`. Stage start presets (used by checkpoint retry):
