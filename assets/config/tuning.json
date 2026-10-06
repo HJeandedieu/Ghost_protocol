@@ -12,6 +12,10 @@
     "armor_regen": 8,
     "armor_regen_delay": 5
   },
+  "enemy_combat": {
+    "reaction_time": 0.4, "burst_interval": 0.12, "strafe_speed": 80,
+    "strafe_reverse_time": 1.5, "path_refresh": 0.5, "death_fade": 0.6
+  },
   "pickup": {
     "medkit_chance": 0.20,
     "armor_chance": 0.10,

@@ -19,8 +19,9 @@ DetectionSystem::DetectionSystem(EventBus& events, Logger& logger, std::vector<G
         });
         if (body == guards.end()) return;
         for (auto& guard : guards) {
-            if (guard.id != event.guardId || guard.state_ == GuardState::Unconscious ||
-                guard.state_ == GuardState::Combat || guard.state_ == GuardState::Alerted)
+            if (guard.dead() || guard.id != event.guardId ||
+                guard.state_ == GuardState::Unconscious || guard.state_ == GuardState::Combat ||
+                guard.state_ == GuardState::Alerted)
                 continue;
             startCallIn(guard);
             break;
@@ -104,6 +105,7 @@ void DetectionSystem::update(float dt, const Player& player, const TileMap& map,
                              std::vector<Guard>& guards) {
     if (!std::isfinite(dt) || dt <= 0) return;
     for (auto& guard : guards) {
+        if (guard.dead()) continue;
         if (guard.state_ == GuardState::Alerted) {
             advanceCallIn(dt, guard);
             continue;

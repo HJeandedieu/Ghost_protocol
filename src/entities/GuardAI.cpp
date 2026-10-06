@@ -20,7 +20,7 @@ GuardAI::GuardAI(Guard& guard, TileMap& map, EventBus& events, Logger& logger)
     investigatePath_.reserve(static_cast<std::size_t>(map.width()) * map.height());
     events.subscribe<NoiseEmitted>([this](const NoiseEmitted& event) { hear(event); });
     events.subscribe<AlarmTriggered>([this](const auto&) {
-        if (guard_.state_ != GuardState::Unconscious) {
+        if (!guard_.dead() && guard_.state_ != GuardState::Unconscious) {
             guard_.state_ = GuardState::Combat;
             guard_.callInRemaining_ = 0;
             guard_.callInCompleted_ = true;
@@ -110,6 +110,7 @@ void GuardAI::startSearching(Vec2 center) {
 }
 
 void GuardAI::update(float deltaTime) {
+    if (guard_.dead()) return;
     if (!std::isfinite(deltaTime) || deltaTime <= 0) return;
     double dt = deltaTime;
     auto& guard = guard_;

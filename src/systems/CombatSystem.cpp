@@ -55,14 +55,26 @@ HitResult CombatSystem::fire(const Weapon& weapon, Vec2 from, float dirDeg, Rng&
         float distance = Raycast::sightDistance(from, maximum, world.level.map);
         Vec2 end{from.x + direction.x * distance, from.y + direction.y * distance};
         std::string target;
-        for (const auto& guard : world.guards) {
-            if (guard.state() == GuardState::Unconscious) continue;
+        Entity* victim = nullptr;
+        for (auto& guard : world.guards) {
+            if (guard.dead() || guard.state() == GuardState::Unconscious) continue;
             const auto hit = Raycast::intersectCircle(from, end, guard.pos, guard.radius);
             if (!hit) continue;
             distance *= *hit;
             end = {from.x + direction.x * distance, from.y + direction.y * distance};
             target = guard.id;
+            victim = &guard;
         }
+        for (auto& enemy : world.enemies) {
+            if (enemy->dead()) continue;
+            const auto hit = Raycast::intersectCircle(from, end, enemy->pos, enemy->radius);
+            if (!hit) continue;
+            distance *= *hit;
+            end = {from.x + direction.x * distance, from.y + direction.y * distance};
+            target = enemy->id;
+            victim = enemy.get();
+        }
+        if (victim) applyDamage(*victim, spec.damage, world.player.id);
         result.pellets.push_back({from, end, angle, target, spec.damage});
     }
     return result;

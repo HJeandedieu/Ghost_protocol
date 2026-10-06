@@ -33,7 +33,7 @@ float VisionSystem::rangeFor(LightLevel light, bool crouched) const {
 }
 
 bool VisionSystem::sees(const Guard& guard, const Player& player, const TileMap& map) const {
-    if (guard.state() == GuardState::Unconscious) return false;
+    if (guard.dead() || guard.state() == GuardState::Unconscious) return false;
     if (!std::isfinite(player.pos.x) || !std::isfinite(player.pos.y) || map.tileSize() <= 0)
         return false;
     const int x = static_cast<int>(std::floor(player.pos.x / map.tileSize()));
@@ -48,8 +48,8 @@ void VisionSystem::findBodies(const std::vector<Guard>& guards, const TileMap& m
                               EventBus& events) const {
     constexpr float kRadiansToDegrees = 180.0f / 3.14159265358979323846f;
     for (const auto& finder : guards) {
-        if (finder.state() == GuardState::Unconscious || finder.state() == GuardState::Combat ||
-            finder.state() == GuardState::Alerted)
+        if (finder.dead() || finder.state() == GuardState::Unconscious ||
+            finder.state() == GuardState::Combat || finder.state() == GuardState::Alerted)
             continue;
         const VisionSystem vision(finder.visionConfig());
         for (const auto& body : guards) {

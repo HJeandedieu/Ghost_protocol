@@ -15,6 +15,9 @@ NoiseSystem::NoiseSystem(EventBus& bus) : bus_(bus) {
             emit(event.from,
                  weapon->noise == NoiseType::ShotSupp ? config_.shotSuppressed : config_.shot,
                  weapon->noise, event.shooterId);
+        else if (std::any_of(enemies_.begin(), enemies_.end(),
+                             [&](const auto& enemy) { return enemy.id == event.weaponId; }))
+            emit(event.from, config_.shot, NoiseType::Shot, event.shooterId);
     });
     bus_.subscribe<NoiseEmitted>([this](const NoiseEmitted& event) { hear(event); });
 }

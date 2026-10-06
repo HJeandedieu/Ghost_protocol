@@ -5,6 +5,7 @@
 
 #include "core/Config.h"
 #include "core/Events.h"
+#include "entities/EnemySpec.h"
 #include "entities/Weapon.h"
 
 class EventBus;
@@ -17,6 +18,7 @@ class NoiseSystem {
    public:
     explicit NoiseSystem(EventBus& bus);
     void setWeapons(const std::vector<WeaponSpec>& weapons, const NoiseConfig& config);
+    void setEnemies(const std::vector<EnemySpec>& enemies) { enemies_ = enemies; }
     void emit(Vec2 origin, float radius, NoiseType type, const std::string& sourceId);
     void setHearers(std::vector<Hearer> hearers);
     void setHearerPosition(std::size_t index, Vec2 position) {
@@ -32,4 +34,5 @@ class NoiseSystem {
     float radius_ = 0;
     std::vector<WeaponSpec> weapons_;
     NoiseConfig config_;
+    std::vector<EnemySpec> enemies_;
 };
