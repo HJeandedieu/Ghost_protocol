@@ -60,7 +60,7 @@ add_library(ghost_core STATIC
     src/states/StateMachine.cpp src/render/Letterbox.cpp
     src/world/TileMap.cpp src/world/LevelLoader.cpp
     src/core/Assets.cpp
-    src/entities/Player.cpp src/entities/Guard.cpp src/entities/Weapon.cpp
+    src/entities/Player.cpp src/entities/Guard.cpp src/entities/Weapon.cpp src/entities/EnemySpec.cpp
     src/entities/GuardAI.cpp
     src/entities/SecurityCamera.cpp src/entities/Laser.cpp
     src/render/FollowCamera.cpp src/render/HealthHud.cpp
@@ -111,7 +111,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/StateMachineTests.cpp tests/LetterboxTests.cpp
         tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
         tests/AssetsTests.cpp
-        tests/PlayerTests.cpp tests/GuardTests.cpp tests/WeaponTests.cpp
+        tests/PlayerTests.cpp tests/GuardTests.cpp tests/WeaponTests.cpp tests/EnemySpecTests.cpp
         tests/GuardAITests.cpp
         tests/FollowCameraTests.cpp
         tests/RaycastTests.cpp tests/RippleSystemTests.cpp
