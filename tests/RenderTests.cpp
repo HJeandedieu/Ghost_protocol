@@ -227,4 +227,11 @@ TEST_F(Render, RevealedVisionConeStopsAtClosedDoorsAndUsesTargetLighting) {
     EXPECT_LT(GetImageColor(image, 360, 216).r, 15);
     EXPECT_GT(GetImageColor(image, 432, 216).r, 55);
     UnloadImage(image);
+    // Once the ping reveal expires, the dark guard must stop displaying its cone.
+    ripple.update(3.0f, world.level.map, entities);
+    ripple.update(3.0f, world.level.map, entities);
+    ASSERT_FLOAT_EQ(world.guards.front().reveal, 0);
+    image = capture();
+    EXPECT_LT(GetImageColor(image, 312, 216).r, 15);
+    UnloadImage(image);
 }

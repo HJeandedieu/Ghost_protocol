@@ -85,6 +85,31 @@ TEST(VisionSystem, InvalidInputsAndOutOfMapCannotSeeTargets) {
     EXPECT_TRUE(vision.sees({72, 72}, 0, 0, 0, {72, 72}, map));
 }
 
+TEST(VisionSystem, UsesSuppliedGuardTuningForRangesAndCone) {
+    auto map = openMap();
+    GuardConfig config;
+    config.rangeLit = 280;
+    config.rangeDim = 220;
+    config.rangeDark = 160;
+    config.crouchDarkMult = 0.5f;
+    config.coneDeg = 40;
+    VisionSystem vision(config);
+    EXPECT_FLOAT_EQ(vision.rangeFor(LightLevel::Lit, true), 280);
+    EXPECT_FLOAT_EQ(vision.rangeFor(LightLevel::Dim, true), 220);
+    EXPECT_FLOAT_EQ(vision.rangeFor(LightLevel::Dark, false), 160);
+    EXPECT_FLOAT_EQ(vision.rangeFor(LightLevel::Dark, true), 80);
+    GuardSpawn spawn;
+    spawn.mode = PatrolMode::Stationary;
+    spawn.waypoints = {{1, 1}};
+    Guard guard(spawn, map, config);
+    Player player({222, 72}, PlayerConfig{});
+    EXPECT_TRUE(vision.sees(guard, player, map));
+    player.pos = {242, 72};
+    EXPECT_FALSE(vision.sees(guard, player, map));
+    player.pos = {172, 122};
+    EXPECT_FALSE(vision.sees(guard, player, map));
+}
+
 TEST(VisionSystem, PlayerCheckUsesTargetLightingAndCrouchInsteadOfGuardLighting) {
     auto map = openMap();
     GuardSpawn spawn;
