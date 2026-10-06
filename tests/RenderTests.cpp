@@ -460,6 +460,8 @@ TEST_F(Render, HealthAndArmorBarsDrainWithWorldHitFlashAndRemainStableWithGuards
     renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, false, 1234,
                        world.guards);
     renderer.drawWeaponHud(combat);
+    RecoveryPickup pickup("fixture", PickupType::Medkit, world.player.pos);
+    renderer.drawPickupHud(&pickup);
     renderer.present();
     auto image = LoadImageFromTexture(renderer.frameTexture());
     ImageFlipVertical(&image);
@@ -470,10 +472,50 @@ TEST_F(Render, HealthAndArmorBarsDrainWithWorldHitFlashAndRemainStableWithGuards
     EXPECT_EQ(armor.r, 233);
     EXPECT_EQ(armor.g, 228);
     EXPECT_EQ(GetImageColor(image, 180, 642).r, 40);
+    EXPECT_EQ(GetImageColor(image, 274, 642).r, 40);
     EXPECT_GT(GetImageColor(image, 400, 200).r, 20);
     EXPECT_EQ(GetImageColor(image, 30, 540).r, 20);
     EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day16-health-preview.png"));
     EXPECT_FLOAT_EQ(world.player.hp(), 85);
     EXPECT_FLOAT_EQ(world.player.armor(), 0);
     UnloadImage(image);
+}
+
+TEST_F(Render, RecoveryMarkersRemainHiddenInStealthAndShowDistinctShapesInLoud) {
+    std::ostringstream console;
+    Logger logger(console, "");
+    Level level;
+    std::string rows;
+    for (int y = 0; y < 15; ++y) rows += std::string(40, '.') + '\n';
+    std::istringstream source(rows);
+    level.map = TileMap::parse(source, 48);
+    level.playerSpawn = {13, 7};
+    World world(std::move(level), PlayerConfig{});
+    RippleSystem ripple(PingConfig{}, world.level.map);
+    Renderer renderer(logger);
+    const auto draw = [&](bool loud) {
+        renderer.beginFrame();
+        renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, false, 1234, {}, {},
+                           {}, false, nullptr, world.pickups, loud);
+        renderer.present();
+        auto image = LoadImageFromTexture(renderer.frameTexture());
+        ImageFlipVertical(&image);
+        return image;
+    };
+    auto baseline = draw(false);
+    world.pickups.push_back(
+        std::make_unique<RecoveryPickup>("medkit", PickupType::Medkit, Vec2{900, 360}));
+    world.pickups.push_back(
+        std::make_unique<RecoveryPickup>("plate", PickupType::ArmorPlate, Vec2{960, 360}));
+    auto hidden = draw(false);
+    EXPECT_EQ(GetImageColor(hidden, 900, 360).r, GetImageColor(baseline, 900, 360).r);
+    EXPECT_EQ(GetImageColor(hidden, 960, 360).r, GetImageColor(baseline, 960, 360).r);
+    UnloadImage(baseline);
+    UnloadImage(hidden);
+    auto loud = draw(true);
+    EXPECT_GT(GetImageColor(loud, 900, 360).r, 200);
+    EXPECT_GT(GetImageColor(loud, 960, 360).g, 150);
+    EXPECT_FLOAT_EQ(world.pickups.front()->reveal, 0);
+    EXPECT_TRUE(ExportImage(loud, GP_RENDER_OUTPUT_DIRECTORY "/day16-pickups-preview.png"));
+    UnloadImage(loud);
 }
