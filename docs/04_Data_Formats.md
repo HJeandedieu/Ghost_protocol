@@ -56,7 +56,7 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
   "laser": { "touch_cooldown": 1.5, "second_touch_window": 30 },
   "pager": { "ring_delay": 4, "answer_window": 12, "answer_hold": 1.5 },
   "alarm": { "slowmo_scale": 0.35, "slowmo_time": 0.8, "flip_time": 0.4, "bars_in": 0.6, "bars_out": 1.2,
-             "shake_trauma": 0.8, "first_wave_delay": 30, "wave_interval": 25, "max_alive": 12 },
+             "shake_trauma": 0.8, "trauma_decay": 1.5, "banner_time": 2.5, "shake_pixels": 12, "first_wave_delay": 30, "wave_interval": 25, "max_alive": 12 },
   "mission": { "lockpick": 4, "security_hold": 6, "breaker_hold": 5, "crack": 25, "thermite_place": 2,
                "thermite_burn": 75, "dye_hold": 2, "dye_burst": 45, "bollard_hold": 4, "van_delay": 10,
                "throw_distance": 300 },
@@ -82,6 +82,8 @@ continues to configure security cameras.
 Reference-first visibility (author confirmed 6 October 2026): `render.ambient_floor_alpha` and `render.ambient_wall_alpha` are presentation alpha values in [0, 1]. Missing/invalid values fall back to 0.18 and 0.45. They apply only to environmental geometry/decor, never entity reveal, interaction markers, gameplay light levels or detection. Wall baseline is drawn only on edges facing walkable space, leaving the solid mass Ink. See Visual Reference §2.
 
 Recovery pickup tuning (author approved 6 October 2026): `pickup.medkit_chance` and `pickup.armor_chance` are probabilities in [0, 1], with a sum at most 1. Missing or invalid individual values use the documented default; if the resulting sum exceeds 1, reset both probabilities to their defaults and log a WARN. Amounts and collection radius must be finite and non-negative; missing or invalid values use the defaults above and log a WARN. The remaining probability is no drop (0.70 by default). All three police types use these values; guards do not drop recovery items. Selection, collection, overflow, and lifetime rules are in Systems Contract §3.7. Pickups are created at runtime and add no level or save format.
+
+Day 19 alarm presentation tuning (author approved 6 October 2026): `alarm.trauma_decay` is the trauma reduction per unscaled second (1.5); `alarm.banner_time` is the unscaled banner duration from the alarm (2.5 s); `alarm.shake_pixels` is the maximum world translation amplitude at trauma 1 (12 px). These values must be finite and nonnegative; missing or invalid values fall back to those defaults and log a WARN. Shake amplitude is `shake_pixels * trauma * trauma`, halved by Reduce Effects. Shake affects world presentation only; HUD and gameplay coordinates remain stable. Timing and start-once behavior follow Systems Contract �3.3.1.
 
 ## 3. weapons.json and enemies.json
 ```json
