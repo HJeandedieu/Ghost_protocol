@@ -7,6 +7,7 @@
 #include "entities/Guard.h"
 #include "entities/Player.h"
 #include "render/Renderer.h"
+#include "states/PlayState.h"
 #include "systems/CombatSystem.h"
 #include "systems/DetectionSystem.h"
 #include "systems/InteractionSystem.h"
@@ -555,5 +556,70 @@ TEST_F(Render, PoliceSilhouettesAndWaveHudReadStateWithoutRevealingEnemies) {
     EXPECT_EQ(waves.waveIndex(), 1);
     for (const auto& enemy : world.enemies) EXPECT_FLOAT_EQ(enemy->reveal, 0);
     EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day18-police-preview.png"));
+    UnloadImage(image);
+}
+
+TEST_F(Render, PlayStateStartsAssaultClockAfterAlarmAndDisplaysWaveHud) {
+    std::ostringstream console;
+    Logger logger(console, "");
+    Renderer renderer(logger);
+    Level level;
+    std::string rows;
+    for (int y = 0; y < 15; ++y) rows += std::string(40, '.') + '\n';
+    std::istringstream source(rows);
+    level.map = TileMap::parse(source, 64);
+    level.playerSpawn = {10, 7};
+    level.guards.push_back({"G01", "fixture", PatrolMode::Stationary, false, {{8, 7}}, 0});
+    Config config;
+    auto enemies = loadEnemies("assets/config/enemies.json", logger).value();
+    for (auto& enemy : enemies) enemy.accuracy = 0;
+    Input input;
+    PlayState play(std::move(level), input, config, 42, renderer, logger,
+                   loadWeapons("assets/config/weapons.json", logger).value(), enemies,
+                   loadWaves("assets/config/enemies.json", logger).value(),
+                   {{"front", {30, 7}}, {"service", {31, 7}}, {"east", {32, 7}}});
+    renderer.beginFrame();
+    play.render(1);
+    renderer.present();
+    auto image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    const auto quiet = GetImageColor(image, 1100, 160);
+    UnloadImage(image);
+    input.weaponSlot = 1;
+    input.firePressed = true;
+    input.mouseInViewport = true;
+    input.mouseLogical = {640, 0};
+    play.update(1.f / 60);
+    input.clearEdges();
+    play.update(1.f / 60);  // ShotFired queues NoiseEmitted for the following dispatch.
+    ASSERT_NE(console.str().find("Alarm triggered"), std::string::npos);
+    for (int i = 0; i < 1800; ++i) play.update(1.f / 60);
+    renderer.beginFrame();
+    play.render(1);
+    renderer.present();
+    image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    const auto assault = GetImageColor(image, 1100, 160);
+    EXPECT_EQ(assault.r, 20);
+    EXPECT_EQ(assault.g, 22);
+    EXPECT_EQ(assault.b, 27);
+    EXPECT_TRUE(quiet.r != assault.r || quiet.g != assault.g || quiet.b != assault.b);
+    ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day18-runtime-preview.png");
+    renderer.beginFrame();
+    DrawText("ASSAULT  1", 1026, 96, 22, {242, 183, 5, 255});
+    renderer.present();
+    auto expected = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&expected);
+    for (int y = 96; y < 120; ++y)
+        for (int x = 1026; x < 1220; ++x) {
+            const auto actualPixel = GetImageColor(image, x, y);
+            const auto expectedPixel = GetImageColor(expected, x, y);
+            const bool actualGold =
+                actualPixel.r == 242 && actualPixel.g == 183 && actualPixel.b == 5;
+            const bool expectedGold =
+                expectedPixel.r == 242 && expectedPixel.g == 183 && expectedPixel.b == 5;
+            ASSERT_EQ(actualGold, expectedGold) << "Assault label at " << x << "," << y;
+        }
+    UnloadImage(expected);
     UnloadImage(image);
 }

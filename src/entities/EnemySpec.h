@@ -1,9 +1,12 @@
 #pragma once
 
 #include <array>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
+
+#include "world/TileMap.h"
 
 class Logger;
 
@@ -30,3 +33,6 @@ struct WaveSpec {
     std::vector<std::string> points;
 };
 std::optional<std::vector<WaveSpec>> loadWaves(const std::string& path, Logger& logger);
+
+std::optional<std::map<std::string, TileCoord>> loadSpawnPoints(const std::string& path,
+                                                                const TileMap& map, Logger& logger);
