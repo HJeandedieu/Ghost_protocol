@@ -15,6 +15,13 @@ struct GuardSuspicious {
     std::string guardId;
     Vec2 point;
 };
+struct GuardSpotted {
+    std::string guardId;
+};
+struct CallInStarted {
+    std::string guardId;
+    float seconds = 0;
+};
 struct InteractionProgress {
     std::string interactableId;
     float progress = 0;

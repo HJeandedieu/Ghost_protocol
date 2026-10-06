@@ -7,7 +7,7 @@
 #include "render/Renderer.h"
 
 PlayState::PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed,
-                     Renderer& renderer)
+                     Renderer& renderer, Logger& logger)
     : world_(std::move(level), config.player, config.guard),
       input_(input),
       camera_(world_.player.pos, config.view),
@@ -16,6 +16,7 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       renderer_(renderer),
       noise_(events_),
       interaction_(events_),
+      detection_(events_, logger, config.difficulty.normal.detectFill),
       config_(config) {
     interaction_.loadBank(world_, config_);
     renderer_.prepareLevel(world_.level);
@@ -61,6 +62,7 @@ void PlayState::update(float dt) {
         noise_.emit(ripple_.origin(), ripple_.maxRadius() * config_.ping.noiseMult, NoiseType::Ping,
                     player.id);
     ripple_.update(dt, world_.level.map, revealables_);
+    detection_.update(dt, player, world_.level.map, world_.guards);
     events_.dispatch();
 #ifndef NDEBUG
     if (input_.debugPressed) debugView_ = !debugView_;

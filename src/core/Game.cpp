@@ -119,7 +119,7 @@ void Game::showMenu(const std::string& error) {
             }
             logger_.log(LogLevel::Info, "State: Play");
             states_.replace(std::make_unique<PlayState>(std::move(*level), input_, config_,
-                                                        rng_.seed(), *renderer_));
+                                                        rng_.seed(), *renderer_, logger_));
         },
         error));
 }

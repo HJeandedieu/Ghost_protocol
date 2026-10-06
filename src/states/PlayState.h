@@ -7,6 +7,7 @@
 #include "entities/Player.h"
 #include "render/FollowCamera.h"
 #include "states/IState.h"
+#include "systems/DetectionSystem.h"
 #include "systems/InteractionSystem.h"
 #include "systems/NoiseSystem.h"
 #include "systems/RippleSystem.h"
@@ -14,11 +15,12 @@
 #include "world/World.h"
 
 class Renderer;
+class Logger;
 
 class PlayState : public IState {
    public:
     PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed,
-              Renderer& renderer);
+              Renderer& renderer, Logger& logger);
     void enter() override;
     void exit() override;
     void update(float dt) override;
@@ -37,5 +39,6 @@ class PlayState : public IState {
     Renderer& renderer_;
     NoiseSystem noise_;
     InteractionSystem interaction_;
+    DetectionSystem detection_;
     const Config& config_;
 };

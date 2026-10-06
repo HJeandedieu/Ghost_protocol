@@ -102,7 +102,9 @@ void Renderer::drawGuardCone(const Guard& guard, Vec2 position, const TileMap& m
         coneDistances_.push_back(Raycast::sightDistance(
             position, {position.x + direction.x * range, position.y + direction.y * range}, map));
     }
-    const Color color = Fade({233, 228, 208, 255}, 0.18f * visibility);
+    const bool alerted = guard.state() == GuardState::Alerted;
+    const Color color = Fade(alerted ? Color{255, 59, 92, 255} : Color{233, 228, 208, 255},
+                             (alerted ? 0.25f : 0.18f) * visibility);
     coneLightRegions_.clear();
     // Merge equal-light tiles into rectangles. Occlusion is already in the ray fan,
     // so uniform rooms need one range clip rather than hundreds of tile clips.
@@ -255,6 +257,7 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
     constexpr Color kTeal = {63, 143, 140, 255};
     constexpr Color kDeepTeal = {30, 74, 74, 255};
     constexpr Color kGold = {242, 183, 5, 255};
+    constexpr Color kAlarm = {255, 59, 92, 255};
     const auto& map = level.map;
     if (!guards.empty()) prepareLevel(level);
     const float size = static_cast<float>(map.tileSize());
@@ -343,6 +346,17 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
         if (overview)
             DrawText(guard.id.c_str(), static_cast<int>(position.x + guard.radius),
                      static_cast<int>(position.y), 24, kBone);
+        if (guard.detection() > 0) {
+            const Vector2 meter{position.x, position.y - guard.radius - 12};
+            DrawCircleV(meter, 8, Fade({20, 22, 27, 255}, visible));
+            DrawCircleSector(meter, 8, -90, -90 + 360 * guard.detection() / 100, 32,
+                             Fade(kAlarm, visible));
+            DrawCircleLinesV(meter, 8, Fade(kBone, visible));
+            if (guard.state() == GuardState::Alerted)
+                DrawText(TextFormat("%.1fs", guard.callInRemaining()),
+                         static_cast<int>(meter.x + 12), static_cast<int>(meter.y - 8), 16,
+                         Fade(kAlarm, visible));
+        }
     }
     DrawCircleV({spawn.x, spawn.y}, player.radius, {10, 10, 12, 255});
     DrawCircleV({spawn.x, spawn.y}, player.radius * 0.65f, kBone);

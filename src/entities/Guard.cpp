@@ -39,6 +39,7 @@ void Guard::advanceWaypoint() {
 void Guard::update(float dt, TileMap& map) {
     if (!std::isfinite(dt) || dt <= 0) return;
     prevPos = pos;
+    if (state_ != GuardState::Patrol) return;
     if (mode_ == PatrolMode::Stationary) {
         facing_ = std::fmod(facing_ + config_.stationaryTurnSpeed * kPi / 180 * dt, 2 * kPi);
         return;
