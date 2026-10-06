@@ -100,6 +100,7 @@ Recovery pickup tuning (author approved 6 October 2026): `pickup.medkit_chance` 
   { "id": "shield_cop",   "radius": 16, "hp": 120, "armor": 0,   "speed": 130, "dmg": 5, "rate": 2, "accuracy": 0.35, "engage": 200,
     "shield_arc_deg": 120, "shield_block": 0.9 },
   { "id": "heavy",        "radius": 20, "hp": 250, "armor": 100, "speed": 110, "dmg": 5, "rate": 8, "accuracy": 0.30, "engage": 220 } ],
+  "spawn_points": { "front": [51, 46], "service": [21, 44], "east": [67, 38] },
   "waves": [
     { "at": 0, "spawn": { "cop": 4 }, "points": ["front", "service"] },
     { "at": 1, "spawn": { "cop": 5 }, "points": ["front", "east"] },
@@ -109,6 +110,8 @@ Recovery pickup tuning (author approved 6 October 2026): `pickup.medkit_chance` 
     { "at": "repeat", "spawn": { "cop": 4, "shield_cop": 2, "heavy": 1 }, "points": ["front", "service", "east"] } ] }
 ```
 Spawn points: `front` = tile (51,46), `service` = tile (21,44), `east` = tile (67,38). Enemies appear just outside view and enter through those tiles.
+
+The root `spawn_points` object stores those entry coordinates in `enemies.json`; runtime code must read them rather than hard-code the tile numbers. Each named entry is a two-element array of nonnegative integers, within the loaded map's bounds. All three named entries are required. Invalid/missing entry data logs an ERROR and prevents entering Play; temporarily blocked or visible valid entries instead wait under Systems Contract §3.2.2.
 
 Day 18 data interpretation: police records require `radius`, a finite positive collision radius in px matching the character recipes in Design Docs §1.3. Patrol guards continue to use `guard.radius` from tuning.json. Wave `at` values are zero-based assault wave indices; `repeat` is the composition for index 5 onward. `spawn` contains positive integer counts for police enemy IDs only, and `points` contains entry names from the list above. Invalid enemy/wave data logs an ERROR and prevents entering Play. Scheduling, cap overflow and delayed off-screen entry behavior follow Systems Contract §3.2.2.
 
