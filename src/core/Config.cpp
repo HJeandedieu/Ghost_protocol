@@ -119,6 +119,25 @@ Config Config::load(const std::string& path, Logger& logger) {
         readNumber(guard, "search_time", config.guard.searchTime, "guard", logger);
     config.guard.investigateLook =
         readNumber(guard, "investigate_look", config.guard.investigateLook, "guard", logger);
+    config.guard.searchLoopRadius =
+        readNumber(guard, "search_loop_radius", config.guard.searchLoopRadius, "guard", logger);
+    config.guard.searchPointPause =
+        readNumber(guard, "search_point_pause", config.guard.searchPointPause, "guard", logger);
+    config.guard.searchTurnRate =
+        readNumber(guard, "search_turn_rate", config.guard.searchTurnRate, "guard", logger);
+    config.guard.lookSweepDeg =
+        readNumber(guard, "look_sweep_deg", config.guard.lookSweepDeg, "guard", logger);
+    config.guard.stuckWindow =
+        readNumber(guard, "stuck_window", config.guard.stuckWindow, "guard", logger);
+    config.guard.stuckMinProgress =
+        readNumber(guard, "stuck_min_progress", config.guard.stuckMinProgress, "guard", logger);
+    config.guard.arriveTolerance =
+        readNumber(guard, "arrive_tolerance", config.guard.arriveTolerance, "guard", logger);
+    config.guard.pathClearStep =
+        readNumber(guard, "path_clear_step", config.guard.pathClearStep, "guard", logger);
+    config.guard.crumbSpacing =
+        readNumber(guard, "crumb_spacing", config.guard.crumbSpacing, "guard", logger);
+    config.guard.crumbMax = readNumber(guard, "crumb_max", config.guard.crumbMax, "guard", logger);
     const auto& camera = groupOrEmpty(data, "camera", empty);
     config.camera.coneDeg = readNumber(camera, "cone_deg", config.camera.coneDeg, "camera", logger);
     config.camera.range = readNumber(camera, "range", config.camera.range, "camera", logger);
