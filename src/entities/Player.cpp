@@ -49,7 +49,8 @@ bool Player::tryTakedown(std::vector<Guard>& guards, EventBus& events) {
     Guard* nearest = nullptr;
     float nearestDistance = 0;
     for (auto& guard : guards) {
-        if (guard.state() == GuardState::Combat || guard.state() == GuardState::Unconscious)
+        if (guard.dead() || guard.state() == GuardState::Combat ||
+            guard.state() == GuardState::Unconscious)
             continue;
         const float distance = std::hypot(guard.pos.x - pos.x, guard.pos.y - pos.y);
         if (!std::isfinite(distance) || distance > guard.visionConfig().takedownRange) continue;

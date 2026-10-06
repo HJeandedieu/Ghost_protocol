@@ -21,6 +21,8 @@ class InteractionSystem;
 class TileMap;
 class AlarmDirector;
 class CombatSystem;
+class EnemyCombatSystem;
+class Enemy;
 class PagerSystem;
 struct World;
 
@@ -56,7 +58,8 @@ class Renderer {
                    const std::vector<Laser>& lasers = {}, bool securityLooped = false,
                    const CombatSystem* combat = nullptr,
                    const std::vector<std::unique_ptr<RecoveryPickup>>& pickups = {},
-                   bool pickupsLit = false);
+                   bool pickupsLit = false, const std::vector<std::unique_ptr<Enemy>>& enemies = {},
+                   const EnemyCombatSystem* enemyCombat = nullptr);
 
    private:
     RenderTexture2D surface_;

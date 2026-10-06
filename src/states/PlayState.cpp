@@ -8,7 +8,8 @@
 #include "systems/VisionSystem.h"
 
 PlayState::PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed,
-                     Renderer& renderer, Logger& logger, const std::vector<WeaponSpec>& weapons)
+                     Renderer& renderer, Logger& logger, const std::vector<WeaponSpec>& weapons,
+                     const std::vector<EnemySpec>& enemies)
     : world_(std::move(level), config.player, config.guard, config.camera),
       input_(input),
       camera_(world_.player.pos, config.view),
@@ -23,8 +24,10 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       lasers_(events_, config.laser, config.noise.laser),
       combat_(events_, weapons, seed),
       pickups_(events_, config.pickup, seed),
+      enemyCombat_(events_, world_, combat_, pickups_, enemies, config, seed),
       config_(config) {
     noise_.setWeapons(weapons, config.noise);
+    noise_.setEnemies(enemies);
     interaction_.loadBank(world_, config_);
     detection_.bindCameras(world_.cameras);
     renderer_.prepareLevel(world_.level);
@@ -67,6 +70,7 @@ void PlayState::update(float dt) {
     pagers_.update(dt);
     interaction_.update(dt, input_.interactHeld || input_.interactPressed, world_);
 #ifndef NDEBUG
+    if (input_.debugCopPressed) enemyCombat_.spawnDebugCop();
     if (input_.debugMedkitPressed)
         pickups_.spawn(PickupType::Medkit, {player.pos.x + player.radius * 2, player.pos.y},
                        world_);
@@ -101,6 +105,7 @@ void PlayState::update(float dt) {
     VisionSystem(config_.guard).findBodies(world_.guards, world_.level.map, events_);
     auto tickRevealables = revealables_;
     for (auto& pickup : world_.pickups) tickRevealables.push_back(pickup.get());
+    for (auto& enemy : world_.enemies) tickRevealables.push_back(enemy.get());
     ripple_.update(dt, world_.level.map, tickRevealables);
     if (!world_.alarmLoud) ripple_.applyProximity(player.pos, world_.level.map, hazards_);
     combat_.update(dt, input_, facing_ * (180.0f / 3.14159265358979323846f), world_);
@@ -108,6 +113,7 @@ void PlayState::update(float dt) {
     if (input_.debugDamagePressed)
         combat_.applyDamage(world_.player, config_.player.armor, "debug");
 #endif
+    enemyCombat_.update(dt);
     renderer_.updateHealthHud(dt, world_.player);
     alarm_.update();
     events_.dispatch();
@@ -119,7 +125,7 @@ void PlayState::render(float alpha) {
     renderer_.drawLevel(world_.level, world_.player, ripple_, camera_.interpolatedTarget(alpha),
                         facing_, alpha, debugView_, seed_, world_.guards, world_.cameras,
                         world_.lasers, world_.securityLoopRemaining > 0, &combat_, world_.pickups,
-                        world_.alarmLoud);
+                        world_.alarmLoud, world_.enemies, &enemyCombat_);
     renderer_.drawInteractionHud(world_, interaction_, noise_.currentRadius(),
                                  config_.noise.sprint);
     renderer_.drawWeaponHud(combat_);

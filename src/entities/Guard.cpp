@@ -39,7 +39,7 @@ void Guard::advanceWaypoint() {
 }
 
 bool Guard::takeDown(EventBus& events) {
-    if (state_ == GuardState::Combat || state_ == GuardState::Unconscious) return false;
+    if (dead() || state_ == GuardState::Combat || state_ == GuardState::Unconscious) return false;
     if (state_ == GuardState::Alerted && !callInCompleted_)
         events.publish(CallInCancelled{id, CallInSource::Guard, CallInCancelReason::Takedown});
     state_ = GuardState::Unconscious;
@@ -53,7 +53,7 @@ bool Guard::takeDown(EventBus& events) {
 }
 
 void Guard::beginSuspicion(Vec2 point, bool fromNoise) {
-    if (state_ == GuardState::Alerted || state_ == GuardState::Combat ||
+    if (dead() || state_ == GuardState::Alerted || state_ == GuardState::Combat ||
         state_ == GuardState::Unconscious || !std::isfinite(point.x) || !std::isfinite(point.y))
         return;
     if (state_ == GuardState::Patrol) {
@@ -104,7 +104,7 @@ Vec2 Guard::move(Vec2 displacement, TileMap& map) {
 }
 
 void Guard::update(float dt, TileMap& map) {
-    if (!std::isfinite(dt) || dt <= 0) return;
+    if (dead() || !std::isfinite(dt) || dt <= 0) return;
     prevPos = pos;
     if (state_ != GuardState::Patrol) return;
     if (mode_ == PatrolMode::Stationary) {

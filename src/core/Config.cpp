@@ -76,6 +76,36 @@ Config Config::load(const std::string& path, Logger& logger) {
         readNumber(pickup, "armor_amount", config.pickup.armorAmount, "pickup", logger);
     config.pickup.collectRadius =
         readNumber(pickup, "collect_radius", config.pickup.collectRadius, "pickup", logger);
+    const auto& enemyCombat = groupOrEmpty(data, "enemy_combat", empty);
+    config.enemyCombat.reactionTime = readNumber(
+        enemyCombat, "reaction_time", config.enemyCombat.reactionTime, "enemy_combat", logger);
+    config.enemyCombat.burstInterval = readNumber(
+        enemyCombat, "burst_interval", config.enemyCombat.burstInterval, "enemy_combat", logger);
+    if (config.enemyCombat.burstInterval <= 0) {
+        logger.log(LogLevel::Warn, "Invalid enemy_combat.burst_interval; using default");
+        config.enemyCombat.burstInterval = EnemyCombatConfig{}.burstInterval;
+    }
+    config.enemyCombat.strafeSpeed = readNumber(
+        enemyCombat, "strafe_speed", config.enemyCombat.strafeSpeed, "enemy_combat", logger);
+    config.enemyCombat.strafeReverseTime =
+        readNumber(enemyCombat, "strafe_reverse_time", config.enemyCombat.strafeReverseTime,
+                   "enemy_combat", logger);
+    if (config.enemyCombat.strafeReverseTime <= 0) {
+        logger.log(LogLevel::Warn, "Invalid enemy_combat.strafe_reverse_time; using default");
+        config.enemyCombat.strafeReverseTime = EnemyCombatConfig{}.strafeReverseTime;
+    }
+    config.enemyCombat.pathRefresh = readNumber(
+        enemyCombat, "path_refresh", config.enemyCombat.pathRefresh, "enemy_combat", logger);
+    if (config.enemyCombat.pathRefresh <= 0) {
+        logger.log(LogLevel::Warn, "Invalid enemy_combat.path_refresh; using default");
+        config.enemyCombat.pathRefresh = EnemyCombatConfig{}.pathRefresh;
+    }
+    config.enemyCombat.deathFade =
+        readNumber(enemyCombat, "death_fade", config.enemyCombat.deathFade, "enemy_combat", logger);
+    if (config.enemyCombat.deathFade <= 0) {
+        logger.log(LogLevel::Warn, "Invalid enemy_combat.death_fade; using default");
+        config.enemyCombat.deathFade = EnemyCombatConfig{}.deathFade;
+    }
     const auto& view = groupOrEmpty(data, "view", empty);
     config.view.leadPx = readNumber(view, "lead_px", config.view.leadPx, "view", logger);
     config.view.followRate =

@@ -38,6 +38,7 @@ class Guard : public Entity {
    private:
     friend class DetectionSystem;
     friend class GuardAI;
+    friend class EnemyCombatSystem;
     Vec2 interestPoint_{};
     bool noiseInterest_ = false;
     Vec2 routePosition_{};

@@ -6,6 +6,7 @@
 #include <string>
 
 #include "core/Logger.h"
+#include "entities/Enemy.h"
 #include "entities/Guard.h"
 #include "entities/Laser.h"
 #include "entities/Player.h"
@@ -14,6 +15,7 @@
 #include "render/Letterbox.h"
 #include "systems/AlarmDirector.h"
 #include "systems/CombatSystem.h"
+#include "systems/EnemyCombatSystem.h"
 #include "systems/InteractionSystem.h"
 #include "systems/PagerSystem.h"
 #include "systems/RippleSystem.h"
@@ -288,7 +290,8 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                          const std::vector<Laser>& lasers, bool securityLooped,
                          const CombatSystem* combat,
                          const std::vector<std::unique_ptr<RecoveryPickup>>& pickups,
-                         bool pickupsLit) {
+                         bool pickupsLit, const std::vector<std::unique_ptr<Enemy>>& enemies,
+                         const EnemyCombatSystem* enemyCombat) {
     constexpr Color kBone = {233, 228, 208, 255};
     constexpr Color kTeal = {63, 143, 140, 255};
     constexpr Color kDeepTeal = {30, 74, 74, 255};
@@ -383,9 +386,12 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
         const int tx = static_cast<int>(guard.pos.x / size);
         const int ty = static_cast<int>(guard.pos.y / size);
         const float visible =
-            overview ? 1.0f : std::max(guard.reveal, ripple.visibility(tx, ty, player.pos, map));
+            guard.deathOpacity() *
+            (overview || pickupsLit
+                 ? 1.0f
+                 : std::max(guard.reveal, ripple.visibility(tx, ty, player.pos, map)));
         if (visible <= 0) continue;
-        if (guard.state() == GuardState::Unconscious) {
+        if (guard.dead() || guard.state() == GuardState::Unconscious) {
             DrawEllipse(static_cast<int>(position.x), static_cast<int>(position.y),
                         guard.radius * 1.3f, guard.radius * 0.55f, Fade(kBone, visible));
             if (overview)
@@ -415,6 +421,38 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                          Fade(kAlarm, visible));
         }
     }
+    for (const auto& enemy : enemies) {
+        const Vec2 p{enemy->prevPos.x + (enemy->pos.x - enemy->prevPos.x) * alpha,
+                     enemy->prevPos.y + (enemy->pos.y - enemy->prevPos.y) * alpha};
+        const float visible =
+            enemy->deathOpacity() *
+            (overview || pickupsLit
+                 ? 1.f
+                 : std::max(enemy->reveal, ripple.visibility(static_cast<int>(enemy->pos.x / size),
+                                                             static_cast<int>(enemy->pos.y / size),
+                                                             player.pos, map)));
+        if (visible <= 0) continue;
+        if (enemy->dead()) {
+            DrawEllipse(static_cast<int>(p.x), static_cast<int>(p.y), enemy->radius * 1.3f,
+                        enemy->radius * 0.55f, Fade({27, 42, 74, 255}, visible));
+            continue;
+        }
+        DrawCircleV({p.x, p.y}, enemy->radius, Fade({27, 42, 74, 255}, visible));
+        DrawCircleLinesV({p.x, p.y}, enemy->radius, Fade(kBone, visible));
+        DrawRectangle(static_cast<int>(p.x - 6), static_cast<int>(p.y - 3), 12, 6,
+                      Fade(kBone, visible));
+        DrawLineEx({p.x, p.y},
+                   {p.x + std::cos(enemy->facing()) * enemy->radius * 1.7f,
+                    p.y + std::sin(enemy->facing()) * enemy->radius * 1.7f},
+                   4, Fade(kGold, visible));
+    }
+    if (enemyCombat)
+        for (const auto& shot : enemyCombat->shots()) {
+            DrawLineEx({shot.from.x, shot.from.y}, {shot.to.x, shot.to.y}, 2,
+                       Fade(kGold, 1 - shot.age / 0.08f));
+            if (shot.age < 0.05f)
+                DrawCircleV({shot.from.x, shot.from.y}, 5, Fade(kGold, 1 - shot.age / 0.05f));
+        }
     for (const auto& pickup : pickups) {
         const int tx = static_cast<int>(pickup->pos.x / map.tileSize());
         const int ty = static_cast<int>(pickup->pos.y / map.tileSize());

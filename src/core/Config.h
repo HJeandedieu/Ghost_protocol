@@ -26,6 +26,15 @@ struct PickupConfig {
     float collectRadius = 50;
 };
 
+struct EnemyCombatConfig {
+    float reactionTime = 0.4f;
+    float burstInterval = 0.12f;
+    float strafeSpeed = 80;
+    float strafeReverseTime = 1.5f;
+    float pathRefresh = 0.5f;
+    float deathFade = 0.6f;
+};
+
 struct PingConfig {
     float smallRadius = 260.0f;
     float bigRadius = 520.0f;
@@ -171,6 +180,7 @@ class Config {
 
     PlayerConfig player;
     PickupConfig pickup;
+    EnemyCombatConfig enemyCombat;
     ViewConfig view;
     RenderConfig render;
     PingConfig ping;

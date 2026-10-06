@@ -78,6 +78,7 @@ void Game::tick() {
 #ifndef NDEBUG
         if (key == KEY_F6) input_.debugDamagePressed = true;
         if (key == KEY_F7) input_.debugMedkitPressed = true;
+        if (key == KEY_F9) input_.debugCopPressed = true;
         if (key == KEY_F8) input_.debugArmorPressed = true;
         if (key == KEY_F3) input_.debugPressed = true;
 #endif
@@ -133,9 +134,15 @@ void Game::showMenu(const std::string& error) {
                 showMenu("Unable to load weapons. Check the weapons file and try again.");
                 return;
             }
+            const auto enemies = loadEnemies("assets/config/enemies.json", logger_);
+            if (!enemies) {
+                showMenu("Unable to load enemies. Check the enemy file and try again.");
+                return;
+            }
             logger_.log(LogLevel::Info, "State: Play");
-            states_.replace(std::make_unique<PlayState>(
-                std::move(*level), input_, config_, rng_.seed(), *renderer_, logger_, *weapons));
+            states_.replace(std::make_unique<PlayState>(std::move(*level), input_, config_,
+                                                        rng_.seed(), *renderer_, logger_, *weapons,
+                                                        *enemies));
         },
         error));
 }

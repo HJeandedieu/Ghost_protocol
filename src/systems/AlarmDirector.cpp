@@ -22,7 +22,8 @@ AlarmDirector::AlarmDirector(EventBus& events, Logger& logger, const std::vector
             !std::isfinite(event.origin.x) || !std::isfinite(event.origin.y))
             return;
         for (const auto& guard : guards_)
-            if (guard.state() != GuardState::Unconscious && guard.id != event.sourceId &&
+            if (!guard.dead() && guard.state() != GuardState::Unconscious &&
+                guard.id != event.sourceId &&
                 std::hypot(guard.pos.x - event.origin.x, guard.pos.y - event.origin.y) <=
                     event.radius) {
                 trigger(AlarmReason::Shot);
@@ -49,6 +50,7 @@ void AlarmDirector::update() {
     if (state_ == AlarmState::Loud) return;
     state_ = AlarmState::Quiet;
     for (const auto& guard : guards_) {
+        if (guard.dead()) continue;
         if (guard.state() == GuardState::Combat) {
             trigger(AlarmReason::Combat);
             return;
@@ -74,7 +76,7 @@ void AlarmDirector::update() {
 float AlarmDirector::callInRemaining() const {
     float remaining = std::numeric_limits<float>::infinity();
     for (const auto& guard : guards_)
-        if (guard.state() == GuardState::Alerted)
+        if (!guard.dead() && guard.state() == GuardState::Alerted)
             remaining = std::min(remaining, guard.callInRemaining());
     if (cameras_)
         for (const auto& camera : *cameras_)

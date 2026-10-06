@@ -3,6 +3,7 @@
 #include <memory>
 #include <utility>
 
+#include "entities/Enemy.h"
 #include "entities/Guard.h"
 #include "entities/Laser.h"
 #include "entities/Player.h"
@@ -25,6 +26,7 @@ struct World {
     Level level;
     Player player;
     std::vector<Guard> guards;
+    std::vector<std::unique_ptr<Enemy>> enemies;
     std::vector<SecurityCamera> cameras;
     std::vector<Laser> lasers;
     std::vector<std::unique_ptr<RecoveryPickup>> pickups;

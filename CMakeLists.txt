@@ -60,7 +60,7 @@ add_library(ghost_core STATIC
     src/states/StateMachine.cpp src/render/Letterbox.cpp
     src/world/TileMap.cpp src/world/LevelLoader.cpp
     src/core/Assets.cpp
-    src/entities/Player.cpp src/entities/Guard.cpp src/entities/Weapon.cpp src/entities/EnemySpec.cpp
+    src/entities/Player.cpp src/entities/Guard.cpp src/entities/Weapon.cpp src/entities/EnemySpec.cpp src/entities/Enemy.cpp
     src/entities/GuardAI.cpp
     src/entities/SecurityCamera.cpp src/entities/Laser.cpp
     src/render/FollowCamera.cpp src/render/HealthHud.cpp
@@ -70,7 +70,7 @@ add_library(ghost_core STATIC
     src/systems/VisionSystem.cpp
     src/systems/DetectionSystem.cpp
     src/systems/AlarmDirector.cpp src/systems/PagerSystem.cpp
-    src/systems/LaserSystem.cpp src/systems/CombatSystem.cpp src/systems/PickupSystem.cpp
+    src/systems/LaserSystem.cpp src/systems/CombatSystem.cpp src/systems/PickupSystem.cpp src/systems/EnemyCombatSystem.cpp
 )
 target_include_directories(ghost_core PUBLIC src)
 target_link_libraries(ghost_core PRIVATE nlohmann_json::nlohmann_json)
@@ -111,7 +111,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/StateMachineTests.cpp tests/LetterboxTests.cpp
         tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
         tests/AssetsTests.cpp
-        tests/PlayerTests.cpp tests/GuardTests.cpp tests/WeaponTests.cpp tests/EnemySpecTests.cpp
+        tests/PlayerTests.cpp tests/GuardTests.cpp tests/WeaponTests.cpp tests/EnemySpecTests.cpp tests/EnemyCombatTests.cpp
         tests/GuardAITests.cpp
         tests/FollowCameraTests.cpp
         tests/RaycastTests.cpp tests/RippleSystemTests.cpp

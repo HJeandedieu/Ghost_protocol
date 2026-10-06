@@ -17,6 +17,7 @@ class Entity {
     float maximumHp() const { return maximumHp_; }
     float maximumArmor() const { return maximumArmor_; }
     bool dead() const { return maximumHp_ > 0 && hp_ <= 0; }
+    float deathOpacity() const { return deathOpacity_; }
     float reveal = 0.0f;  // Written only by RippleSystem.
    protected:
     void initializeVitals(float hp, float armor) {
@@ -26,6 +27,8 @@ class Entity {
 
    private:
     friend class CombatSystem;
+    friend class EnemyCombatSystem;
+    float deathOpacity_ = 1;
     float hp_ = 0;
     float armor_ = 0;
     float maximumHp_ = 0;
