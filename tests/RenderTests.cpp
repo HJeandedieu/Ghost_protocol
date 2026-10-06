@@ -834,7 +834,8 @@ TEST_F(Render, AlarmPaletteBarsAndBannerRespectRealTimeAndStableHud) {
     EXPECT_EQ(floor.r, 76);
     EXPECT_EQ(floor.g, 50);
     EXPECT_EQ(floor.b, 58);
-    EXPECT_EQ(GetImageColor(image, 100, 20).r, 255);
+    // Avoid the variable-width FPS text when probing the stable HUD background.
+    EXPECT_EQ(GetImageColor(image, 200, 20).r, 255);
     EXPECT_EQ(GetImageColor(image, 100, 4).r, 10);
     EXPECT_EQ(GetImageColor(image, 30, 100).r, 20);
     ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day19-alarm-midpoint.png");
@@ -842,7 +843,7 @@ TEST_F(Render, AlarmPaletteBarsAndBannerRespectRealTimeAndStableHud) {
     sequence.advance(2.4f);
     image = draw();
     EXPECT_EQ(GetImageColor(image, 300, 360).r, 122);
-    EXPECT_EQ(GetImageColor(image, 100, 20).r, 20);
+    EXPECT_EQ(GetImageColor(image, 200, 20).r, 20);
     EXPECT_EQ(GetImageColor(image, 100, 4).r, 20);
     ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day19-alarm-settled.png");
     UnloadImage(image);
