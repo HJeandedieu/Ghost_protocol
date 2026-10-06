@@ -126,6 +126,15 @@ New noise or meter above 0 interrupts any of this and returns the guard to Suspi
 | S5, S6 | + vault open (dye packs armed), player at vault door |
 If the alarm was already Loud when the player died, the retry keeps the Loud state and restarts the assault clock.
 
+**Day 20 mission details (author-approved):**
+- S1 completes after the Service Door is open and the player crosses from its west side through the doorway into the bank on its east side. Merely opening the door does not complete S1.
+- Quiet-crack noise pulses use accumulated time actually spent holding the quiet-crack interaction. Releasing or leaving pauses the noise clock; resuming continues it. The existing `noise.crack_interval` supplies the 5 s interval. Crack progress still decays under section 5.
+- G releases the carried bag along the aim direction. Gameplay resolves the throw immediately, up to `mission.throw_distance` (300 px). Trace the full segment against walls and closed doors; the bag stops at the last passable point before the first blocked tile, so it cannot cross an obstacle even when its intended endpoint is clear. Throwing without a bag has no effect.
+- Dropped bags retain their identity and spoiled/disarmed value. Collect with E within the normal 48 px interaction range, with clear line of sight and free hands. Carrying is limited to one bag and uses `player.bag_speed_mult`.
+- Retry reloads the original level and recreates actors, enemies, recovery pickups, player health/armor/ammo, interactions, and timers. Remove carried/dropped/delivered loot and restore all ten money stacks. Apply the preset for the stage active when the player was downed; completed stages do not emit completion events again. S5/S6 restore an open vault with all dye packs armed and a fresh burst timer. S6 remains S6 even though no bag is initially carried. The preset is independent of the route that opened the vault; no thermite burn remains active.
+- S1/S2 use the map-defined player spawn. The other preset positions are tile coordinates from `mission.retry_positions`: S3 `[21,32]` (Staff Corridor), S4 `[52,16]` (Vault Corridor entrance), and S5/S6 `[52,8]` (outside the vault door). Collision and entity locations in the map are unchanged.
+
+
 ### 3.5 Player
 `Alive -> (HP 0) Downed -> GameState: Busted`. There is no bleed-out or revive in the MVP.
 
