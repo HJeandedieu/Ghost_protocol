@@ -22,6 +22,7 @@ class Game {
     void update(float dt);
     void showMenu(const std::string& error = "");
     void toggleFullscreen();
+    void startMission(int stage = 1, bool loud = false);
     Logger logger_;
     const Config config_;
     Rng rng_;

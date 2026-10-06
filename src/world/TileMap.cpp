@@ -113,7 +113,8 @@ Vec2 TileMap::tileCenter(TileCoord position) const {
             (static_cast<float>(position.y) + 0.5f) * tileSize_};
 }
 
-Vec2 TileMap::moveCircle(Vec2 position, Vec2 displacement, float radius) const {
+Vec2 TileMap::moveCircle(Vec2 position, Vec2 displacement, float radius,
+                         bool frontExitAllowed) const {
     if (tileSize_ <= 0 || radius <= 0.0f) return position;
     // Sweep one axis at a time. The circular extent at a tile edge preserves
     // corner clearance; sweeping the entire segment also prevents tunnelling.
@@ -136,7 +137,9 @@ Vec2 TileMap::moveCircle(Vec2 position, Vec2 displacement, float radius) const {
             static_cast<int>(std::floor((perpendicular + radius) / tileSize_)), -1, otherLimit);
         for (int a = first; a <= last; ++a) {
             for (int b = otherFirst; b <= otherLast; ++b) {
-                if (isPassable(horizontal ? a : b, horizontal ? b : a)) continue;
+                const int tx = horizontal ? a : b, ty = horizontal ? b : a;
+                if (isPassable(tx, ty) && (frontExitAllowed || tile(tx, ty) != TileType::FrontDoor))
+                    continue;
                 const float low = static_cast<float>(b) * tileSize_;
                 const float separation =
                     perpendicular - std::clamp(perpendicular, low, low + tileSize_);

@@ -18,7 +18,9 @@ void Player::update(float dt, const Input& input, const TileMap& map) {
     prevPos = pos;
     if (input.crouchPressed) crouched_ = !crouched_;
     sprinting_ = input.sprintHeld && !crouched_;
-    const float speed = crouched_ ? config_.crouch : (sprinting_ ? config_.sprint : config_.walk);
+    const float speed =
+        (crouched_ ? config_.crouch : (sprinting_ ? config_.sprint : config_.walk)) *
+        (carryingBag_ ? config_.bagSpeedMult : 1.0f);
     const float length = std::hypot(input.move.x, input.move.y);
     const float divisor = std::max(1.0f, length);
     const Vec2 target{input.move.x / divisor * speed, input.move.y / divisor * speed};
@@ -34,7 +36,8 @@ void Player::update(float dt, const Input& input, const TileMap& map) {
         velocity_.y += difference.y / distance * step;
     }
     const Vec2 desired{pos.x + velocity_.x * dt, pos.y + velocity_.y * dt};
-    const auto resolved = map.moveCircle(pos, {velocity_.x * dt, velocity_.y * dt}, radius);
+    const auto resolved =
+        map.moveCircle(pos, {velocity_.x * dt, velocity_.y * dt}, radius, frontExitUnlocked_);
     if (resolved.x != desired.x) velocity_.x = 0.0f;
     if (resolved.y != desired.y) velocity_.y = 0.0f;
     pos = resolved;

@@ -17,9 +17,18 @@ AlarmSequence::AlarmSequence(EventBus& events, const AlarmConfig& config, std::u
         }
     });
 }
+void AlarmSequence::restoreLoud() {
+    started_ = true;
+    restored_ = true;
+    elapsed_ = std::max(
+        {config_.flipTime, config_.barsIn, config_.slowmoTime + config_.barsOut, config_.bannerTime,
+         config_.traumaDecay > 0 ? config_.shakeTrauma / config_.traumaDecay : 0.f});
+    direction_ = {};
+}
+
 float AlarmSequence::advance(float realDt) {
     if (!std::isfinite(realDt) || realDt <= 0) return 0;
-    if (!started_) return realDt;
+    if (!started_ || restored_) return realDt;
     const double slow = std::min(static_cast<double>(realDt),
                                  std::max(0.0, static_cast<double>(config_.slowmoTime) - elapsed_));
     elapsed_ += realDt;
@@ -56,7 +65,7 @@ float AlarmSequence::vignettePulse() const {
 }
 bool AlarmSequence::bannerVisible() const { return started_ && elapsed_ < config_.bannerTime; }
 float AlarmSequence::shakeAmplitude(bool reduced) const {
-    if (!started_) return 0;
+    if (!started_ || restored_) return 0;
     const float trauma =
         std::max(0.f, config_.shakeTrauma - static_cast<float>(elapsed_) * config_.traumaDecay);
     return config_.shakePixels * trauma * trauma * (reduced ? 0.5f : 1.f);

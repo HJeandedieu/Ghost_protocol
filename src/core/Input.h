@@ -19,6 +19,7 @@ struct Input {
     bool pingHeld = false;
     bool interactHeld = false;
     bool interactPressed = false;
+    bool throwPressed = false;
     bool takedownPressed = false;
     bool firePressed = false;
     bool fireHeld = false;
@@ -36,6 +37,7 @@ struct Input {
         crouchPressed = false;
         pingPressed = false;
         interactPressed = false;
+        throwPressed = false;
         takedownPressed = false;
         firePressed = false;
         reloadPressed = false;

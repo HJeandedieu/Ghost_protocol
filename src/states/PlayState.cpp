@@ -8,11 +8,20 @@
 #include "render/Renderer.h"
 #include "systems/VisionSystem.h"
 
+namespace {
+World missionWorld(Level level, const Config& config, int stage) {
+    World world(std::move(level), config.player, config.guard, config.camera);
+    ObjectiveSystem::applyPreset(world, config.mission, stage);
+    return world;
+}
+}  // namespace
+
 PlayState::PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed,
                      Renderer& renderer, Logger& logger, const std::vector<WeaponSpec>& weapons,
                      const std::vector<EnemySpec>& enemies, const std::vector<WaveSpec>& waves,
-                     const std::map<std::string, TileCoord>& entries)
-    : world_(std::move(level), config.player, config.guard, config.camera),
+                     const std::map<std::string, TileCoord>& entries, int stage, bool loud,
+                     std::function<void(int, bool)> retry)
+    : world_(missionWorld(std::move(level), config, stage)),
       input_(input),
       camera_(world_.player.pos, config.view),
       seed_(seed),
@@ -29,10 +38,14 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       enemyCombat_(events_, world_, combat_, pickups_, enemies, config, seed),
       waves_(events_, world_, enemies, waves, entries, config.alarm),
       alarmSequence_(events_, config.alarm, seed),
-      config_(config) {
+      config_(config),
+      retry_(std::move(retry)) {
     noise_.setWeapons(weapons, config.noise);
     noise_.setEnemies(enemies);
     interaction_.loadBank(world_, config_);
+    objectives_ =
+        std::make_unique<ObjectiveSystem>(events_, world_, interaction_, alarm_, config_, stage);
+    events_.subscribe<PlayerDowned>([this](const PlayerDowned&) { downed_ = true; });
     detection_.bindCameras(world_.cameras);
     renderer_.prepareLevel(world_.level);
     renderer_.resetHealthHud(world_.player);
@@ -52,6 +65,12 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
     for (auto& camera : world_.cameras) hazards_.push_back(&camera);
     for (auto& laser : world_.lasers) hazards_.push_back(&laser);
     for (auto* hazard : hazards_) revealables_.push_back(hazard);
+    if (loud) {
+        // All guard listeners must exist before restoring the Loud state.
+        alarm_.trigger(AlarmReason::Combat);
+        events_.dispatch();
+        alarmSequence_.restoreLoud();
+    }
 }
 
 void PlayState::enter() {}
@@ -61,6 +80,8 @@ void PlayState::update(float dt) {
     const float realDt = dt;
     dt = alarmSequence_.advance(realDt);
     if (world_.player.dead()) {
+        if (downed_ && input_.confirmPressed && retry_)
+            retry_(objectives_->stage(), world_.alarmLoud);
         renderer_.updateHealthHud(dt, world_.player);
         return;
     }
@@ -75,7 +96,8 @@ void PlayState::update(float dt) {
                         : (player.isSprinting() ? config_.noise.sprint : config_.noise.walk),
                     NoiseType::Step, player.id);
     pagers_.update(dt);
-    interaction_.update(dt, input_.interactHeld || input_.interactPressed, world_);
+    interaction_.update(dt, input_.interactHeld || input_.interactPressed, world_,
+                        input_.sprintHeld);
 #ifndef NDEBUG
     if (input_.debugCopPressed) enemyCombat_.spawnDebugCop();
     if (input_.debugMedkitPressed)
@@ -99,6 +121,7 @@ void PlayState::update(float dt) {
             facing_ = std::atan2(cursorOffset.y, cursorOffset.x);
     }
     camera_.update(dt, player.pos, cursorOffset);
+    if (input_.throwPressed) objectives_->throwBag({std::cos(facing_), std::sin(facing_)});
     const float before = ripple_.cooldownRemaining();
     if (!world_.alarmLoud)
         ripple_.updateCharge(dt, input_.pingHeld, input_.pingPressed, player.pos);
@@ -112,6 +135,8 @@ void PlayState::update(float dt) {
     lasers_.update(dt, player, world_.lasers, looped);
     VisionSystem(config_.guard).findBodies(world_.guards, world_.level.map, events_);
     auto tickRevealables = revealables_;
+    const auto lootRevealables = objectives_->revealables();
+    tickRevealables.insert(tickRevealables.end(), lootRevealables.begin(), lootRevealables.end());
     for (auto& pickup : world_.pickups) tickRevealables.push_back(pickup.get());
     for (auto& enemy : world_.enemies) tickRevealables.push_back(enemy.get());
     ripple_.update(dt, world_.level.map, tickRevealables);
@@ -137,6 +162,7 @@ void PlayState::update(float dt) {
     const float halfHeight = Letterbox::kHeight * 0.5f / zoom;
     waves_.update(realDt, {viewCenter.x - halfWidth, viewCenter.y - halfHeight,
                            viewCenter.x + halfWidth, viewCenter.y + halfHeight});
+    objectives_->update(dt);
     events_.dispatch();
 #ifndef NDEBUG
     if (input_.debugPressed) debugView_ = !debugView_;
@@ -146,12 +172,14 @@ void PlayState::render(float alpha) {
     renderer_.drawLevel(world_.level, world_.player, ripple_, camera_.interpolatedTarget(alpha),
                         facing_, alpha, debugView_, seed_, world_.guards, world_.cameras,
                         world_.lasers, world_.securityLoopRemaining > 0, &combat_, world_.pickups,
-                        world_.alarmLoud, world_.enemies, &enemyCombat_, &alarmSequence_);
-    renderer_.drawInteractionHud(world_, interaction_, noise_.currentRadius(),
-                                 config_.noise.sprint);
+                        world_.alarmLoud, world_.enemies, &enemyCombat_, &alarmSequence_,
+                        objectives_.get());
+    renderer_.drawInteractionHud(world_, interaction_, noise_.currentRadius(), config_.noise.sprint,
+                                 objectives_.get());
     renderer_.drawWeaponHud(combat_);
     renderer_.drawPickupHud(pickups_.target(world_, interaction_.claimedThisTick()));
     renderer_.drawStealthHud(alarm_, pagers_, world_.guards);
     if (world_.alarmLoud) renderer_.drawWaveHud(waves_);
     renderer_.drawAlarmSequence(alarmSequence_);
+    if (downed_) renderer_.drawBusted(objectives_->stage());
 }

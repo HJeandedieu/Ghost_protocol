@@ -19,6 +19,7 @@
 #include "systems/CombatSystem.h"
 #include "systems/EnemyCombatSystem.h"
 #include "systems/InteractionSystem.h"
+#include "systems/ObjectiveSystem.h"
 #include "systems/PagerSystem.h"
 #include "systems/RippleSystem.h"
 #include "systems/VisionSystem.h"
@@ -297,7 +298,8 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                          const CombatSystem* combat,
                          const std::vector<std::unique_ptr<RecoveryPickup>>& pickups,
                          bool pickupsLit, const std::vector<std::unique_ptr<Enemy>>& enemies,
-                         const EnemyCombatSystem* enemyCombat, const AlarmSequence* alarmSequence) {
+                         const EnemyCombatSystem* enemyCombat, const AlarmSequence* alarmSequence,
+                         const ObjectiveSystem* objectives) {
     constexpr Color kBone = {233, 228, 208, 255};
     constexpr Color kGold = {242, 183, 5, 255};
     constexpr Color kAlarm = {255, 59, 92, 255};
@@ -352,7 +354,8 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                 drawBankFurniture(x, y, size, std::max(reveal, config_.ambientFloorAlpha),
                                   wallColor, floorColor);
             if (reveal > 0 && tile != TileType::Wall && tile != TileType::Floor &&
-                !map.isOpen(x, y) && tile != TileType::PlayerSpawn) {
+                !map.isOpen(x, y) && tile != TileType::PlayerSpawn &&
+                !(objectives && (tile == TileType::Money || tile == TileType::VaultDoor))) {
                 const auto center = map.tileCenter({x, y});
                 const auto color = map.isPassable(x, y) ? kGold : kBone;
                 DrawRectangleRec(
@@ -396,6 +399,51 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
             }
         }
     }
+    if (objectives)
+        for (int y = 0; y < map.height(); ++y) {
+            for (int x = 0; x < map.width(); ++x) {
+                const auto tile = map.tile(x, y);
+                const float reveal =
+                    overview || pickupsLit ? 1.f : ripple.visibility(x, y, player.pos, map);
+                if (objectives && tile == TileType::VaultDoor &&
+                    map.tile(x - 1, y) != TileType::VaultDoor) {
+                    int span = 1;
+                    float visible = reveal;
+                    while (map.tile(x + span, y) == TileType::VaultDoor) {
+                        visible = std::max(visible,
+                                           overview || pickupsLit
+                                               ? 1.f
+                                               : ripple.visibility(x + span, y, player.pos, map));
+                        ++span;
+                    }
+                    const float width = span * size;
+                    const Rectangle frame{x * size + 3, y * size + 3, width - 6, size - 6};
+                    const Vector2 center{x * size + width * 0.5f, y * size + size * 0.5f};
+                    if (visible > 0) {
+                        DrawRectangleLinesEx(frame, 3, Fade(kBone, visible));
+                        if (!map.isOpen(x, y)) {
+                            DrawRectangleRec(
+                                {frame.x + 5, frame.y + 5, frame.width - 10, frame.height - 10},
+                                Fade(wallColor, visible));
+                            DrawCircleLinesV(center, size * 0.32f, Fade(kBone, visible));
+                            DrawCircleV(center, size * 0.11f, Fade(kGold, visible));
+                            for (int spoke = 0; spoke < 4; ++spoke) {
+                                const float angle = spoke * kPi * 0.5f;
+                                DrawLineEx(center,
+                                           {center.x + std::cos(angle) * size * 0.26f,
+                                            center.y + std::sin(angle) * size * 0.26f},
+                                           2, Fade(kBone, visible));
+                            }
+                        } else {
+                            DrawRectangleRec({frame.x, frame.y, 8, frame.height},
+                                             Fade(kGold, visible));
+                            DrawRectangleRec({frame.x + frame.width - 8, frame.y, 8, frame.height},
+                                             Fade(kGold, visible));
+                        }
+                    }
+                }
+            }
+        }
     for (const auto& guard : guards) {
         const auto position = guard.interpolatedPosition(alpha);
         const int tx = static_cast<int>(guard.pos.x / size);
@@ -501,6 +549,71 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
             DrawRectangle(static_cast<int>(x - 6), static_cast<int>(y - 2), 12, 4, gold);
         } else {
             DrawPoly({x, y}, 5, 7, -90, gold);
+        }
+    }
+    if (objectives) {
+        for (const auto& bag : objectives->bags()) {
+            if (bag.state == BagState::Delivered) continue;
+            const bool carried = bag.state == BagState::Carried;
+            const Vec2 position = carried ? Vec2{spawn.x - std::cos(facing) * player.radius,
+                                                 spawn.y - std::sin(facing) * player.radius}
+                                          : bag.pos;
+            const float visible =
+                overview || pickupsLit || carried
+                    ? 1.f
+                    : std::max(bag.reveal, ripple.visibility(static_cast<int>(position.x / size),
+                                                             static_cast<int>(position.y / size),
+                                                             player.pos, map));
+            if (visible <= 0) continue;
+            const Color gold = Fade(kGold, visible), bone = Fade(kBone, visible);
+            if (bag.state == BagState::Stack) {
+                for (int layer = 0; layer < 3; ++layer) {
+                    const Rectangle cash{position.x - 15 + layer * 2.f,
+                                         position.y - 7 - layer * 3.f, 28, 14};
+                    DrawRectangleRec(cash, Fade(Color{20, 22, 27, 255}, visible));
+                    DrawRectangleLinesEx(cash, 2, gold);
+                    DrawRectangleRec({cash.x + 11, cash.y, 5, cash.height}, bone);
+                }
+                if (bag.dye == DyeState::Armed)
+                    DrawCircleV({position.x + 15, position.y - 15}, 3, Fade(kAlarm, visible));
+            } else {
+                DrawEllipse(static_cast<int>(position.x), static_cast<int>(position.y + 3), 13, 15,
+                            gold);
+                DrawTriangle({position.x - 7, position.y - 12}, {position.x, position.y - 6},
+                             {position.x + 7, position.y - 12}, gold);
+                DrawLineEx({position.x - 7, position.y - 6}, {position.x + 7, position.y - 6}, 3,
+                           bone);
+            }
+            if (bag.dye == DyeState::Spoiled) {
+                DrawLineEx({position.x - 5, position.y - 2}, {position.x + 5, position.y + 8}, 3,
+                           Fade(kAlarm, visible));
+                if (bag.burstAge < 0.4f && !reduceEffects_)
+                    DrawCircleV({position.x, position.y}, 10 + bag.burstAge * 60,
+                                Fade(kAlarm, visible * (1 - bag.burstAge / 0.4f) * 0.4f));
+            }
+        }
+        if (objectives->thermiteRemaining() > 0) {
+            const auto position = objectives->vaultPosition();
+            const float age = objectives->thermiteAge();
+            const float pulse = 0.5f + 0.5f * std::sin(age * 2.f * 2.f * kPi);
+            DrawCircleGradient(static_cast<int>(position.x), static_cast<int>(position.y), 36,
+                               Fade(kGold, 0.3f + pulse * 0.2f), Fade(kGold, 0));
+            DrawRectangleRounded({position.x - 10, position.y - 8, 20, 16}, 0.25f, 4, kGold);
+            DrawRectangleLinesEx({position.x - 10, position.y - 8, 20, 16}, 2, kBone);
+            if (!reduceEffects_)
+                for (int spark = 0; spark < 6; ++spark) {
+                    const float phase = std::fmod(age * 2 + spark / 6.f, 1.f);
+                    const float angle = spark * 2.4f + std::floor(age * 2) * 0.7f;
+                    const Vector2 tip{position.x + std::cos(angle) * phase * 30,
+                                      position.y + std::sin(angle) * phase * 30};
+                    DrawLineEx(tip, {tip.x + std::cos(angle) * 5, tip.y + std::sin(angle) * 5}, 2,
+                               Fade(kGold, 1 - phase));
+                }
+            const int remaining = static_cast<int>(std::ceil(objectives->thermiteRemaining()));
+            DrawText(TextFormat("THERMITE %d:%02d", remaining / 60, remaining % 60),
+                     static_cast<int>(position.x - 64),
+                     static_cast<int>(position.y + (player.pos.y > position.y ? -40 : 32)), 16,
+                     kGold);
         }
     }
     for (const auto& laser : lasers) {
@@ -616,7 +729,8 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
 }
 
 void Renderer::drawInteractionHud(const World& world, const InteractionSystem& interaction,
-                                  float noiseRadius, float maximumNoise) const {
+                                  float noiseRadius, float maximumNoise,
+                                  const ObjectiveSystem* objectives) const {
     constexpr Color kBone = {233, 228, 208, 255};
     constexpr Color kTeal = {63, 143, 140, 255};
     constexpr Color kSlate = {20, 22, 27, 255};
@@ -625,7 +739,12 @@ void Renderer::drawInteractionHud(const World& world, const InteractionSystem& i
                       : (world.player.hasKeycard() ? "Find the breaker and restore gate power"
                                                    : "Enter the bank and find the red keycard");
     DrawRectangle(24, 80, 520, 88, kSlate);
-    DrawText(objective, 40, 96, 18, kBone);
+    DrawText(objectives ? objectives->objective() : objective, 40, 96, 18, kBone);
+    if (objectives)
+        DrawText(TextFormat("BAGS %d/%d  %s", objectives->pickedCount(),
+                            static_cast<int>(objectives->bags().size()),
+                            world.player.carryingBag() ? "G: THROW" : "HANDS FREE"),
+                 40, 184, 18, {242, 183, 5, 255});
     if (!world.alarmLoud) {
         const int filled =
             maximumNoise > 0
@@ -719,4 +838,13 @@ void Renderer::drawAlarmSequence(const AlarmSequence& sequence) const {
         DrawText(message, (Letterbox::kWidth - MeasureText(message, 28)) / 2, 26, 28,
                  Palette::Bone);
     }
+}
+
+void Renderer::drawBusted(int stage) const {
+    DrawRectangle(0, 0, Letterbox::kWidth, Letterbox::kHeight, Fade(Color{20, 22, 27, 255}, 0.85f));
+    DrawRectangleRec({360, 240, 560, 240}, {20, 22, 27, 255});
+    DrawRectangleLinesEx({360, 240, 560, 240}, 2, Palette::Bone);
+    DrawText("BUSTED", 520, 272, 48, Palette::Alarm);
+    DrawText(TextFormat("Retry from S%d", stage), 520, 344, 24, Palette::Bone);
+    DrawText("ENTER: RETRY", 520, 402, 24, Color{242, 183, 5, 255});
 }

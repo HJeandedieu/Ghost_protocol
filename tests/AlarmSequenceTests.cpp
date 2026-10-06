@@ -10,6 +10,23 @@
 #include "core/EventBus.h"
 #include "core/Logger.h"
 #include "render/AlarmSequence.h"
+TEST(AlarmSequence, LoudRetryRestoresRedPaletteWithoutReplayingCinematic) {
+    EventBus bus;
+    AlarmConfig config;
+    config.traumaDecay = 0;
+    AlarmSequence sequence(bus, config, 42);
+    sequence.restoreLoud();
+    EXPECT_FLOAT_EQ(sequence.paletteBlend(), 1);
+    EXPECT_FLOAT_EQ(sequence.barsFraction(), 0);
+    EXPECT_FALSE(sequence.bannerVisible());
+    EXPECT_FLOAT_EQ(sequence.vignettePulse(), 0);
+    EXPECT_FLOAT_EQ(sequence.shakeAmplitude(false), 0);
+    EXPECT_FLOAT_EQ(sequence.advance(0.5f), 0.5f);
+    bus.publish(AlarmTriggered{AlarmReason::Combat});
+    bus.dispatch();
+    EXPECT_FLOAT_EQ(sequence.advance(0.5f), 0.5f);
+    EXPECT_FALSE(sequence.bannerVisible());
+}
 TEST(AlarmSequence, QuietIsNeutralAndAlarmStartsOnce) {
     EventBus bus;
     AlarmSequence sequence(bus, AlarmConfig{}, 42);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 
 #include "core/EventBus.h"
@@ -17,6 +18,7 @@
 #include "systems/InteractionSystem.h"
 #include "systems/LaserSystem.h"
 #include "systems/NoiseSystem.h"
+#include "systems/ObjectiveSystem.h"
 #include "systems/PagerSystem.h"
 #include "systems/PickupSystem.h"
 #include "systems/RippleSystem.h"
@@ -32,11 +34,14 @@ class PlayState : public IState {
     PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed,
               Renderer& renderer, Logger& logger, const std::vector<WeaponSpec>& weapons,
               const std::vector<EnemySpec>& enemies, const std::vector<WaveSpec>& waves,
-              const std::map<std::string, TileCoord>& entries);
+              const std::map<std::string, TileCoord>& entries, int stage = 1, bool loud = false,
+              std::function<void(int, bool)> retry = {});
     void enter() override;
     void exit() override;
     void update(float dt) override;
     void render(float alpha) override;
+    const World& world() const { return world_; }
+    const ObjectiveSystem& objectives() const { return *objectives_; }
 
    private:
     EventBus events_;
@@ -63,4 +68,7 @@ class PlayState : public IState {
     WaveSpawner waves_;
     AlarmSequence alarmSequence_;
     const Config& config_;
+    std::unique_ptr<ObjectiveSystem> objectives_;
+    std::function<void(int, bool)> retry_;
+    bool downed_ = false;
 };

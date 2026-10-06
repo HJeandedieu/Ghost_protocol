@@ -18,8 +18,27 @@ TEST(Config, LoadsDocumentedTuningWithoutWarnings) {
     EXPECT_FLOAT_EQ(config.ping.bigRadius, 520.0f);
     EXPECT_FLOAT_EQ(config.ping.hazardRevealRadius, 120.0f);
     EXPECT_FLOAT_EQ(config.mission.thermiteBurn, 75.0f);
+    EXPECT_EQ(config.mission.retryPositions[0].x, 21);
+    EXPECT_EQ(config.mission.retryPositions[3].y, 8);
     EXPECT_FLOAT_EQ(config.difficulty.hard.maxAlive, 16.0f);
     EXPECT_EQ(console.str().find("[WARN]"), std::string::npos);
+}
+
+TEST(Config, RetryPositionsLoadOverridesAndRejectMalformedOrOverflowCoordinates) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    data["mission"]["retry_positions"] = {
+        {"s3", {2, 3}}, {"s4", {-1, 4}}, {"s5", {1.5, 8}}, {"s6", {999999999999LL, 8}}};
+    std::ostringstream console;
+    Logger logger(console, "");
+    const auto config = Config::load(files.write("retry.json", data.dump()), logger);
+    EXPECT_EQ(config.mission.retryPositions[0].x, 2);
+    EXPECT_EQ(config.mission.retryPositions[0].y, 3);
+    EXPECT_EQ(config.mission.retryPositions[1].x, 52);
+    EXPECT_EQ(config.mission.retryPositions[2].x, 52);
+    EXPECT_EQ(config.mission.retryPositions[3].x, 52);
+    EXPECT_NE(console.str().find("mission.retry_positions.s4"), std::string::npos);
 }
 
 TEST(Config, MissingKeyFallsBackAndPreservesOtherOverrides) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <string>
 
 class Logger;
@@ -137,6 +138,11 @@ struct AlarmConfig {
     float maxAlive = 12.0f;
 };
 
+struct MissionRetryPosition {
+    int x = 0;
+    int y = 0;
+};
+
 struct MissionConfig {
     float lockpick = 4.0f;
     float securityHold = 6.0f;
@@ -149,6 +155,7 @@ struct MissionConfig {
     float bollardHold = 4.0f;
     float vanDelay = 10.0f;
     float throwDistance = 300.0f;
+    std::array<MissionRetryPosition, 4> retryPositions{{{21, 32}, {52, 16}, {52, 8}, {52, 8}}};
 };
 
 struct PayoutConfig {

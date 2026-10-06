@@ -83,7 +83,16 @@ void InteractionSystem::openNormalDoors(World& world) {
         }
 }
 
-void InteractionSystem::update(float dt, bool held, World& world) {
+void InteractionSystem::setPosition(const std::string& id, Vec2 position) {
+    for (auto& item : items_)
+        if (item.id == id) item.position = position;
+}
+void InteractionSystem::setPrompt(const std::string& id, const std::string& prompt) {
+    for (auto& item : items_)
+        if (item.id == id) item.prompt = prompt;
+}
+
+void InteractionSystem::update(float dt, bool held, World& world, bool modified) {
     claimedThisTick_ = false;
     if (!std::isfinite(dt) || dt <= 0) return;
     openNormalDoors(world);
@@ -91,9 +100,12 @@ void InteractionSystem::update(float dt, bool held, World& world) {
     world.securityLoopRemaining = std::max(0.0f, loopBefore - dt);
     if (loopBefore > 0 && world.securityLoopRemaining == 0) bus_.publish(SecurityLoopEnded{});
     target_ = -1;
-    float nearest = static_cast<float>(world.level.map.tileSize());
+    float nearest = 48.0f;
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const auto& item = items_[i];
+        if ((item.control == InteractionControl::Modified && !modified) ||
+            (item.control == InteractionControl::Plain && modified))
+            continue;
         const float distance =
             std::hypot(item.position.x - world.player.pos.x, item.position.y - world.player.pos.y);
         if (item.canInteract(world.player) && distance <= nearest) {
@@ -110,12 +122,13 @@ void InteractionSystem::update(float dt, bool held, World& world) {
     }
     for (std::size_t i = 0; i < items_.size(); ++i) {
         if (static_cast<int>(i) != target_ || !held) {
-            const float before = elapsed_[i];
-            elapsed_[i] = items_[i].decayOnLeave ? std::max(0.0f, elapsed_[i] - dt / 3.0f) : 0;
+            const double before = elapsed_[i];
+            elapsed_[i] = items_[i].decayOnLeave ? std::max(0.0, elapsed_[i] - dt / 3.0) : 0;
             if (static_cast<int>(i) != target_ && elapsed_[i] != before)
                 bus_.publish(InteractionProgress{
-                    items_[i].id,
-                    items_[i].holdSeconds > 0 ? elapsed_[i] / items_[i].holdSeconds : 0});
+                    items_[i].id, items_[i].holdSeconds > 0
+                                      ? static_cast<float>(elapsed_[i] / items_[i].holdSeconds)
+                                      : 0});
         }
     }
     if (target_ < 0) return;
@@ -123,6 +136,9 @@ void InteractionSystem::update(float dt, bool held, World& world) {
     auto& item = items_[static_cast<std::size_t>(target_)];
     auto& elapsed = elapsed_[static_cast<std::size_t>(target_)];
     if (held) {
+        if (item.onHold)
+            item.onHold(static_cast<float>(
+                std::min(static_cast<double>(dt), std::max(0.0, item.holdSeconds - elapsed))));
         elapsed += dt;
         if (world.level.map.tile(static_cast<int>(item.position.x / world.level.map.tileSize()),
                                  static_cast<int>(item.position.y / world.level.map.tileSize())) ==
@@ -142,8 +158,9 @@ void InteractionSystem::update(float dt, bool held, World& world) {
 float InteractionSystem::progress() const {
     if (target_ < 0) return 0;
     const auto i = static_cast<std::size_t>(target_);
-    return items_[i].holdSeconds > 0 ? std::clamp(elapsed_[i] / items_[i].holdSeconds, 0.0f, 1.0f)
-                                     : 0;
+    return items_[i].holdSeconds > 0
+               ? static_cast<float>(std::clamp(elapsed_[i] / items_[i].holdSeconds, 0.0, 1.0))
+               : 0;
 }
 const Interactable* InteractionSystem::target() const {
     return target_ < 0 ? nullptr : &items_[static_cast<std::size_t>(target_)];
