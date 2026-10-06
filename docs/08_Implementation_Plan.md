@@ -197,7 +197,7 @@ Every day lists: **Goal**, **Tasks** (do them in order), and **Done when** (the 
 1. `WaveSpawner` from `enemies.json`: first wave 30 s after the alarm, then every 25 s, cap 12 alive, spawn points front/service/east.
 2. Shield cop (frontal arc blocks 90%) and heavy (HP 250 + 100 armor).
 3. Wave indicator on the HUD.
-4. Tests: timing, composition, cap.
+4. Tests: wave-data validation, first/repeated timing and events, composition, alive/pending cap and discarded overflow, visible/blocked entry waits, shield frontal-edge/side/rear pellet damage, heavy armor and stationary Engage, and specialist death/drop behavior (Systems Contract §3.2.2).
 **Done when:** setting the alarm flag spawns wave 1 at 30 s and later waves on schedule with the right enemy types.
 
 ### Day 19: Fri 23 Oct (light, 2 h) Alarm sequence
