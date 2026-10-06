@@ -95,7 +95,7 @@ Recovery pickup tuning (author approved 6 October 2026): `pickup.medkit_chance` 
 ```
 ```json
 { "enemies": [
-  { "id": "patrol_guard", "radius": 14, "hp": 60,  "armor": 0,   "speed": 170, "dmg": 6, "rate": 2, "accuracy": 0.35, "engage": 300 },
+  { "id": "patrol_guard", "hp": 60,  "armor": 0,   "speed": 170, "dmg": 6, "rate": 2, "accuracy": 0.35, "engage": 300 },
   { "id": "cop",          "radius": 14, "hp": 100, "armor": 0,   "speed": 170, "dmg": 7, "burst": 3, "rate": 1.2, "accuracy": 0.40, "engage": 300 },
   { "id": "shield_cop",   "radius": 16, "hp": 120, "armor": 0,   "speed": 130, "dmg": 5, "rate": 2, "accuracy": 0.35, "engage": 200,
     "shield_arc_deg": 120, "shield_block": 0.9 },
@@ -110,7 +110,7 @@ Recovery pickup tuning (author approved 6 October 2026): `pickup.medkit_chance` 
 ```
 Spawn points: `front` = tile (51,46), `service` = tile (21,44), `east` = tile (67,38). Enemies appear just outside view and enter through those tiles.
 
-Day 18 data interpretation: `radius` is a finite positive collision radius in px, matching the character recipes in Design Docs §1.3. Wave `at` values are zero-based assault wave indices; `repeat` is the composition for index 5 onward. `spawn` contains positive integer counts for police enemy IDs only, and `points` contains entry names from the list above. Invalid enemy/wave data logs an ERROR and prevents entering Play. Scheduling, cap overflow and delayed off-screen entry behavior follow Systems Contract §3.2.2.
+Day 18 data interpretation: police records require `radius`, a finite positive collision radius in px matching the character recipes in Design Docs §1.3. Patrol guards continue to use `guard.radius` from tuning.json. Wave `at` values are zero-based assault wave indices; `repeat` is the composition for index 5 onward. `spawn` contains positive integer counts for police enemy IDs only, and `points` contains entry names from the list above. Invalid enemy/wave data logs an ERROR and prevents entering Play. Scheduling, cap overflow and delayed off-screen entry behavior follow Systems Contract §3.2.2.
 
 Author clarification (6 October 2026): `spread_deg` is the total cone width. Each hitscan pellet samples a direction within `aim - spread_deg / 2` and `aim + spread_deg / 2` using the seeded RNG. Whisper/Chatter/Gavel therefore use ±1°/±3°/±9°.
 
