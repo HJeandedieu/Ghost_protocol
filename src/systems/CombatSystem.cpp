@@ -90,12 +90,3 @@ void CombatSystem::updateHealth(float dt, Player& player) {
     player.armor_ = std::min(player.maximumArmor_,
                              player.armor_ + static_cast<float>(active) * config.armorRegen);
 }
-
-float CombatSystem::restore(Player& player, PickupType type, float amount) {
-    if (!std::isfinite(amount) || amount <= 0 || player.dead()) return 0;
-    float& value = type == PickupType::Medkit ? player.hp_ : player.armor_;
-    const float maximum = type == PickupType::Medkit ? player.maximumHp_ : player.maximumArmor_;
-    const float before = value;
-    value = std::min(maximum, value + amount);
-    return value - before;
-}
