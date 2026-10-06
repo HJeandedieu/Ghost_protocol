@@ -83,3 +83,6 @@ struct EntityDied {
     std::string targetId;
 };
 struct PlayerDowned {};
+struct WaveSpawned {
+    int waveIndex = 0;
+};

@@ -7,10 +7,11 @@
 #include "entities/Guard.h"
 #include "entities/Player.h"
 #include "render/Renderer.h"
-#include "systems/DetectionSystem.h"
 #include "systems/CombatSystem.h"
+#include "systems/DetectionSystem.h"
 #include "systems/InteractionSystem.h"
 #include "systems/RippleSystem.h"
+#include "systems/WaveSpawner.h"
 #include "world/LevelLoader.h"
 #include "world/World.h"
 
@@ -518,4 +519,41 @@ TEST_F(Render, RecoveryMarkersRemainHiddenInStealthAndShowDistinctShapesInLoud) 
     EXPECT_FLOAT_EQ(world.pickups.front()->reveal, 0);
     EXPECT_TRUE(ExportImage(loud, GP_RENDER_OUTPUT_DIRECTORY "/day16-pickups-preview.png"));
     UnloadImage(loud);
+}
+TEST_F(Render, PoliceSilhouettesAndWaveHudReadStateWithoutRevealingEnemies) {
+    std::ostringstream console;
+    Logger logger(console, "");
+    Level level;
+    std::string rows;
+    for (int y = 0; y < 15; ++y) rows += std::string(40, '.') + '\n';
+    std::istringstream source(rows);
+    level.map = TileMap::parse(source, 48);
+    level.playerSpawn = {13, 7};
+    World world(std::move(level), PlayerConfig{});
+    const auto specs = loadEnemies("assets/config/enemies.json", logger).value();
+    const auto waveSpecs = loadWaves("assets/config/enemies.json", logger).value();
+    EventBus events;
+    WaveSpawner waves(events, world, specs, waveSpecs,
+                      {{"front", {5, 7}}, {"service", {6, 7}}, {"east", {7, 7}}}, AlarmConfig{});
+    world.alarmLoud = true;
+    waves.update(30, {-1000, -1000, -900, -900});
+    world.enemies.push_back(std::make_unique<ShieldCop>("shield", Vec2{900, 360}, specs[2]));
+    world.enemies.push_back(std::make_unique<Heavy>("heavy", Vec2{980, 360}, specs[3]));
+    Renderer renderer(logger);
+    renderer.resetHealthHud(world.player);
+    RippleSystem ripple(PingConfig{}, world.level.map);
+    renderer.beginFrame();
+    renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, false, 1234, {}, {}, {},
+                       false, nullptr, {}, true, world.enemies);
+    renderer.drawWaveHud(waves);
+    renderer.present();
+    auto image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    EXPECT_GT(GetImageColor(image, 920, 360).r, 150);  // Bone shield arc faces right.
+    EXPECT_GT(GetImageColor(image, 980, 360).r, 150);  // Gold armored vest stripe.
+    EXPECT_EQ(GetImageColor(image, 1015, 85).r, 20);   // Stable framed HUD background.
+    EXPECT_EQ(waves.waveIndex(), 1);
+    for (const auto& enemy : world.enemies) EXPECT_FLOAT_EQ(enemy->reveal, 0);
+    EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day18-police-preview.png"));
+    UnloadImage(image);
 }

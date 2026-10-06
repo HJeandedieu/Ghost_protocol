@@ -74,8 +74,11 @@ HitResult CombatSystem::fire(const Weapon& weapon, Vec2 from, float dirDeg, Rng&
             target = enemy->id;
             victim = enemy.get();
         }
-        if (victim) applyDamage(*victim, spec.damage, world.player.id);
-        result.pellets.push_back({from, end, angle, target, spec.damage});
+        float damage = spec.damage;
+        if (const auto* enemy = dynamic_cast<const Enemy*>(victim))
+            damage = enemy->hitscanDamage(damage, from);
+        if (victim) applyDamage(*victim, damage, world.player.id);
+        result.pellets.push_back({from, end, angle, target, damage});
     }
     return result;
 }

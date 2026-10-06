@@ -24,6 +24,7 @@ TEST(EnemySpec, LoadsDocumentedEnemyCatalogWithoutWarnings) {
     EXPECT_FLOAT_EQ(cop.rate, 1.2f);
     EXPECT_FLOAT_EQ(cop.accuracy, 0.4f);
     EXPECT_FLOAT_EQ(cop.engage, 300);
+    EXPECT_FLOAT_EQ(cop.radius, 14);
     EXPECT_EQ(specs->at(0).burst, 1);
     EXPECT_FLOAT_EQ(specs->at(2).shieldArcDeg, 120);
     EXPECT_FLOAT_EQ(specs->at(2).shieldBlock, 0.9f);
@@ -72,4 +73,21 @@ TEST(EnemySpec, RejectsMissingMalformedFilesAndMissingRequiredFields) {
     data["enemies"][1].erase("hp");
     EXPECT_FALSE(loadEnemies(files.write("missing-hp.json", data.dump()), logger));
     EXPECT_FALSE(loadEnemies(files.write("bad-root.json", "{\"enemies\":{}}"), logger));
+}
+TEST(EnemySpec, PoliceCollisionRadiusIsRequiredAndPositive) {
+    TestFiles files;
+    nlohmann::json original;
+    std::ifstream("assets/config/enemies.json") >> original;
+    std::ostringstream output;
+    Logger logger(output, "");
+    for (int type : {1, 2, 3}) {
+        auto data = original;
+        data["enemies"][type].erase("radius");
+        EXPECT_FALSE(loadEnemies(files.write("missing-radius.json", data.dump()), logger));
+        for (const auto& value : {nlohmann::json(0), nlohmann::json(-1), nlohmann::json("large")}) {
+            data = original;
+            data["enemies"][type]["radius"] = value;
+            EXPECT_FALSE(loadEnemies(files.write("bad-radius.json", data.dump()), logger));
+        }
+    }
 }

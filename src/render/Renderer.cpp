@@ -20,6 +20,7 @@
 #include "systems/PagerSystem.h"
 #include "systems/RippleSystem.h"
 #include "systems/VisionSystem.h"
+#include "systems/WaveSpawner.h"
 #include "world/Level.h"
 #include "world/Raycast.h"
 #include "world/World.h"
@@ -437,14 +438,24 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                         enemy->radius * 0.55f, Fade({27, 42, 74, 255}, visible));
             continue;
         }
-        DrawCircleV({p.x, p.y}, enemy->radius, Fade({27, 42, 74, 255}, visible));
+        const bool heavy = enemy->spec().id == "heavy";
+        const Color body = heavy ? Color{16, 21, 31, 255} : Color{27, 42, 74, 255};
+        DrawEllipse(static_cast<int>(p.x), static_cast<int>(p.y), enemy->radius * 1.2f,
+                    enemy->radius * 0.72f, Fade(body, visible));
+        DrawCircleV({p.x, p.y}, enemy->radius, Fade(body, visible));
         DrawCircleLinesV({p.x, p.y}, enemy->radius, Fade(kBone, visible));
         DrawRectangle(static_cast<int>(p.x - 6), static_cast<int>(p.y - 3), 12, 6,
-                      Fade(kBone, visible));
+                      Fade(heavy ? kGold : kBone, visible));
         DrawLineEx({p.x, p.y},
                    {p.x + std::cos(enemy->facing()) * enemy->radius * 1.7f,
                     p.y + std::sin(enemy->facing()) * enemy->radius * 1.7f},
                    4, Fade(kGold, visible));
+        if (enemy->spec().id == "shield_cop") {
+            const float degrees = enemy->facing() * 180 / 3.14159265358979323846f;
+            const float half = enemy->spec().shieldArcDeg * 0.5f;
+            DrawRing({p.x, p.y}, enemy->radius * 1.12f, enemy->radius * 1.35f, degrees - half,
+                     degrees + half, 24, Fade(kBone, visible));
+        }
     }
     if (enemyCombat)
         for (const auto& shot : enemyCombat->shots()) {
@@ -637,6 +648,15 @@ void Renderer::drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pag
         }
 }
 
+void Renderer::drawWaveHud(const WaveSpawner& waves) const {
+    constexpr Color kBone{233, 228, 208, 255};
+    constexpr Color kGold{242, 183, 5, 255};
+    DrawRectangleRounded({1010, 80, 246, 88}, 0.1f, 4, {20, 22, 27, 245});
+    DrawRectangleLinesEx({1010, 80, 246, 88}, 1, Fade(kBone, 0.65f));
+    DrawText(TextFormat("ASSAULT  %d", waves.waveIndex()), 1026, 96, 22, kGold);
+    DrawText(TextFormat("NEXT WAVE  %.0fs", std::ceil(waves.nextWaveRemaining())), 1026, 130, 16,
+             kBone);
+}
 void Renderer::drawWeaponHud(const CombatSystem& combat) const {
     const auto& weapon = combat.activeWeapon();
     constexpr Color kBone{233, 228, 208, 255};

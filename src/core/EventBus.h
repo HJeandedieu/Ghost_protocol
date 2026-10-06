@@ -51,7 +51,7 @@ class EventBus {
                                CallInCancelled, GuardTakenDown, BodyFound, InteractionProgress,
                                InteractionDone, SecurityLooped, PagerRang, PagerAnswered,
                                PagerMissed, LaserTouched, AlarmTriggered, SecurityLoopEnded,
-                               ShotFired, EntityDamaged, EntityDied, PlayerDowned>;
+                               ShotFired, EntityDamaged, EntityDied, PlayerDowned, WaveSpawned>;
     std::vector<Event> pending_, delivering_;
     std::tuple<std::vector<std::function<void(const NoiseEmitted&)>>,
                std::vector<std::function<void(const GuardSuspicious&)>>,
@@ -72,7 +72,8 @@ class EventBus {
                std::vector<std::function<void(const ShotFired&)>>,
                std::vector<std::function<void(const EntityDamaged&)>>,
                std::vector<std::function<void(const EntityDied&)>>,
-               std::vector<std::function<void(const PlayerDowned&)>>>
+               std::vector<std::function<void(const PlayerDowned&)>>,
+               std::vector<std::function<void(const WaveSpawned&)>>>
         listeners_;
     bool dispatching_ = false;
 };

@@ -23,6 +23,7 @@ class AlarmDirector;
 class CombatSystem;
 class EnemyCombatSystem;
 class Enemy;
+class WaveSpawner;
 class PagerSystem;
 struct World;
 
@@ -48,6 +49,7 @@ class Renderer {
     void notifyHealthDamage() { healthHud_.damaged(); }
     void updateHealthHud(float dt, const Player& player) { healthHud_.update(dt, player); }
     void drawWeaponHud(const CombatSystem& combat) const;
+    void drawWaveHud(const WaveSpawner& waves) const;
     void drawPickupHud(const RecoveryPickup* pickup) const;
     void drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pagers,
                         const std::vector<Guard>& guards) const;

@@ -226,6 +226,10 @@ Config Config::load(const std::string& path, Logger& logger) {
         readNumber(alarm, "first_wave_delay", config.alarm.firstWaveDelay, "alarm", logger);
     config.alarm.waveInterval =
         readNumber(alarm, "wave_interval", config.alarm.waveInterval, "alarm", logger);
+    if (config.alarm.waveInterval <= 0) {
+        logger.log(LogLevel::Warn, "Invalid alarm.wave_interval; using default");
+        config.alarm.waveInterval = AlarmConfig{}.waveInterval;
+    }
     config.alarm.maxAlive = readNumber(alarm, "max_alive", config.alarm.maxAlive, "alarm", logger);
     const auto& mission = groupOrEmpty(data, "mission", empty);
     config.mission.lockpick =

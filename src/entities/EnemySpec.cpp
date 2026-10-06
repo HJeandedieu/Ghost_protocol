@@ -1,5 +1,6 @@
 #include "entities/EnemySpec.h"
 
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <limits>
@@ -43,6 +44,7 @@ std::optional<std::vector<EnemySpec>> loadEnemies(const std::string& path, Logge
             spec.accuracy = number(entry, "accuracy", true);
             if (spec.accuracy > 1) throw std::runtime_error("Invalid enemy accuracy");
             spec.engage = number(entry, "engage");
+            if (spec.id != "patrol_guard") spec.radius = number(entry, "radius");
             if (entry.contains("burst")) {
                 const auto& value = entry.at("burst");
                 if (!value.is_number_integer())
@@ -64,6 +66,62 @@ std::optional<std::vector<EnemySpec>> loadEnemies(const std::string& path, Logge
         return result;
     } catch (const std::exception& error) {
         logger.log(LogLevel::Error, "Invalid enemies file: " + path + ": " + error.what());
+        return std::nullopt;
+    }
+}
+
+std::optional<std::vector<WaveSpec>> loadWaves(const std::string& path, Logger& logger) {
+    try {
+        std::ifstream file(path);
+        if (!file) throw std::runtime_error("Cannot open wave file");
+        nlohmann::json data;
+        file >> data;
+        const auto& entries = data.at("waves");
+        if (!entries.is_array() || entries.size() != 6)
+            throw std::runtime_error("Expected five waves and repeat");
+        std::vector<WaveSpec> result;
+        std::set<int> indices;
+        const std::array<std::string, 3> types{"cop", "shield_cop", "heavy"};
+        for (const auto& entry : entries) {
+            WaveSpec wave;
+            const auto& at = entry.at("at");
+            if (at.is_string() && at == "repeat")
+                wave.index = -1;
+            else {
+                if (!at.is_number_integer()) throw std::runtime_error("Invalid wave index");
+                const auto index = at.get<std::int64_t>();
+                if (index < 0 || index > 4) throw std::runtime_error("Invalid wave index");
+                wave.index = static_cast<int>(index);
+            }
+            if (!indices.insert(wave.index).second)
+                throw std::runtime_error("Duplicate wave index");
+            const auto& spawn = entry.at("spawn");
+            if (!spawn.is_object() || spawn.empty())
+                throw std::runtime_error("Invalid wave composition");
+            for (auto item = spawn.begin(); item != spawn.end(); ++item) {
+                const auto type = std::find(types.begin(), types.end(), item.key());
+                if (type == types.end() || !item.value().is_number_integer())
+                    throw std::runtime_error("Invalid wave enemy/count");
+                const auto count = item.value().get<std::int64_t>();
+                if (count <= 0 || count > std::numeric_limits<int>::max())
+                    throw std::runtime_error("Invalid wave count");
+                wave.counts[static_cast<std::size_t>(type - types.begin())] =
+                    static_cast<int>(count);
+            }
+            const auto& points = entry.at("points");
+            if (!points.is_array() || points.empty())
+                throw std::runtime_error("Missing wave entries");
+            for (const auto& point : points) {
+                const auto name = point.get<std::string>();
+                if (name != "front" && name != "service" && name != "east")
+                    throw std::runtime_error("Unknown wave entry");
+                wave.points.push_back(name);
+            }
+            result.push_back(std::move(wave));
+        }
+        return result;
+    } catch (const std::exception& error) {
+        logger.log(LogLevel::Error, "Invalid waves file: " + path + ": " + error.what());
         return std::nullopt;
     }
 }
