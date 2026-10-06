@@ -178,8 +178,8 @@ Every day lists: **Goal**, **Tasks** (do them in order), and **Done when** (the 
 **Tasks**
 1. `CombatSystem::applyDamage`: armor absorbs first, HP second; armor regenerates 8/s after 5 s without damage.
 2. HUD health and armor meters with drain animation; red hit flash; `EntityDamaged`.
-3. Medkit and armor-plate pickups.
-4. Tests: damage order, regeneration timing.
+3. Medkit and armor-plate pickups following Systems Contract §3.7 and the `pickup` tuning group: police-only 20%/10%/70% drop roll, +50 capped restoration, E within 50 px with LOS, mission/pager priority, and no consumption when full. Add debug pickup fixtures; connect actual police deaths on Day 17.
+4. Tests: damage order, regeneration timing, seeded drop outcomes and one roll per death, collection range/LOS, interaction priority, capped restoration, full/dead-player rejection, and pickup tuning validation.
 **Done when:** a debug key damages you and the bars behave correctly; tests pass.
 
 ### Day 17: Wed 21 Oct (light, 2 h) First enemy
