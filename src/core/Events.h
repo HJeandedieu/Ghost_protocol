@@ -18,12 +18,17 @@ struct GuardSuspicious {
 struct GuardSpotted {
     std::string guardId;
 };
+enum class CallInSource { Guard, Camera };
+enum class CallInCancelReason { Takedown, Loop };
 struct CallInStarted {
-    std::string guardId;
+    std::string sourceId;
+    CallInSource sourceType = CallInSource::Guard;
     float seconds = 0;
 };
 struct CallInCancelled {
-    std::string guardId;
+    std::string sourceId;
+    CallInSource sourceType = CallInSource::Guard;
+    CallInCancelReason reason = CallInCancelReason::Takedown;
 };
 struct GuardTakenDown {
     std::string guardId;
@@ -60,3 +65,4 @@ struct InteractionDone {
 struct SecurityLooped {
     float secondsLeft = 0;
 };
+struct SecurityLoopEnded {};

@@ -7,6 +7,7 @@
 #include "core/Logger.h"
 #include "entities/Guard.h"
 #include "entities/Player.h"
+#include "entities/SecurityCamera.h"
 #include "systems/VisionSystem.h"
 
 DetectionSystem::DetectionSystem(EventBus& events, Logger& logger, std::vector<Guard>& guards,
@@ -32,8 +33,61 @@ void DetectionSystem::startCallIn(Guard& guard) {
     guard.detection_ = 100;
     guard.callInRemaining_ = guard.visionConfig().callin;
     guard.callInCompleted_ = false;
-    events_.publish(CallInStarted{guard.id, guard.callInRemaining_});
+    events_.publish(CallInStarted{guard.id, CallInSource::Guard, guard.callInRemaining_});
     logger_.log(LogLevel::Info, guard.id + ": call-in started");
+}
+
+void DetectionSystem::bindCameras(std::vector<SecurityCamera>& cameras) {
+    events_.subscribe<SecurityLooped>([this, &cameras](const auto&) { disableCameras(cameras); });
+}
+
+void DetectionSystem::disableCameras(std::vector<SecurityCamera>& cameras) {
+    for (auto& camera : cameras) {
+        if (camera.callingIn_)
+            events_.publish(
+                CallInCancelled{camera.id, CallInSource::Camera, CallInCancelReason::Loop});
+        camera.callingIn_ = false;
+        camera.callInRemaining_ = camera.detection_ = 0;
+    }
+}
+
+void DetectionSystem::updateCameras(float dt, const Player& player, const TileMap& map,
+                                    std::vector<SecurityCamera>& cameras, const GuardConfig& fill,
+                                    bool disabled) {
+    if (!std::isfinite(dt) || dt <= 0) return;
+    if (disabled) {
+        disableCameras(cameras);
+        return;
+    }
+    const VisionSystem vision;
+    for (auto& camera : cameras) {
+        if (camera.callingIn_) {
+            camera.callInRemaining_ = std::max(0.0f, camera.callInRemaining_ - dt);
+            continue;
+        }
+        if (!vision.sees(camera.pos, camera.facing(), camera.config_.coneDeg * 0.5f, camera.range(),
+                         player.pos, map)) {
+            camera.detection_ = std::max(0.0f, camera.detection_ - fill.decay * dt);
+            continue;
+        }
+        const float distance = std::hypot(player.pos.x - camera.pos.x, player.pos.y - camera.pos.y);
+        const float fraction =
+            camera.range() > 0 ? std::clamp(distance / camera.range(), 0.0f, 1.0f) : 0;
+        const float movement =
+            player.isCrouched() ? fill.crouchMult : (player.isSprinting() ? fill.sprintMult : 1.0f);
+        const float rate = (fill.fillNear + (fill.fillFar - fill.fillNear) * fraction) * movement *
+                           difficultyFill_;
+        if (!std::isfinite(rate) || rate <= 0) continue;
+        const float timeToSpot = (100 - camera.detection_) / rate;
+        camera.detection_ = std::min(100.0f, camera.detection_ + rate * dt);
+        if (camera.detection_ >= 100) {
+            camera.callingIn_ = true;
+            camera.callInRemaining_ =
+                std::max(0.0f, camera.config_.callin - std::max(0.0f, dt - timeToSpot));
+            events_.publish(CallInStarted{camera.id, CallInSource::Camera, camera.config_.callin});
+            logger_.log(LogLevel::Info, camera.id + ": call-in started");
+        }
+    }
 }
 
 void DetectionSystem::advanceCallIn(float dt, Guard& guard) {

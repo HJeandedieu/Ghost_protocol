@@ -74,6 +74,8 @@ Config Config::load(const std::string& path, Logger& logger) {
     config.ping.cooldown = readNumber(ping, "cooldown", config.ping.cooldown, "ping", logger);
     config.ping.noiseMult = readNumber(ping, "noise_mult", config.ping.noiseMult, "ping", logger);
     config.ping.halo = readNumber(ping, "halo", config.ping.halo, "ping", logger);
+    config.ping.hazardRevealRadius =
+        readNumber(ping, "hazard_reveal_radius", config.ping.hazardRevealRadius, "ping", logger);
     const auto& noise = groupOrEmpty(data, "noise", empty);
     config.noise.crouch = readNumber(noise, "crouch", config.noise.crouch, "noise", logger);
     config.noise.walk = readNumber(noise, "walk", config.noise.walk, "noise", logger);

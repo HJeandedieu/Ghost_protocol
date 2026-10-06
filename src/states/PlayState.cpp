@@ -9,7 +9,7 @@
 
 PlayState::PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed,
                      Renderer& renderer, Logger& logger)
-    : world_(std::move(level), config.player, config.guard),
+    : world_(std::move(level), config.player, config.guard, config.camera),
       input_(input),
       camera_(world_.player.pos, config.view),
       seed_(seed),
@@ -18,20 +18,26 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       noise_(events_),
       interaction_(events_),
       detection_(events_, logger, world_.guards, config.difficulty.normal.detectFill),
-      alarm_(events_, logger, world_.guards),
+      alarm_(events_, logger, world_),
       pagers_(events_, config.pager, world_, interaction_),
+      lasers_(events_, config.laser, config.noise.laser),
       config_(config) {
     interaction_.loadBank(world_, config_);
+    detection_.bindCameras(world_.cameras);
     renderer_.prepareLevel(world_.level);
     std::vector<Hearer> hearers;
     hearers.reserve(world_.level.guards.size());
-    revealables_.reserve(world_.guards.size());
+    revealables_.reserve(world_.guards.size() + world_.cameras.size() + world_.lasers.size());
+    hazards_.reserve(world_.cameras.size() + world_.lasers.size());
     for (auto& guard : world_.guards) {
         guardAi_.push_back(std::make_unique<GuardAI>(guard, world_.level.map, events_, logger));
         hearers.push_back({guard.id, guard.pos});
         revealables_.push_back(&guard);
     }
     noise_.setHearers(std::move(hearers));
+    for (auto& camera : world_.cameras) hazards_.push_back(&camera);
+    for (auto& laser : world_.lasers) hazards_.push_back(&laser);
+    for (auto* hazard : hazards_) revealables_.push_back(hazard);
 }
 
 void PlayState::enter() {}
@@ -68,8 +74,13 @@ void PlayState::update(float dt) {
         noise_.emit(ripple_.origin(), ripple_.maxRadius() * config_.ping.noiseMult, NoiseType::Ping,
                     player.id);
     detection_.update(dt, player, world_.level.map, world_.guards);
+    for (auto& camera : world_.cameras) camera.update(dt);
+    const bool looped = world_.securityLoopRemaining > 0;
+    detection_.updateCameras(dt, player, world_.level.map, world_.cameras, config_.guard, looped);
+    lasers_.update(dt, player, world_.lasers, looped);
     VisionSystem(config_.guard).findBodies(world_.guards, world_.level.map, events_);
     ripple_.update(dt, world_.level.map, revealables_);
+    if (!world_.alarmLoud) ripple_.applyProximity(player.pos, world_.level.map, hazards_);
     alarm_.update();
     events_.dispatch();
 #ifndef NDEBUG
@@ -78,7 +89,8 @@ void PlayState::update(float dt) {
 }
 void PlayState::render(float alpha) {
     renderer_.drawLevel(world_.level, world_.player, ripple_, camera_.interpolatedTarget(alpha),
-                        facing_, alpha, debugView_, seed_, world_.guards);
+                        facing_, alpha, debugView_, seed_, world_.guards, world_.cameras,
+                        world_.lasers, world_.securityLoopRemaining > 0);
     renderer_.drawInteractionHud(world_, interaction_, noise_.currentRadius(),
                                  config_.noise.sprint);
     renderer_.drawStealthHud(alarm_, pagers_, world_.guards);

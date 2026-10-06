@@ -40,7 +40,8 @@ void Guard::advanceWaypoint() {
 
 bool Guard::takeDown(EventBus& events) {
     if (state_ == GuardState::Combat || state_ == GuardState::Unconscious) return false;
-    if (state_ == GuardState::Alerted && !callInCompleted_) events.publish(CallInCancelled{id});
+    if (state_ == GuardState::Alerted && !callInCompleted_)
+        events.publish(CallInCancelled{id, CallInSource::Guard, CallInCancelReason::Takedown});
     state_ = GuardState::Unconscious;
     detection_ = 0;
     callInRemaining_ = 0;

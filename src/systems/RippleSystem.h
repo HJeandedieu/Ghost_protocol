@@ -14,6 +14,7 @@ class RippleSystem {
     void startPing(Vec2 origin, float chargeSeconds);
     void updateCharge(float dt, bool held, bool pressed, Vec2 origin);
     void update(float dt, const TileMap& map, std::vector<Entity*>& entities);
+    void applyProximity(Vec2 playerPos, const TileMap& map, std::vector<Entity*>& hazards);
     float tileReveal(int x, int y) const;
     float visibility(int x, int y, Vec2 player, const TileMap& map) const;
     float cooldownRemaining() const { return cooldown_; }

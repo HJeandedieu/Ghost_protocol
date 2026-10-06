@@ -76,9 +76,10 @@ void RippleSystem::update(float dt, const TileMap& map, std::vector<Entity*>& en
         }
     for (auto* entity : entities)
         if (entity) {
-            const float distance = std::hypot(entity->pos.x - origin_.x, entity->pos.y - origin_.y);
+            const auto point = entity->nearestPoint(origin_);
+            const float distance = std::hypot(point.x - origin_.x, point.y - origin_.y);
             if (distance <= radius_ && (distance > previous || previous == 0) &&
-                Raycast::hasLineOfSight(origin_, entity->pos, map))
+                Raycast::hasLineOfSight(origin_, point, map))
                 entity->reveal =
                     config_.fade > 0
                         ? std::max(0.0f, 1.0f - (dt - (distance - previous) / config_.speed) /
@@ -91,6 +92,18 @@ void RippleSystem::update(float dt, const TileMap& map, std::vector<Entity*>& en
 float RippleSystem::tileReveal(int x, int y) const {
     if (x < 0 || y < 0 || x >= width_ || y >= height_) return 0;
     return reveal_[static_cast<std::size_t>(y) * width_ + x];
+}
+
+void RippleSystem::applyProximity(Vec2 playerPos, const TileMap& map,
+                                  std::vector<Entity*>& hazards) {
+    for (auto* hazard : hazards) {
+        if (!hazard) continue;
+        const auto point = hazard->nearestPoint(playerPos);
+        if (std::hypot(point.x - playerPos.x, point.y - playerPos.y) <=
+                config_.hazardRevealRadius &&
+            Raycast::hasLineOfSight(playerPos, point, map))
+            hazard->reveal = 1;
+    }
 }
 
 float RippleSystem::visibility(int x, int y, Vec2 player, const TileMap& map) const {

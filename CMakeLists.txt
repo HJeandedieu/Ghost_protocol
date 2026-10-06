@@ -62,6 +62,7 @@ add_library(ghost_core STATIC
     src/core/Assets.cpp
     src/entities/Player.cpp src/entities/Guard.cpp
     src/entities/GuardAI.cpp
+    src/entities/SecurityCamera.cpp src/entities/Laser.cpp
     src/render/FollowCamera.cpp
     src/world/Raycast.cpp src/systems/RippleSystem.cpp
     src/world/Pathfinder.cpp
@@ -69,6 +70,7 @@ add_library(ghost_core STATIC
     src/systems/VisionSystem.cpp
     src/systems/DetectionSystem.cpp
     src/systems/AlarmDirector.cpp src/systems/PagerSystem.cpp
+    src/systems/LaserSystem.cpp
 )
 target_include_directories(ghost_core PUBLIC src)
 target_link_libraries(ghost_core PRIVATE nlohmann_json::nlohmann_json)
@@ -119,6 +121,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/DetectionSystemTests.cpp
         tests/TakedownTests.cpp
         tests/AlarmDirectorTests.cpp tests/PagerSystemTests.cpp
+        tests/CameraTests.cpp tests/LaserSystemTests.cpp tests/HazardRevealTests.cpp
     )
     target_link_libraries(ghost_tests PRIVATE ghost_core GTest::gtest_main
         nlohmann_json::nlohmann_json)

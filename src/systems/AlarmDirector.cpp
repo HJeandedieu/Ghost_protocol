@@ -7,6 +7,7 @@
 #include "core/EventBus.h"
 #include "core/Logger.h"
 #include "entities/Guard.h"
+#include "world/World.h"
 
 AlarmDirector::AlarmDirector(EventBus& events, Logger& logger, const std::vector<Guard>& guards)
     : events_(events), logger_(logger), guards_(guards) {
@@ -33,8 +34,15 @@ AlarmDirector::AlarmDirector(EventBus& events, Logger& logger, const std::vector
 void AlarmDirector::trigger(AlarmReason reason) {
     if (state_ == AlarmState::Loud) return;
     state_ = AlarmState::Loud;
+    if (world_) world_->alarmLoud = true;
     logger_.log(LogLevel::Info, "Alarm triggered");
     events_.publish(AlarmTriggered{reason});
+}
+
+AlarmDirector::AlarmDirector(EventBus& events, Logger& logger, World& world)
+    : AlarmDirector(events, logger, world.guards) {
+    cameras_ = &world.cameras;
+    world_ = &world;
 }
 
 void AlarmDirector::update() {
@@ -52,6 +60,15 @@ void AlarmDirector::update() {
         }
         state_ = AlarmState::CallIn;
     }
+    if (cameras_)
+        for (const auto& camera : *cameras_) {
+            if (!camera.callingIn()) continue;
+            if (camera.callInRemaining() <= 0) {
+                trigger(AlarmReason::CallIn);
+                return;
+            }
+            state_ = AlarmState::CallIn;
+        }
 }
 
 float AlarmDirector::callInRemaining() const {
@@ -59,5 +76,8 @@ float AlarmDirector::callInRemaining() const {
     for (const auto& guard : guards_)
         if (guard.state() == GuardState::Alerted)
             remaining = std::min(remaining, guard.callInRemaining());
+    if (cameras_)
+        for (const auto& camera : *cameras_)
+            if (camera.callingIn()) remaining = std::min(remaining, camera.callInRemaining());
     return std::isfinite(remaining) ? remaining : 0;
 }

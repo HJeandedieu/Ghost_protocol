@@ -12,6 +12,7 @@
 #include "systems/AlarmDirector.h"
 #include "systems/DetectionSystem.h"
 #include "systems/InteractionSystem.h"
+#include "systems/LaserSystem.h"
 #include "systems/NoiseSystem.h"
 #include "systems/PagerSystem.h"
 #include "systems/RippleSystem.h"
@@ -41,11 +42,13 @@ class PlayState : public IState {
     bool debugView_ = false;
     RippleSystem ripple_;
     std::vector<Entity*> revealables_;
+    std::vector<Entity*> hazards_;
     Renderer& renderer_;
     NoiseSystem noise_;
     InteractionSystem interaction_;
     DetectionSystem detection_;
     AlarmDirector alarm_;
     PagerSystem pagers_;
+    LaserSystem lasers_;
     const Config& config_;
 };

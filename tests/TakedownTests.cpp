@@ -86,7 +86,9 @@ TEST_F(TakedownTest, ActiveCallInIsCancelledAndNeverCompletes) {
     ASSERT_EQ(guards.front().state(), GuardState::Alerted);
     int cancelled = 0;
     events.subscribe<CallInCancelled>([&](const auto& event) {
-        EXPECT_EQ(event.guardId, "G01");
+        EXPECT_EQ(event.sourceId, "G01");
+        EXPECT_EQ(event.sourceType, CallInSource::Guard);
+        EXPECT_EQ(event.reason, CallInCancelReason::Takedown);
         ++cancelled;
     });
     ASSERT_TRUE(player.tryTakedown(guards, events));
@@ -111,7 +113,8 @@ TEST_F(TakedownTest, DiscoveryStartsOneConfiguredCallInWithoutPlayerSight) {
         ++found;
     });
     events.subscribe<CallInStarted>([&](const auto& event) {
-        EXPECT_EQ(event.guardId, "G02");
+        EXPECT_EQ(event.sourceId, "G02");
+        EXPECT_EQ(event.sourceType, CallInSource::Guard);
         EXPECT_FLOAT_EQ(event.seconds, 2);
         ++calls;
     });

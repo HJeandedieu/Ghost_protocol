@@ -7,7 +7,9 @@
 
 #include "core/Logger.h"
 #include "entities/Guard.h"
+#include "entities/Laser.h"
 #include "entities/Player.h"
+#include "entities/SecurityCamera.h"
 #include "raylib.h"
 #include "render/Letterbox.h"
 #include "systems/AlarmDirector.h"
@@ -254,7 +256,9 @@ void Renderer::drawError(const char* message) {
 
 void Renderer::drawLevel(const Level& level, const Player& player, const RippleSystem& ripple,
                          Vec2 cameraTarget, float facing, float alpha, bool overview,
-                         std::uint32_t seed, const std::vector<Guard>& guards) {
+                         std::uint32_t seed, const std::vector<Guard>& guards,
+                         const std::vector<SecurityCamera>& cameras,
+                         const std::vector<Laser>& lasers, bool securityLooped) {
     constexpr Color kBone = {233, 228, 208, 255};
     constexpr Color kTeal = {63, 143, 140, 255};
     constexpr Color kDeepTeal = {30, 74, 74, 255};
@@ -366,6 +370,51 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                 DrawText(TextFormat("%.1fs", guard.callInRemaining()),
                          static_cast<int>(meter.x + 12), static_cast<int>(meter.y - 8), 16,
                          Fade(kAlarm, visible));
+        }
+    }
+    for (const auto& laser : lasers) {
+        const float visible = overview ? 1.0f : laser.reveal;
+        if (visible <= 0) continue;
+        const auto color = Fade(securityLooped ? kBone : kAlarm, visible);
+        DrawLineEx({laser.pos.x, laser.pos.y}, {laser.end().x, laser.end().y}, 3, color);
+        for (const auto point : {laser.pos, laser.end()})
+            DrawRectangle(static_cast<int>(point.x - 4), static_cast<int>(point.y - 4), 8, 8,
+                          color);
+    }
+    constexpr float kDegreesToRadians = 3.14159265358979323846f / 180;
+    for (const auto& camera : cameras) {
+        const float visible = overview ? 1.0f : camera.reveal;
+        if (visible <= 0) continue;
+        const Vector2 eye{camera.pos.x, camera.pos.y};
+        if (!securityLooped) {
+            constexpr int kSegments = 64;
+            for (int i = 0; i < kSegments; ++i) {
+                const float a = (camera.facing() - camera.coneDegrees() * 0.5f +
+                                 camera.coneDegrees() * i / kSegments) *
+                                kDegreesToRadians;
+                const float b = a + camera.coneDegrees() / kSegments * kDegreesToRadians;
+                const Vec2 farA{eye.x + std::cos(a) * camera.range(),
+                                eye.y + std::sin(a) * camera.range()};
+                const Vec2 farB{eye.x + std::cos(b) * camera.range(),
+                                eye.y + std::sin(b) * camera.range()};
+                const float rangeA = Raycast::sightDistance(camera.pos, farA, map);
+                const float rangeB = Raycast::sightDistance(camera.pos, farB, map);
+                DrawTriangle(eye, {eye.x + std::cos(b) * rangeB, eye.y + std::sin(b) * rangeB},
+                             {eye.x + std::cos(a) * rangeA, eye.y + std::sin(a) * rangeA},
+                             Fade(kAlarm, visible * 0.25f));
+            }
+        }
+        const float angle = camera.facing() * kDegreesToRadians;
+        const Vector2 forward{std::cos(angle), std::sin(angle)};
+        DrawTriangle({eye.x + forward.x * 12, eye.y + forward.y * 12},
+                     {eye.x - forward.x * 6 + forward.y * 8, eye.y - forward.y * 6 - forward.x * 8},
+                       {eye.x - forward.x * 6 - forward.y * 8, eye.y - forward.y * 6 + forward.x * 8},
+                     Fade(securityLooped ? kBone : kAlarm, visible));
+        if (camera.detection() > 0) {
+            const Vector2 meter{eye.x, eye.y - 20};
+            DrawCircleSector(meter, 8, -90, -90 + 360 * camera.detection() / 100, 32,
+                             Fade(kAlarm, visible));
+            DrawCircleLinesV(meter, 8, Fade(kBone, visible));
         }
     }
     DrawCircleV({spawn.x, spawn.y}, player.radius, {10, 10, 12, 255});
