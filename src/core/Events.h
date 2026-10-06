@@ -66,3 +66,10 @@ struct SecurityLooped {
     float secondsLeft = 0;
 };
 struct SecurityLoopEnded {};
+
+struct ShotFired {
+    std::string shooterId;
+    std::string weaponId;
+    Vec2 from;
+    Vec2 dir;
+};
