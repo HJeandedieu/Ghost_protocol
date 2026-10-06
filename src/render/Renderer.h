@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "core/Config.h"
 #include "core/Vec2.h"
 #include "raylib.h"
 
@@ -21,7 +22,7 @@ struct World;
 
 class Renderer {
    public:
-    explicit Renderer(Logger& logger);
+    explicit Renderer(Logger& logger, const RenderConfig& config = {});
     ~Renderer();
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
@@ -45,6 +46,7 @@ class Renderer {
    private:
     RenderTexture2D surface_;
     RenderTexture2D world_;
+    RenderConfig config_;
     Shader post_{};
     int timeLocation_ = -1;
     bool composed_ = false;

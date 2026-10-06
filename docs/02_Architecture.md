@@ -88,7 +88,7 @@ Events raised during a tick are delivered at step 11 and processed by listeners 
 ## 8. Rendering pipeline
 All drawing goes to a 1280x720 `RenderTexture` (the "game surface"), then scaled with letterboxing.
 1. Clear to `INK`.
-2. **World pass:** for each visible tile, colour = palette colour x `reveal(tile)` (0 to 1). Lit tiles use 1.0, dim tiles use a 0.35 floor, dark tiles use the ripple/halo reveal value.
+2. **World pass:** lit tiles use 1.0, dim tiles use a 0.35 floor, and dark tiles use ripple/halo reveal. Reference-first presentation adds a faint environmental floor/room-edge baseline (Visual Reference §2), independent of gameplay visibility. Static furnishing follows the environmental reveal/baseline; threats and interaction markers never inherit it.
 3. **Entity pass:** items, bodies, guards, lasers, cameras; each drawn with alpha = its reveal value. Player is always drawn.
 4. **Effects pass:** ping wavefront rings (additive), vision cones, tracers, muzzle flashes, thermite glow, particles.
 5. **Post pass (shader):** vignette + film grain + subtle edge glow. One full-screen quad.

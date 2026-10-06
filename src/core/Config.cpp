@@ -9,11 +9,12 @@
 
 namespace {
 float readNumber(const nlohmann::json& group, const char* key, float fallback,
-                 const std::string& path, Logger& logger) {
+                 const std::string& path, Logger& logger,
+                 float maximum = std::numeric_limits<float>::max()) {
     const auto entry = group.is_object() ? group.find(key) : group.end();
     if (entry != group.end() && entry->is_number()) {
         const double value = entry->get<double>();
-        if (std::isfinite(value) && value >= 0.0 && value <= std::numeric_limits<float>::max()) {
+        if (std::isfinite(value) && value >= 0.0 && value <= maximum) {
             return static_cast<float>(value);
         }
     }
@@ -63,6 +64,11 @@ Config Config::load(const std::string& path, Logger& logger) {
     config.view.leadPx = readNumber(view, "lead_px", config.view.leadPx, "view", logger);
     config.view.followRate =
         readNumber(view, "follow_rate", config.view.followRate, "view", logger);
+    const auto& render = groupOrEmpty(data, "render", empty);
+    config.render.ambientFloorAlpha = readNumber(
+        render, "ambient_floor_alpha", config.render.ambientFloorAlpha, "render", logger, 1.0f);
+    config.render.ambientWallAlpha = readNumber(
+        render, "ambient_wall_alpha", config.render.ambientWallAlpha, "render", logger, 1.0f);
     const auto& ping = groupOrEmpty(data, "ping", empty);
     config.ping.smallRadius =
         readNumber(ping, "small_radius", config.ping.smallRadius, "ping", logger);

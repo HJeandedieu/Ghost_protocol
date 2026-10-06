@@ -38,7 +38,7 @@ int Game::run() {
 #ifndef __EMSCRIPTEN__
     SetTargetFPS(60);
 #endif
-    renderer_ = std::make_unique<Renderer>(logger_);
+    renderer_ = std::make_unique<Renderer>(logger_, config_.render);
 #ifdef __EMSCRIPTEN__
     constexpr bool kWaitForClick = true;
 #else

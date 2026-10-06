@@ -157,7 +157,7 @@ Every day lists: **Goal**, **Tasks** (do them in order), and **Done when** (the 
 1. Play S1 to S3 ten times; tune guard speeds, ranges and route timing in `tuning.json` until a patient player can beat it silently.
 2. Fix everything you find; add tests for each logic bug.
 3. Export logo variants: transparent full lockup, square icon crop, small wordmark into `assets/ui/`.
-4. **Playtest #1** with two or three classmates, 30 min each, no coaching. Record stuck points and fun score.
+4. **Playtest #1:** author waiver on 6 October 2026 replaces the classmate sessions with agent-led gameplay and visual QA. Record observed problems against the contracts and reference images; do not invent participant feedback or fun scores. See `playtests/Day14.md`.
 5. Web smoke test (15 min). Tag `v0.2-week2`.
 **Done when:** a full silent run from the alley to the vault corridor is possible; your playtest notes list top 5 fixes (put the top 2 into Monday's tasks).
 
