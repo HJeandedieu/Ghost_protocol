@@ -50,7 +50,7 @@ TEST_F(Render, ShaderCompilesDarknessIsPreservedAndHudRemainsUnprocessed) {
     const auto lit = GetImageColor(image, 120, 312);
     const auto halo = GetImageColor(image, 680, 360);
     const auto hud = GetImageColor(image, 20, 10);
-    EXPECT_LT(dark.g, 15);
+    EXPECT_LT(dark.g, 30);
     EXPECT_GT(lit.g, 45);
     EXPECT_GT(halo.g, 45);
     EXPECT_EQ(hud.r, 20);
@@ -343,5 +343,37 @@ TEST_F(Render, HazardsStayHiddenInLitRoomsUntilRevealedAndCameraConeStopsAtDoor)
     EXPECT_LT(GetImageColor(image, 408, 216).r, 35);
     EXPECT_GT(GetImageColor(image, 360, 312).r, 200);
     EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day13-hazards-preview.png"));
+    UnloadImage(image);
+}
+
+TEST_F(Render, AmbientArchitecturePreservesHiddenMarkersAndGameplayVisibility) {
+    std::ostringstream console;
+    Logger logger(console, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    Level level;
+    std::string rows;
+    for (int y = 0; y < 15; ++y) rows += std::string(40, '.') + '\n';
+    rows[7 * 41 + 4] = '#';
+    rows[7 * 41 + 6] = 'S';
+    std::istringstream source(rows);
+    level.map = TileMap::parse(source, 48);
+    Player player({640, 360}, PlayerConfig{});
+    RippleSystem ripple(PingConfig{}, level.map);
+    EXPECT_FLOAT_EQ(ripple.visibility(6, 7, player.pos, level.map), 0);
+    renderer.beginFrame();
+    renderer.drawLevel(level, player, ripple, player.pos, 0, 1, false, 1234);
+    renderer.present();
+    auto image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    const auto floor = GetImageColor(image, 312, 360);
+    const auto wallMass = GetImageColor(image, 216, 360);
+    const auto wallEdge = GetImageColor(image, 193, 360);
+    EXPECT_GT(floor.g, 10);
+    EXPECT_LT(floor.g, 30);
+    EXPECT_EQ(floor.r, GetImageColor(image, 300, 360).r);
+    EXPECT_EQ(wallMass.g, 10);
+    EXPECT_GT(wallEdge.g, floor.g);
+    EXPECT_FLOAT_EQ(ripple.visibility(6, 7, player.pos, level.map), 0);
     UnloadImage(image);
 }

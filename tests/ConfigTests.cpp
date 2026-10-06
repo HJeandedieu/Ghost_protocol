@@ -147,3 +147,23 @@ TEST(Config, WrongTypesAndNegativeNumbersDoNotReachGameState) {
     EXPECT_FLOAT_EQ(config.ping.bigRadius, 520.0f);
     EXPECT_NE(console.str().find("player.sprint"), std::string::npos);
 }
+
+TEST(Config, AmbientRenderAlphaLoadsOverridesAndRejectsOutOfRangeValues) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    std::ostringstream console;
+    Logger logger(console, "");
+    data["render"] = {{"ambient_floor_alpha", 0.2}, {"ambient_wall_alpha", 0.4}};
+    const auto valid = Config::load(files.write("valid.json", data.dump()), logger);
+    EXPECT_FLOAT_EQ(valid.render.ambientFloorAlpha, 0.2f);
+    EXPECT_FLOAT_EQ(valid.render.ambientWallAlpha, 0.4f);
+    data["render"] = {{"ambient_floor_alpha", -1}, {"ambient_wall_alpha", 1.1}};
+    const auto invalid = Config::load(files.write("invalid.json", data.dump()), logger);
+    EXPECT_FLOAT_EQ(invalid.render.ambientFloorAlpha, 0.18f);
+    EXPECT_FLOAT_EQ(invalid.render.ambientWallAlpha, 0.45f);
+    data.erase("render");
+    const auto missing = Config::load(files.write("missing.json", data.dump()), logger);
+    EXPECT_FLOAT_EQ(missing.render.ambientFloorAlpha, 0.18f);
+    EXPECT_FLOAT_EQ(missing.render.ambientWallAlpha, 0.45f);
+}

@@ -59,26 +59,28 @@ The live browser view was inspected both at the sidebar's normal size and
 at the documented 1280×720 gameplay resolution, before and after a ping.
 The halo provides only a small patch of visible alley between pings.
 The revealed floors are visible, but most of the viewport remains Ink.
-This follows the current 96 px halo, 2.5 s fade, light zones and hidden-world
+This followed the earlier 96 px halo, 2.5 s fade, light zones and hidden-world
 rules. It supports the author's readability concern; it does not establish
 a broken shader or an incorrect reveal radius. The furnished reference
 image has much more readable room identity than the present flat tiles.
 
 All 17 focused Release route/render checks passed again during this review.
-The runtime sources are unchanged from the previously passing 165-check Debug
-and Release builds. Darkness review capture: ignored
+Those focused checks preceded the reference-first rendering change below. Darkness review capture: ignored
 `build/day14-darkness-review.png`.
 
 ## Five observed issues and priorities
 
 1. **Visibility/readability (author feedback):** the between-ping view is too
-   sparse to orient comfortably. Resolve the visibility design first. A larger
-   halo or longer fade requires updated GDD §4.4, Data Formats §2 and Visual
-   Reference §2; faint persistent outlines would also change the hidden-world
-   contract. No new values or visibility rules have been implemented.
+   sparse to orient comfortably. The author selected reference-first appearance.
+   The docs were updated before implementation: faint static floor/decor and
+   room-facing wall edges persist between pings. Browser comparison increased
+   the ambient floor/wall alpha to 0.18/0.45; halo and fade remain 96 px/2.5 s.
+   Threats and interaction markers retain their original reveal rules.
 2. **World presentation:** bare tiles and simple character shapes do not match
    the documented furnished bank, distinctive silhouettes and layered geometry.
-   Improve the revealed scenery under its existing reveal/light rules.
+   Initial desks/chairs, security consoles, counters, benches and dock crates
+   now use original code geometry. Full furnishing, silhouettes and HUD fidelity
+   remain incomplete; this is not an exact match to the finished reference.
 3. **Objective guidance:** the prompt remains the same general instruction after
    keycard and breaker progression, rather than displaying the active S1–S3 goal.
 4. **Tutorial/presentation:** Handler portrait, voice hints and subtitles are
@@ -87,12 +89,29 @@ and Release builds. Darkness review capture: ignored
 5. **Repeated attempts:** the menu only offers Enter-to-start; a completed
    pause/retry flow is absent. Restarting the executable is currently required.
 
-The top two follow-ups are visibility design and revealed-world readability.
+The visibility direction is implemented; continued furnishing and presentation
+work remain the priority for visual conformance.
 Track them alongside the next workday rather than silently replacing the
 weapons day's scope. Later scheduled presentation features remain outstanding.
+
+## Reference-first rendering validation
+
+Final Debug and Release builds completed without new project compiler warnings;
+all 167 CTest checks passed in each. The new configuration test covers valid,
+missing, negative and above-one ambient alpha values. The rendering regression
+checks faint floors, room-facing edges, Ink wall mass, hidden interaction markers
+and unchanged RippleSystem visibility. Existing tests still cover hidden guards,
+bodies, camera lenses, lasers, cones and the ten active-AI silent routes.
+
+The rebuilt web version passed Boot -> Menu -> Play, ping and F3 overview checks
+at 1280x720. Architecture persists between pings; decoration is visible in the
+bank overview. Captured logs contain informational state messages and no abort.
+Ignored captures: `build/day14-reference-darkness.png` and
+`build/day14-bank-furnishing.png`. Windows and web ZIPs were refreshed with the
+new renderer/configuration and these agent QA notes.
 
 ## Milestone
 
 The classmate-session requirement is waived by the author. `v0.2-week2`
-remains pending resolution of the visibility feedback, review/merge and
+remains pending review/merge and
 applicable QA. Do not present this agent review as human playtest evidence.

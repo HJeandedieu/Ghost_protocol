@@ -25,6 +25,31 @@ namespace {
 constexpr float kPi = 3.14159265358979323846f;
 constexpr int kConeArcSegments = 64;
 
+// Original decorative geometry; collision and interactions remain map-owned.
+void drawBankFurniture(int x, int y, float size, float visibility) {
+    const Color outline = Fade({63, 143, 140, 255}, visibility);
+    const Color surface = Fade({30, 74, 74, 255}, visibility);
+    const float left = x * size;
+    const float top = y * size;
+    const bool office = (x == 27 || x == 31) && (y == 22 || y == 25 || y == 30 || y == 34);
+    const bool console = (x == 27 || x == 30 || x == 32) && y == 14;
+    const bool counter = x >= 43 && x <= 59 && y == 18;
+    const bool bench = (x == 44 || x == 57) && (y == 28 || y == 36);
+    const bool crate = (x == 6 || x == 10 || x == 14) && y == 34;
+    if (office || console || counter || bench || crate) {
+        Rectangle body{left + size * 0.12f, top + size * 0.2f, size * 0.76f, size * 0.55f};
+        DrawRectangleRec(body, surface);
+        DrawRectangleLinesEx(body, 2, outline);
+        if (office || console) {
+            DrawRectangleRec({left + size * 0.4f, top + size * 0.3f, size * 0.22f, size * 0.18f},
+                             outline);
+            if (office) DrawCircleV({left + size * 0.5f, top + size * 0.9f}, size * 0.09f, outline);
+        }
+        if (crate)
+            DrawLineEx({body.x, body.y}, {body.x + body.width, body.y + body.height}, 2, outline);
+    }
+}
+
 void drawClippedTriangle(Vector2 eye, Vector2 right, Vector2 left, Rectangle tile, Color color) {
     std::array<Vector2, 8> polygon{eye, right, left};
     int count = 3;
@@ -179,9 +204,10 @@ void Renderer::drawGuardCone(const Guard& guard, Vec2 position, const TileMap& m
     }
 }
 
-Renderer::Renderer(Logger& logger)
+Renderer::Renderer(Logger& logger, const RenderConfig& config)
     : surface_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)),
-      world_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)) {
+      world_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)),
+      config_(config) {
 #ifdef __EMSCRIPTEN__
     const char* path = "assets/shaders/glsl100/post.fs";
 #else
@@ -287,11 +313,24 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                 topLeft.x >= Letterbox::kWidth || topLeft.y >= Letterbox::kHeight)
                 continue;
             const float reveal = overview ? 1.0f : ripple.visibility(x, y, player.pos, map);
-            if (reveal <= 0) continue;
-            DrawRectangleRec({x * size, y * size, size, size},
-                             Fade(tile == TileType::Wall ? kTeal : kDeepTeal, reveal));
-            if (tile != TileType::Wall && tile != TileType::Floor && !map.isOpen(x, y) &&
-                tile != TileType::PlayerSpawn) {
+            if (tile == TileType::Wall) {
+                if (reveal > 0)
+                    DrawRectangleRec({x * size, y * size, size, size}, Fade(kTeal, reveal));
+                const Color edge = Fade(kTeal, std::max(reveal, config_.ambientWallAlpha));
+                if (map.isPassable(x - 1, y)) DrawRectangleRec({x * size, y * size, 2, size}, edge);
+                if (map.isPassable(x + 1, y))
+                    DrawRectangleRec({(x + 1) * size - 2, y * size, 2, size}, edge);
+                if (map.isPassable(x, y - 1)) DrawRectangleRec({x * size, y * size, size, 2}, edge);
+                if (map.isPassable(x, y + 1))
+                    DrawRectangleRec({x * size, (y + 1) * size - 2, size, 2}, edge);
+            } else {
+                DrawRectangleRec({x * size, y * size, size, size},
+                                 Fade(kDeepTeal, std::max(reveal, config_.ambientFloorAlpha)));
+            }
+            if (level.name == "Gotham Central Bank" && tile == TileType::Floor)
+                drawBankFurniture(x, y, size, std::max(reveal, config_.ambientFloorAlpha));
+            if (reveal > 0 && tile != TileType::Wall && tile != TileType::Floor &&
+                !map.isOpen(x, y) && tile != TileType::PlayerSpawn) {
                 const auto center = map.tileCenter({x, y});
                 const auto color = map.isPassable(x, y) ? kGold : kBone;
                 DrawRectangleRec(
