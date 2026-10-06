@@ -102,6 +102,7 @@ A second job for the web build is added in Week 4. A red CI blocks merging.
 | `AlarmDirector` | Every trigger in GDD 4.6 raises the alarm exactly once |
 | `Pathfinder` | Finds a path; no path returns empty; avoids walls |
 | `CombatSystem` | Damage, armor order, shield block, ammo, reload |
+| `PickupSystem` | Seeded police-only drop outcomes, duplicate death rejection, collection range/LOS and interaction priority, capped restoration, full/dead-player rejection |
 | `WaveSpawner` | Timing, composition, cap on alive enemies |
 | `ObjectiveSystem` | Stage order; presets for checkpoint retry |
 | `ScoreSystem` | Payout maths, ghost bonus, deductions, ranks |
@@ -133,7 +134,7 @@ Three sessions with classmates: end of week 2 (Sun 18 Oct), end of week 3 (Sun 2
 - [ ] Alarm sequence plays fully; palette flips; ping disabled
 - [ ] Waves spawn on time and respect the cap
 - [ ] Three guns fire, reload, run dry; shield cop blocks frontal fire
-- [ ] Armor regenerates; medkit and plates work
+- [ ] Armor regenerates; medkits and plates restore +50 capped, E collection respects range/LOS and mission/pager priority, full resources leave pickups unconsumed
 **Death and payout**
 - [ ] Busted screen appears; Retry returns to the right stage preset
 - [ ] Payout lines add up; rank matches thresholds; best score saves
