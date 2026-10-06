@@ -255,7 +255,7 @@ TEST_F(Render, DetectionPieFillsClockwiseAndStaysHiddenWithItsGuard) {
     level.guards.push_back(spawn);
     World world(std::move(level), PlayerConfig{});
     EventBus events;
-    DetectionSystem detection(events, logger);
+    DetectionSystem detection(events, logger, world.guards);
     RippleSystem ripple(PingConfig{}, world.level.map);
     world.player.pos = world.guards.front().pos;
     detection.update(0.5f, world.player, world.level.map, world.guards);
@@ -287,5 +287,12 @@ TEST_F(Render, DetectionPieFillsClockwiseAndStaysHiddenWithItsGuard) {
     EXPECT_GT(GetImageColor(image, 211, 190).r, 200);
     EXPECT_GT(GetImageColor(image, 312, 216).r, GetImageColor(image, 312, 216).g);
     EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day10-detection-preview.png"));
+    UnloadImage(image);
+    ASSERT_TRUE(world.guards.front().takeDown(events));
+    image = capture();
+    EXPECT_GT(GetImageColor(image, 216, 216).r, 200);
+    EXPECT_LT(GetImageColor(image, 312, 216).r, 35);
+    EXPECT_LT(GetImageColor(image, 221, 190).r, 35);
+    EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day12-body-preview.png"));
     UnloadImage(image);
 }

@@ -77,6 +77,7 @@ void Game::tick() {
 #endif
     }
     input_.startClicked = input_.startClicked || IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    input_.takedownPressed = input_.takedownPressed || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
     input_.move = {static_cast<float>((IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) -
                                       (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))),
                    static_cast<float>((IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) -

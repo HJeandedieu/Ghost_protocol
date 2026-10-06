@@ -15,6 +15,7 @@ struct Input {
     bool pingHeld = false;
     bool interactHeld = false;
     bool interactPressed = false;
+    bool takedownPressed = false;
     void clearEdges() {
         confirmPressed = false;
         startClicked = false;
@@ -22,5 +23,6 @@ struct Input {
         crouchPressed = false;
         pingPressed = false;
         interactPressed = false;
+        takedownPressed = false;
     }
 };

@@ -49,7 +49,7 @@ class DetectionSystemTest : public testing::Test {
 };
 
 TEST_F(DetectionSystemTest, FillsAtNearMidpointAndFarRatesForTargetLighting) {
-    DetectionSystem detection(events, logger);
+    DetectionSystem detection(events, logger, guards);
     detection.update(0.1f, player, map, guards);
     EXPECT_FLOAT_EQ(guards.front().detection(), 10);
     EXPECT_EQ(guards.front().state(), GuardState::Suspicious);
@@ -77,7 +77,7 @@ TEST_F(DetectionSystemTest, FillsAtNearMidpointAndFarRatesForTargetLighting) {
 }
 
 TEST_F(DetectionSystemTest, SprintCrouchAndDifficultyMultiplyFillButNotDecay) {
-    DetectionSystem detection(events, logger, 0.75f);
+    DetectionSystem detection(events, logger, guards, 0.75f);
     Input input;
     input.sprintHeld = true;
     player.update(0.01f, input, map);
@@ -93,7 +93,7 @@ TEST_F(DetectionSystemTest, SprintCrouchAndDifficultyMultiplyFillButNotDecay) {
 }
 
 TEST_F(DetectionSystemTest, SuspicionStopsPatrolTurnsTowardPlayerAndDecaysToCalm) {
-    DetectionSystem detection(events, logger);
+    DetectionSystem detection(events, logger, guards);
     player.pos = {172, 100};
     detection.update(0.1f, player, map, guards);
     auto& guard = guards.front();
@@ -112,7 +112,7 @@ TEST_F(DetectionSystemTest, SuspicionStopsPatrolTurnsTowardPlayerAndDecaysToCalm
 }
 
 TEST_F(DetectionSystemTest, CallInStartsOnceAndContinuesAfterLosingSight) {
-    DetectionSystem detection(events, logger);
+    DetectionSystem detection(events, logger, guards);
     detection.update(1, player, map, guards);
     events.dispatch();
     auto& guard = guards.front();
@@ -139,7 +139,7 @@ TEST_F(DetectionSystemTest, CallInStartsOnceAndContinuesAfterLosingSight) {
 }
 
 TEST_F(DetectionSystemTest, LargeTickCarriesOnlyPostSpotTimeIntoCallIn) {
-    DetectionSystem detection(events, logger);
+    DetectionSystem detection(events, logger, guards);
     detection.update(2, player, map, guards);
     EXPECT_FLOAT_EQ(guards.front().callInRemaining(), 2);
     detection.update(20, player, map, guards);
@@ -158,7 +158,7 @@ TEST_F(DetectionSystemTest, CrouchedDarkFillUsesReducedRangeAndConfiguredCallIn)
     spawn.waypoints = {{1, 1}};
     guards.clear();
     guards.emplace_back(spawn, map, config);
-    DetectionSystem detection(events, logger);
+    DetectionSystem detection(events, logger, guards);
     Input input;
     input.crouchPressed = true;
     player.update(0.01f, input, map);
@@ -176,7 +176,7 @@ TEST_F(DetectionSystemTest, CrouchedDarkFillUsesReducedRangeAndConfiguredCallIn)
 }
 
 TEST_F(DetectionSystemTest, OcclusionAndOutsideConeOrRangeDoNotFill) {
-    DetectionSystem detection(events, logger);
+    DetectionSystem detection(events, logger, guards);
     player.pos = {300, 72};
     detection.update(1, player, map, guards);
     player.pos = {24, 72};
@@ -195,7 +195,7 @@ TEST_F(DetectionSystemTest, OcclusionAndOutsideConeOrRangeDoNotFill) {
 }
 
 TEST_F(DetectionSystemTest, InvalidTimeIsIgnoredAndGuardsKeepIndependentMeters) {
-    DetectionSystem detection(events, logger);
+    DetectionSystem detection(events, logger, guards);
     GuardSpawn spawn;
     spawn.id = "G02";
     spawn.mode = PatrolMode::Stationary;

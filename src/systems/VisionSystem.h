@@ -1,11 +1,14 @@
 #pragma once
 
+#include <vector>
+
 #include "core/Config.h"
 #include "core/Vec2.h"
 #include "world/TileMap.h"
 
 class Guard;
 class Player;
+class EventBus;
 
 class VisionSystem {
    public:
@@ -14,6 +17,7 @@ class VisionSystem {
               const TileMap& map) const;
     float rangeFor(LightLevel light, bool crouched) const;
     bool sees(const Guard& guard, const Player& player, const TileMap& map) const;
+    void findBodies(const std::vector<Guard>& guards, const TileMap& map, EventBus& events) const;
 
    private:
     const GuardConfig config_;

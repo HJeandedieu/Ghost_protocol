@@ -48,12 +48,16 @@ class EventBus {
 
    private:
     using Event = std::variant<NoiseEmitted, GuardSuspicious, GuardSpotted, CallInStarted,
-                               InteractionProgress, InteractionDone, SecurityLooped>;
+                               CallInCancelled, GuardTakenDown, BodyFound, InteractionProgress,
+                               InteractionDone, SecurityLooped>;
     std::vector<Event> pending_, delivering_;
     std::tuple<std::vector<std::function<void(const NoiseEmitted&)>>,
                std::vector<std::function<void(const GuardSuspicious&)>>,
                std::vector<std::function<void(const GuardSpotted&)>>,
                std::vector<std::function<void(const CallInStarted&)>>,
+               std::vector<std::function<void(const CallInCancelled&)>>,
+               std::vector<std::function<void(const GuardTakenDown&)>>,
+               std::vector<std::function<void(const BodyFound&)>>,
                std::vector<std::function<void(const InteractionProgress&)>>,
                std::vector<std::function<void(const InteractionDone&)>>,
                std::vector<std::function<void(const SecurityLooped&)>>>
