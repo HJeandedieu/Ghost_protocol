@@ -273,7 +273,7 @@ Enemy accuracy 0.3 to 0.4, reaction time 0.4 s, pathing by A* on the tile grid.
 | Chatter (SMG) | 12 | 30 / 150 | 12/s | 1.8 s | 420 px | 900 px |
 | Gavel (shotgun) | 8 pellets x 9 | 6 / 24 | 1.2/s | 2.4 s | 260 px | 900 px |
 
-Shots are hitscan with a visible tracer. Spread: pistol 2°, SMG 6°, shotgun 18°.
+Shots are hitscan with a visible tracer. Spread: pistol 2°, SMG 6°, shotgun 18° total cone width (author confirmed 6 October 2026), sampled within ±half the listed angle for each pellet.
 
 ### 4.9 Payout, ranks, failure
 - Subtotal = bags x $20,000 (spoiled bag = $10,000).

@@ -103,6 +103,8 @@ Reference-first visibility (author confirmed 6 October 2026): `render.ambient_fl
 ```
 Spawn points: `front` = tile (51,46), `service` = tile (21,44), `east` = tile (67,38). Enemies appear just outside view and enter through those tiles.
 
+Author clarification (6 October 2026): `spread_deg` is the total cone width. Each hitscan pellet samples a direction within `aim - spread_deg / 2` and `aim + spread_deg / 2` using the seeded RNG. Whisper/Chatter/Gavel therefore use ±1°/±3°/±9°.
+
 ## 4. Level files
 
 ### 4.1 Terrain: `gotham_central.map`
