@@ -129,6 +129,9 @@ struct AlarmConfig {
     float barsIn = 0.6f;
     float barsOut = 1.2f;
     float shakeTrauma = 0.8f;
+    float traumaDecay = 1.5f;
+    float bannerTime = 2.5f;
+    float shakePixels = 12.f;
     float firstWaveDelay = 30.0f;
     float waveInterval = 25.0f;
     float maxAlive = 12.0f;

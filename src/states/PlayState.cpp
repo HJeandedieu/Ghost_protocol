@@ -28,6 +28,7 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       pickups_(events_, config.pickup, seed),
       enemyCombat_(events_, world_, combat_, pickups_, enemies, config, seed),
       waves_(events_, world_, enemies, waves, entries, config.alarm),
+      alarmSequence_(events_, config.alarm, seed),
       config_(config) {
     noise_.setWeapons(weapons, config.noise);
     noise_.setEnemies(enemies);
@@ -56,6 +57,9 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
 void PlayState::enter() {}
 void PlayState::exit() {}
 void PlayState::update(float dt) {
+    if (!std::isfinite(dt) || dt <= 0) return;
+    const float realDt = dt;
+    dt = alarmSequence_.advance(realDt);
     if (world_.player.dead()) {
         renderer_.updateHealthHud(dt, world_.player);
         return;
@@ -131,8 +135,8 @@ void PlayState::update(float dt) {
     }
     const float halfWidth = Letterbox::kWidth * 0.5f / zoom;
     const float halfHeight = Letterbox::kHeight * 0.5f / zoom;
-    waves_.update(dt, {viewCenter.x - halfWidth, viewCenter.y - halfHeight,
-                       viewCenter.x + halfWidth, viewCenter.y + halfHeight});
+    waves_.update(realDt, {viewCenter.x - halfWidth, viewCenter.y - halfHeight,
+                           viewCenter.x + halfWidth, viewCenter.y + halfHeight});
     events_.dispatch();
 #ifndef NDEBUG
     if (input_.debugPressed) debugView_ = !debugView_;
@@ -142,11 +146,12 @@ void PlayState::render(float alpha) {
     renderer_.drawLevel(world_.level, world_.player, ripple_, camera_.interpolatedTarget(alpha),
                         facing_, alpha, debugView_, seed_, world_.guards, world_.cameras,
                         world_.lasers, world_.securityLoopRemaining > 0, &combat_, world_.pickups,
-                        world_.alarmLoud, world_.enemies, &enemyCombat_);
+                        world_.alarmLoud, world_.enemies, &enemyCombat_, &alarmSequence_);
     renderer_.drawInteractionHud(world_, interaction_, noise_.currentRadius(),
                                  config_.noise.sprint);
     renderer_.drawWeaponHud(combat_);
     renderer_.drawPickupHud(pickups_.target(world_, interaction_.claimedThisTick()));
     renderer_.drawStealthHud(alarm_, pagers_, world_.guards);
     if (world_.alarmLoud) renderer_.drawWaveHud(waves_);
+    renderer_.drawAlarmSequence(alarmSequence_);
 }

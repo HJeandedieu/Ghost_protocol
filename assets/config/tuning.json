@@ -111,7 +111,10 @@
     "shake_trauma": 0.8,
     "first_wave_delay": 30,
     "wave_interval": 25,
-    "max_alive": 12
+    "max_alive": 12,
+    "trauma_decay": 1.5,
+    "banner_time": 2.5,
+    "shake_pixels": 12
   },
   "mission": {
     "lockpick": 4,

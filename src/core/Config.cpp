@@ -222,6 +222,12 @@ Config Config::load(const std::string& path, Logger& logger) {
     config.alarm.barsOut = readNumber(alarm, "bars_out", config.alarm.barsOut, "alarm", logger);
     config.alarm.shakeTrauma =
         readNumber(alarm, "shake_trauma", config.alarm.shakeTrauma, "alarm", logger);
+    config.alarm.traumaDecay =
+        readNumber(alarm, "trauma_decay", config.alarm.traumaDecay, "alarm", logger);
+    config.alarm.bannerTime =
+        readNumber(alarm, "banner_time", config.alarm.bannerTime, "alarm", logger);
+    config.alarm.shakePixels =
+        readNumber(alarm, "shake_pixels", config.alarm.shakePixels, "alarm", logger);
     config.alarm.firstWaveDelay =
         readNumber(alarm, "first_wave_delay", config.alarm.firstWaveDelay, "alarm", logger);
     config.alarm.waveInterval =

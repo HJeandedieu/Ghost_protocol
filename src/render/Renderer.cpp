@@ -12,6 +12,7 @@
 #include "entities/Player.h"
 #include "entities/SecurityCamera.h"
 #include "raylib.h"
+#include "render/AlarmSequence.h"
 #include "render/Letterbox.h"
 #include "render/Palette.h"
 #include "systems/AlarmDirector.h"
@@ -221,6 +222,7 @@ Renderer::Renderer(Logger& logger, const RenderConfig& config)
     if (FileExists(path)) {
         post_ = LoadShader(nullptr, path);
         timeLocation_ = GetShaderLocation(post_, "elapsedTime");
+        alarmPulseLocation_ = GetShaderLocation(post_, "alarmPulse");
     }
     if (timeLocation_ < 0)
         logger.log(LogLevel::Error, "Post shader unavailable; using plain rendering");
@@ -246,6 +248,8 @@ void Renderer::compose(bool effects) {
     if (useShader) {
         const float elapsed = static_cast<float>(GetTime());
         SetShaderValue(post_, timeLocation_, &elapsed, SHADER_UNIFORM_FLOAT);
+        if (alarmPulseLocation_ >= 0)
+            SetShaderValue(post_, alarmPulseLocation_, &alarmPulse_, SHADER_UNIFORM_FLOAT);
         BeginShaderMode(post_);
     }
     DrawTextureRec(
@@ -293,12 +297,14 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                          const CombatSystem* combat,
                          const std::vector<std::unique_ptr<RecoveryPickup>>& pickups,
                          bool pickupsLit, const std::vector<std::unique_ptr<Enemy>>& enemies,
-                         const EnemyCombatSystem* enemyCombat) {
+                         const EnemyCombatSystem* enemyCombat, const AlarmSequence* alarmSequence) {
     constexpr Color kBone = {233, 228, 208, 255};
     constexpr Color kGold = {242, 183, 5, 255};
     constexpr Color kAlarm = {255, 59, 92, 255};
-    const Color wallColor = pickupsLit ? Palette::Alarm : Palette::Teal;
-    const Color floorColor = pickupsLit ? Palette::DarkAlarm : Palette::DeepTeal;
+    const float flip = pickupsLit ? (alarmSequence ? alarmSequence->paletteBlend() : 1.f) : 0.f;
+    const Color wallColor = ColorLerp(Palette::Teal, Palette::Alarm, flip);
+    const Color floorColor = ColorLerp(Palette::DeepTeal, Palette::DarkAlarm, flip);
+    alarmPulse_ = alarmSequence && !reduceEffects_ ? alarmSequence->vignettePulse() : 0.f;
     const auto& map = level.map;
     if (!guards.empty()) prepareLevel(level);
     const float size = static_cast<float>(map.tileSize());
@@ -311,6 +317,11 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
         camera.target = {map.width() * size * 0.5f, map.height() * size * 0.5f};
         camera.zoom = std::min((Letterbox::kWidth - 48.0f) / (map.width() * size),
                                (Letterbox::kHeight - 128.0f) / (map.height() * size));
+    }
+    if (alarmSequence) {
+        const auto offset = alarmSequence->shakeOffset(reduceEffects_);
+        camera.offset.x += offset.x;
+        camera.offset.y += offset.y;
     }
     BeginMode2D(camera);
     for (int y = 0; y < map.height(); ++y) {
@@ -694,4 +705,18 @@ void Renderer::drawWeaponHud(const CombatSystem& combat) const {
     };
     meter(healthHud_.displayedHp(), healthHud_.maximumHp(), 606, {255, 59, 92, 255}, "HEALTH");
     meter(healthHud_.displayedArmor(), healthHud_.maximumArmor(), 636, kBone, "ARMOR");
+}
+
+void Renderer::drawAlarmSequence(const AlarmSequence& sequence) const {
+    const int height = static_cast<int>(std::round(sequence.barsFraction() * 48));
+    if (height > 0) {
+        DrawRectangle(0, 0, Letterbox::kWidth, height, {10, 10, 12, 255});
+        DrawRectangle(0, Letterbox::kHeight - height, Letterbox::kWidth, height, {10, 10, 12, 255});
+    }
+    if (sequence.bannerVisible()) {
+        DrawRectangle(0, 16, Letterbox::kWidth, 48, Palette::Alarm);
+        const char* message = "POLICE INBOUND";
+        DrawText(message, (Letterbox::kWidth - MeasureText(message, 28)) / 2, 26, 28,
+                 Palette::Bone);
+    }
 }
