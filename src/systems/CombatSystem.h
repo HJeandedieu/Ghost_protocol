@@ -6,6 +6,8 @@
 #include "core/Rng.h"
 #include "entities/Weapon.h"
 class EventBus;
+class Entity;
+class Player;
 struct World;
 struct PelletHit {
     Vec2 from;
@@ -21,6 +23,8 @@ class CombatSystem {
    public:
     CombatSystem(EventBus& events, const std::vector<WeaponSpec>& specs, std::uint32_t seed);
     void update(float dt, const Input& input, float dirDeg, World& world);
+    void applyDamage(Entity& target, float amount, const std::string& sourceId);
+    void updateHealth(float dt, Player& player);
     HitResult fire(const Weapon& weapon, Vec2 from, float dirDeg, Rng& rng, World& world);
     const Weapon& activeWeapon() const { return weapons_[activeSlot_]; }
     int activeSlot() const { return activeSlot_; }

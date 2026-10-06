@@ -76,6 +76,7 @@ void Game::tick() {
         if (key == KEY_TWO) input_.weaponSlot = 1;
         if (key == KEY_E) input_.interactPressed = true;
 #ifndef NDEBUG
+        if (key == KEY_F6) input_.debugDamagePressed = true;
         if (key == KEY_F3) input_.debugPressed = true;
 #endif
     }

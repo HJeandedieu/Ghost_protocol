@@ -63,7 +63,7 @@ add_library(ghost_core STATIC
     src/entities/Player.cpp src/entities/Guard.cpp src/entities/Weapon.cpp
     src/entities/GuardAI.cpp
     src/entities/SecurityCamera.cpp src/entities/Laser.cpp
-    src/render/FollowCamera.cpp
+    src/render/FollowCamera.cpp src/render/HealthHud.cpp
     src/world/Raycast.cpp src/systems/RippleSystem.cpp
     src/world/Pathfinder.cpp
     src/systems/NoiseSystem.cpp src/systems/InteractionSystem.cpp
@@ -122,7 +122,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/TakedownTests.cpp
         tests/AlarmDirectorTests.cpp tests/PagerSystemTests.cpp
         tests/CameraTests.cpp tests/LaserSystemTests.cpp tests/HazardRevealTests.cpp
-        tests/StealthRunTests.cpp tests/CombatSystemTests.cpp
+        tests/StealthRunTests.cpp tests/CombatSystemTests.cpp tests/HealthTests.cpp
     )
     target_link_libraries(ghost_tests PRIVATE ghost_core GTest::gtest_main
         nlohmann_json::nlohmann_json)

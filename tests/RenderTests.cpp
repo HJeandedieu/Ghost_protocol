@@ -430,3 +430,50 @@ TEST_F(Render, WeaponTracerStopsAtWallAndAmmoPanelReflectsShotAndReload) {
     EXPECT_LT(GetImageColor(image, 780, 360).r, 40);
     UnloadImage(image);
 }
+
+TEST_F(Render, HealthAndArmorBarsDrainWithWorldHitFlashAndRemainStableWithGuards) {
+    std::ostringstream console;
+    Logger logger(console, "");
+    auto specs = loadWeapons("assets/config/weapons.json", logger);
+    ASSERT_TRUE(specs);
+    Level level;
+    std::string rows;
+    for (int y = 0; y < 15; ++y) rows += std::string(40, '.') + '\n';
+    std::istringstream source(rows);
+    level.map = TileMap::parse(source, 48);
+    level.playerSpawn = {13, 7};
+    World world(std::move(level), PlayerConfig{});
+    GuardSpawn spawn;
+    spawn.id = "G01";
+    spawn.waypoints = {{30, 7}};
+    world.guards.emplace_back(spawn, world.level.map, GuardConfig{});
+    EventBus bus;
+    CombatSystem combat(bus, *specs, 42);
+    Renderer renderer(logger);
+    renderer.resetHealthHud(world.player);
+    bus.subscribe<EntityDamaged>([&](const auto&) { renderer.notifyHealthDamage(); });
+    combat.applyDamage(world.player, 65, "cop");
+    bus.dispatch();
+    renderer.updateHealthHud(0.15f, world.player);
+    RippleSystem ripple(PingConfig{}, world.level.map);
+    renderer.beginFrame();
+    renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, false, 1234,
+                       world.guards);
+    renderer.drawWeaponHud(combat);
+    renderer.present();
+    auto image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    const auto health = GetImageColor(image, 80, 612);
+    EXPECT_EQ(health.r, 255);
+    EXPECT_EQ(health.g, 59);
+    const auto armor = GetImageColor(image, 100, 642);
+    EXPECT_EQ(armor.r, 233);
+    EXPECT_EQ(armor.g, 228);
+    EXPECT_EQ(GetImageColor(image, 180, 642).r, 40);
+    EXPECT_GT(GetImageColor(image, 400, 200).r, 20);
+    EXPECT_EQ(GetImageColor(image, 30, 540).r, 20);
+    EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day16-health-preview.png"));
+    EXPECT_FLOAT_EQ(world.player.hp(), 85);
+    EXPECT_FLOAT_EQ(world.player.armor(), 0);
+    UnloadImage(image);
+}
