@@ -103,6 +103,8 @@ If the alarm was already Loud when the player died, the retry keeps the Loud sta
 `Alive -> (HP 0) Downed -> GameState: Busted`. There is no bleed-out or revive in the MVP.
 
 ### 3.6 Hazards: proximity reveal and the security loop
+**Environmental presentation (author reference-first decision, 6 October 2026):** the renderer may draw static architecture and decorative furnishings at the faint `render` baseline described in Visual Reference §2. This is independent of `RippleSystem::visibility` and entity `reveal`. It never changes visibility used to draw threats/interaction markers or lighting used by detection. Only `RippleSystem` writes `reveal`.
+
 **Proximity reveal (tuning key `ping.hazard_reveal_radius` = 120 px).** Lasers and camera lenses are hazards. Each tick, after `RippleSystem::update`, `RippleSystem::applyProximity(playerPos, tileMap, hazards)` computes the distance from the player's centre to the nearest point of each hazard (laser: nearest point on its segment; camera: its position). If that distance is at most `hazard_reveal_radius` **and** `Raycast::hasLineOfSight(playerPos, nearestPoint)` is true, the hazard's `reveal` is set to 1.0 for this tick (pinned). Otherwise its reveal decays by the normal `ping.fade` rule. Pings reveal hazards like any other entity. This applies in the Stealth phase only (in the Loud phase everything is visible). A looped (disabled) hazard can still be revealed. `RippleSystem` remains the only writer of `reveal`.
 
 **Security loop.** Completing the Security panel interaction raises `SecurityLooped { secondsLeft = camera.loop_seconds (120) }`. For those 120 s:

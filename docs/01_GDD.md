@@ -27,7 +27,7 @@ Every open question was answered before implementation. "Author" = stated by the
 | D-16 | Controls | Keyboard + mouse. Arrows **and** WASD both move. Free 360° movement, mouse aim | Author + Proposed |
 | D-17 | Movement | Walk, sprint (louder), crouch/sneak (quieter, slower). Player sprint beats every guard; walking beats patrolling guards | Author + Proposed |
 | D-18 | Camera | Follows player with smoothing and slight lead toward the mouse | Author + Proposed |
-| D-19 | Core hook | **Ping** (sound ripple) is the only way to see in the dark during stealth | Proposed |
+| D-19 | Core hook | **Ping** (sound ripple) reveals dark gameplay threats during stealth; architecture retains the faint reference-image baseline | Proposed |
 | D-20 | Weapons | Three guns (suppressed pistol, SMG, shotgun) + melee takedown; carry two | Author + Proposed |
 | D-21 | Takedowns, lasers, cameras | Included. **No hiding spots. No civilians or hostages.** | Author |
 | D-22 | Phases | Stealth phase, then Loud phase once the alarm fires. A no-alarm "Ghost run" is possible and rewarded | Proposed |
@@ -53,10 +53,10 @@ Every open question was answered before implementation. "Author" = stated by the
 Defines what Ghost Protocol is and exactly how it behaves, so implementation needs no further questions.
 
 ### 1.2 Product summary
-Ghost Protocol is a single-player, top-down 2D stealth-action heist game. The player is **Ghost**, a thief who breaks into Gotham Central Bank at night, finds a keycard, restores power to the vault gate, opens the vault, carries ten bags of cash to a getaway van, and survives. The player starts in total darkness and sees only by sending out sound **pings**. If guards catch on, the alarm fires, the lights come on, police swarm in, and the heist becomes a gunfight. A voice in the player's ear (the **Handler**) guides and mocks them throughout.
+Ghost Protocol is a single-player, top-down 2D stealth-action heist game. The player is **Ghost**, a thief who breaks into Gotham Central Bank at night, finds a keycard, restores power to the vault gate, opens the vault, carries ten bags of cash to a getaway van, and survives. The player starts in near-darkness with faint room structure; sound **pings** reveal nearby detail and threats. If guards catch on, the alarm fires, the lights come on, police swarm in, and the heist becomes a gunfight. A voice in the player's ear (the **Handler**) guides and mocks them throughout.
 
 ### 1.3 Design pillars
-1. **Blind but clever.** Sound is your only eyesight, and every ping tells guards where you are.
+1. **Blind but clever.** Sound reveals threats in the dark, faint room structure aids orientation, and every ping tells guards where you are.
 2. **Quiet in, loud out.** The best run is silent; the most exciting run goes wrong at the worst moment.
 3. **Funny and stylish.** Flat vector shapes, a bold palette, and a Handler who never panics (until she does).
 4. **Always readable.** Every threat and objective is understandable within a second.
@@ -164,6 +164,7 @@ Sprinting outruns every enemy; walking outruns patrolling guards; bullets outrun
 | Halo | 96 px circle always visible around the player |
 
 Rules:
+- Author decision (6 October 2026): the gameplay reference image takes priority over conflicting older blackout descriptions. Static floors, room-facing wall edges and decoration retain a faint presentation baseline (`render.ambient_floor_alpha = 0.06`, `render.ambient_wall_alpha = 0.16`). This never exposes threats or interaction markers or changes detection; see Visual Reference §2.
 - The wave is blocked by walls and doors. It reveals tiles, items, entities, and guard cones that have line of sight to the origin within its radius.
 - Lasers and camera lenses are revealed only by a ping, or when within 120 px of the player with a clear line of sight (tuning key `ping.hazard_reveal_radius`).
 - **Lit zones** (security room, counting room, foyer, street) are always visible. The main hall is **dim** (always faintly visible). Everything else is **dark**.
