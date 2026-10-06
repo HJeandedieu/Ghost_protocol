@@ -13,6 +13,7 @@
 #include "raylib.h"
 #include "render/Letterbox.h"
 #include "systems/AlarmDirector.h"
+#include "systems/CombatSystem.h"
 #include "systems/InteractionSystem.h"
 #include "systems/PagerSystem.h"
 #include "systems/RippleSystem.h"
@@ -284,7 +285,8 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                          Vec2 cameraTarget, float facing, float alpha, bool overview,
                          std::uint32_t seed, const std::vector<Guard>& guards,
                          const std::vector<SecurityCamera>& cameras,
-                         const std::vector<Laser>& lasers, bool securityLooped) {
+                         const std::vector<Laser>& lasers, bool securityLooped,
+                         const CombatSystem* combat) {
     constexpr Color kBone = {233, 228, 208, 255};
     constexpr Color kTeal = {63, 143, 140, 255};
     constexpr Color kDeepTeal = {30, 74, 74, 255};
@@ -471,6 +473,28 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
     if (!overview)
         DrawRing({spawn.x, spawn.y}, player.radius + 4, player.radius + 6, -90,
                  -90 + 360 * ripple.cooldownFraction(), 64, kBone);
+    if (combat && combat->shotAge() < 0.08f) {
+        const float opacity = 1.0f - combat->shotAge() / 0.08f;
+        for (const auto& pellet : combat->lastShot().pellets) {
+            const float distance =
+                std::hypot(pellet.to.x - pellet.from.x, pellet.to.y - pellet.from.y);
+            if (distance <= player.radius * 1.7f) continue;
+            const float fraction = player.radius * 1.7f / distance;
+            const Vector2 muzzle{pellet.from.x + (pellet.to.x - pellet.from.x) * fraction,
+                                 pellet.from.y + (pellet.to.y - pellet.from.y) * fraction};
+            DrawLineEx(muzzle, {pellet.to.x, pellet.to.y}, 2, Fade(kGold, opacity));
+        }
+        if (!reduceEffects_ && combat->shotAge() < 0.05f && !combat->lastShot().pellets.empty()) {
+            const auto& shot = combat->lastShot().pellets.front();
+            const float angle = shot.dirDeg * (kPi / 180.0f);
+            const Vector2 forward{std::cos(angle), std::sin(angle)};
+            const Vector2 muzzle{shot.from.x + forward.x * player.radius * 1.7f,
+                                 shot.from.y + forward.y * player.radius * 1.7f};
+            DrawTriangle({muzzle.x + forward.x * 14, muzzle.y + forward.y * 14},
+                         {muzzle.x + forward.y * 6, muzzle.y - forward.x * 6},
+                         {muzzle.x - forward.y * 6, muzzle.y + forward.x * 6}, kGold);
+        }
+    }
     EndMode2D();
     compose(true);
     DrawRectangle(0, 0, Letterbox::kWidth, 64, {20, 22, 27, 255});
@@ -540,4 +564,22 @@ void Renderer::drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pag
                      560, y, 18, kBone);
             y += 24;
         }
+}
+
+void Renderer::drawWeaponHud(const CombatSystem& combat) const {
+    const auto& weapon = combat.activeWeapon();
+    constexpr Color kBone{233, 228, 208, 255};
+    constexpr Color kGold{242, 183, 5, 255};
+    DrawRectangle(24, 564, 264, 88, {20, 22, 27, 255});
+    DrawRectangleLinesEx({24, 564, 264, 88}, 1, Fade(kBone, 0.6f));
+    const std::string name = std::to_string(combat.activeSlot() + 1) + "  " + weapon.spec().name;
+    DrawText(name.c_str(), 40, 576, 22, kBone);
+    const std::string ammunition =
+        std::to_string(weapon.ammunition()) + " / " + std::to_string(weapon.reserve());
+    DrawText(ammunition.c_str(), 40, 608, 26, kGold);
+    if (weapon.reloadRemaining() > 0) {
+        DrawText("RELOADING", 158, 614, 16, kBone);
+        const float progress = 1 - weapon.reloadRemaining() / weapon.spec().reload;
+        DrawRectangle(40, 643, static_cast<int>(232 * progress), 3, kGold);
+    }
 }

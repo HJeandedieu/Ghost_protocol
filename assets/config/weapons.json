@@ -1,0 +1,43 @@
+{
+  "weapons": [
+    {
+      "id": "whisper",
+      "name": "Whisper",
+      "damage": 22,
+      "pellets": 1,
+      "mag": 12,
+      "reserve": 60,
+      "rate": 4,
+      "reload": 1.4,
+      "range": 520,
+      "spread_deg": 2,
+      "noise": "shot_suppressed"
+    },
+    {
+      "id": "chatter",
+      "name": "Chatter",
+      "damage": 12,
+      "pellets": 1,
+      "mag": 30,
+      "reserve": 150,
+      "rate": 12,
+      "reload": 1.8,
+      "range": 420,
+      "spread_deg": 6,
+      "noise": "shot"
+    },
+    {
+      "id": "gavel",
+      "name": "Gavel",
+      "damage": 9,
+      "pellets": 8,
+      "mag": 6,
+      "reserve": 24,
+      "rate": 1.2,
+      "reload": 2.4,
+      "range": 260,
+      "spread_deg": 18,
+      "noise": "shot"
+    }
+  ]
+}
