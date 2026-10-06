@@ -102,6 +102,7 @@ A second job for the web build is added in Week 4. A red CI blocks merging.
 | `AlarmDirector` | Every trigger in GDD 4.6 raises the alarm exactly once |
 | `Pathfinder` | Finds a path; no path returns empty; avoids walls |
 | `CombatSystem` | Damage, armor order, shield block, ammo, reload |
+| `Enemy` / `Cop` | Documented enemy data, range/LOS acquisition, reaction reset, burst timing and seeded accuracy, blocked movement, dead-target exclusion and one death/drop notification |
 | `PickupSystem` | Seeded police-only drop outcomes, duplicate death rejection, collection range/LOS and interaction priority, capped restoration, full/dead-player rejection |
 | `WaveSpawner` | Timing, composition, cap on alive enemies |
 | `ObjectiveSystem` | Stage order; presets for checkpoint retry |

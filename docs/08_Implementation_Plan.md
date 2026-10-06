@@ -188,6 +188,7 @@ Every day lists: **Goal**, **Tasks** (do them in order), and **Done when** (the 
 1. `Enemy` base + `Cop` from `enemies.json`: Advance by A* until within 300 px, then strafe and shoot in bursts with 0.4 s reaction and the listed accuracy.
 2. Damage from the player kills enemies (`EntityDied`, fade out, drops).
 3. Patrol guards fight when in Combat state.
+4. Tests: range/LOS acquisition and reaction reset, three-bullet burst spacing and start rate, seeded accuracy, blocked/unreachable A* and strafing, player hits killing enemies, dead-target exclusion, one death/drop notification, and combat tuning validation (Systems Contract §3.2.1).
 **Done when:** a debug key spawns one cop who chases and shoots you, and you can kill him.
 
 ### Day 18: Thu 22 Oct (light, 2 h) Waves

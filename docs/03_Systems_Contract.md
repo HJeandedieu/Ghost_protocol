@@ -86,6 +86,16 @@ New noise or meter above 0 interrupts any of this and returns the guard to Suspi
 ### 3.2 Enemy (cop, shield cop, heavy)
 `Advance -> (range <= 300) Engage (strafe, shoot) -> (HP 0) Dead`. Shield cop: faces player, moves slowly toward them. Heavy: engages at 220 px.
 
+#### 3.2.1 Day 17 combat timing (author approved 6 October 2026)
+- Each enemy uses its `enemies.json` `engage` distance. Engage requires both range and clear `Raycast::hasLineOfSight` to the player. Losing either returns the cop to Advance and cancels any unfinished burst.
+- On acquiring range and LOS, wait `enemy_combat.reaction_time` (0.4 s) before the first bullet. Losing either resets this reaction delay; time spent without a firing opportunity does not satisfy it.
+- `accuracy` is a seeded hit probability per bullet in [0, 1]. Each bullet rolls independently; damage is possible only while range and LOS are valid. This probability is not a spread angle or a damage multiplier.
+- For the cop, `rate` = 1.2 is bursts per second, measured between burst starts. Each burst has the configured `burst` (3) bullets with `enemy_combat.burst_interval` (0.12 s) between bullets. Single-shot guard rates retain their documented shots-per-second meaning.
+- While Engaged, cops strafe perpendicular to the direction toward the player at `enemy_combat.strafe_speed` (80 px/s), starting clockwise on screen and reversing every `enemy_combat.strafe_reverse_time` (1.5 s). Movement uses circle-vs-tile collision; blocked strafing cannot pass through walls.
+- While Advancing, use A* toward the player and refresh the path every `enemy_combat.path_refresh` (0.5 s). If no path exists, remain in place and retry on that interval; never walk through blocking tiles.
+- At HP 0 an enemy enters Dead immediately, stops moving/firing and no longer blocks hitscan shots. `EntityDied` is raised once. Its presentation fades over `enemy_combat.death_fade` (0.6 s), independently of entity reveal. Police recovery drops follow §3.7, once per death.
+
+
 ### 3.3 Alarm
 `Quiet -> CallIn (at least one active call-in) -> Quiet (all cancelled) or Loud`. `Loud` is permanent for the mission; once Loud, ping is disabled and all lights are on.
 
