@@ -13,6 +13,7 @@
 #include "systems/EnemyCombatSystem.h"
 #include "systems/PickupSystem.h"
 #include "systems/WaveSpawner.h"
+#include "world/LevelLoader.h"
 #include "world/World.h"
 namespace {
 Level arena() {
@@ -273,4 +274,61 @@ TEST(Config, ZeroWaveIntervalFallsBackInsteadOfCreatingAnInfiniteSchedule) {
     const auto config = Config::load(files.write("zero-interval.json", data.dump()), logger);
     EXPECT_FLOAT_EQ(config.alarm.waveInterval, 25);
     EXPECT_NE(output.str().find("[WARN]"), std::string::npos);
+}
+
+TEST(WaveData, LoadsShippedSpawnEntriesAndUsesThemForTheFirstAssault) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    auto level = LevelLoader::load("assets/levels/gotham_central.json", logger);
+    ASSERT_TRUE(level);
+    const auto entries = loadSpawnPoints("assets/config/enemies.json", level->map, logger);
+    ASSERT_TRUE(entries);
+    EXPECT_EQ(entries->at("front").x, 51);
+    EXPECT_EQ(entries->at("front").y, 46);
+    EXPECT_EQ(entries->at("service").x, 21);
+    EXPECT_EQ(entries->at("service").y, 44);
+    EXPECT_EQ(entries->at("east").x, 67);
+    EXPECT_EQ(entries->at("east").y, 38);
+    Config config;
+    World world(std::move(*level), config.player);
+    EventBus bus;
+    WaveSpawner spawner(bus, world, loadEnemies("assets/config/enemies.json", logger).value(),
+                        loadWaves("assets/config/enemies.json", logger).value(), *entries,
+                        config.alarm);
+    spawner.update(60, kOffscreen);
+    EXPECT_TRUE(world.enemies.empty());
+    world.alarmLoud = true;
+    spawner.update(30, kOffscreen);
+    EXPECT_EQ(spawner.waveIndex(), 1);
+    ASSERT_EQ(world.enemies.size(), 4u);
+    for (const auto& enemy : world.enemies) {
+        const auto front = world.level.map.tileCenter(entries->at("front"));
+        const auto service = world.level.map.tileCenter(entries->at("service"));
+        EXPECT_TRUE((enemy->pos.x == front.x && enemy->pos.y == front.y) ||
+                    (enemy->pos.x == service.x && enemy->pos.y == service.y));
+    }
+}
+TEST(WaveData, RejectsMissingMalformedAndOutOfBoundsSpawnCoordinates) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    TestFiles files;
+    auto map = arena().map;
+    nlohmann::json original = {
+        {"spawn_points", {{"front", {2, 2}}, {"service", {6, 2}}, {"east", {9, 2}}}}};
+    ASSERT_TRUE(loadSpawnPoints(files.write("valid.json", original.dump()), map, logger));
+    for (const auto& point : {nlohmann::json::array({-1, 2}), nlohmann::json::array({12, 2}),
+                              nlohmann::json::array({2, 6}), nlohmann::json::array({2.5, 2}),
+                              nlohmann::json::array({2}), nlohmann::json::array({2, 2, 2}),
+                              nlohmann::json::array({4294967296LL, 2}), nlohmann::json("2,2")}) {
+        auto data = original;
+        data["spawn_points"]["front"] = point;
+        EXPECT_FALSE(loadSpawnPoints(files.write("invalid.json", data.dump()), map, logger));
+    }
+    auto data = original;
+    data["spawn_points"].erase("east");
+    EXPECT_FALSE(loadSpawnPoints(files.write("missing-entry.json", data.dump()), map, logger));
+    EXPECT_FALSE(loadSpawnPoints(files.write("missing-object.json", "{}"), map, logger));
+    EXPECT_FALSE(loadSpawnPoints(files.write("malformed.json", "{"), map, logger));
+    EXPECT_FALSE(loadSpawnPoints(files.path("missing.json"), map, logger));
+    EXPECT_NE(output.str().find("[ERROR]"), std::string::npos);
 }

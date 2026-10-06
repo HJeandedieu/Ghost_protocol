@@ -1,5 +1,6 @@
 #include "states/PlayState.h"
 
+#include <algorithm>
 #include <cmath>
 #include <utility>
 
@@ -9,7 +10,8 @@
 
 PlayState::PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed,
                      Renderer& renderer, Logger& logger, const std::vector<WeaponSpec>& weapons,
-                     const std::vector<EnemySpec>& enemies)
+                     const std::vector<EnemySpec>& enemies, const std::vector<WaveSpec>& waves,
+                     const std::map<std::string, TileCoord>& entries)
     : world_(std::move(level), config.player, config.guard, config.camera),
       input_(input),
       camera_(world_.player.pos, config.view),
@@ -25,6 +27,7 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       combat_(events_, weapons, seed),
       pickups_(events_, config.pickup, seed),
       enemyCombat_(events_, world_, combat_, pickups_, enemies, config, seed),
+      waves_(events_, world_, enemies, waves, entries, config.alarm),
       config_(config) {
     noise_.setWeapons(weapons, config.noise);
     noise_.setEnemies(enemies);
@@ -116,6 +119,19 @@ void PlayState::update(float dt) {
     enemyCombat_.update(dt);
     renderer_.updateHealthHud(dt, world_.player);
     alarm_.update();
+    Vec2 viewCenter = camera_.target();
+    float zoom = 1.f;
+    if (debugView_) {
+        const auto& map = world_.level.map;
+        const float width = static_cast<float>(map.width() * map.tileSize());
+        const float height = static_cast<float>(map.height() * map.tileSize());
+        viewCenter = {width * 0.5f, height * 0.5f};
+        zoom = std::min((Letterbox::kWidth - 48.f) / width, (Letterbox::kHeight - 128.f) / height);
+    }
+    const float halfWidth = Letterbox::kWidth * 0.5f / zoom;
+    const float halfHeight = Letterbox::kHeight * 0.5f / zoom;
+    waves_.update(dt, {viewCenter.x - halfWidth, viewCenter.y - halfHeight,
+                       viewCenter.x + halfWidth, viewCenter.y + halfHeight});
     events_.dispatch();
 #ifndef NDEBUG
     if (input_.debugPressed) debugView_ = !debugView_;
@@ -131,4 +147,5 @@ void PlayState::render(float alpha) {
     renderer_.drawWeaponHud(combat_);
     renderer_.drawPickupHud(pickups_.target(world_, interaction_.claimedThisTick()));
     renderer_.drawStealthHud(alarm_, pagers_, world_.guards);
+    if (world_.alarmLoud) renderer_.drawWaveHud(waves_);
 }

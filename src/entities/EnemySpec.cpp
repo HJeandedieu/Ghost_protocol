@@ -125,3 +125,37 @@ std::optional<std::vector<WaveSpec>> loadWaves(const std::string& path, Logger& 
         return std::nullopt;
     }
 }
+
+std::optional<std::map<std::string, TileCoord>> loadSpawnPoints(const std::string& path,
+                                                                const TileMap& map,
+                                                                Logger& logger) {
+    try {
+        std::ifstream file(path);
+        if (!file) throw std::runtime_error("Cannot open spawn points file");
+        nlohmann::json data;
+        file >> data;
+        const auto& points = data.at("spawn_points");
+        if (!points.is_object()) throw std::runtime_error("Invalid spawn points object");
+        std::map<std::string, TileCoord> result;
+        for (const auto& name : {"front", "service", "east"}) {
+            const auto& point = points.at(name);
+            if (!point.is_array() || point.size() != 2)
+                throw std::runtime_error("Spawn entry requires two coordinates");
+            TileCoord tile;
+            for (int axis = 0; axis < 2; ++axis) {
+                if (!point[axis].is_number_integer())
+                    throw std::runtime_error("Spawn coordinate must be an integer");
+                const auto value = point[axis].get<std::int64_t>();
+                const int bound = axis == 0 ? map.width() : map.height();
+                if (value < 0 || value >= bound)
+                    throw std::runtime_error("Spawn coordinate outside map bounds");
+                (axis == 0 ? tile.x : tile.y) = static_cast<int>(value);
+            }
+            result.emplace(name, tile);
+        }
+        return result;
+    } catch (const std::exception& error) {
+        logger.log(LogLevel::Error, "Invalid spawn points file: " + path + ": " + error.what());
+        return std::nullopt;
+    }
+}

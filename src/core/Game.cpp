@@ -139,10 +139,16 @@ void Game::showMenu(const std::string& error) {
                 showMenu("Unable to load enemies. Check the enemy file and try again.");
                 return;
             }
+            const auto waves = loadWaves("assets/config/enemies.json", logger_);
+            const auto entries = loadSpawnPoints("assets/config/enemies.json", level->map, logger_);
+            if (!waves || !entries) {
+                showMenu("Unable to load police waves. Check the enemy file and try again.");
+                return;
+            }
             logger_.log(LogLevel::Info, "State: Play");
             states_.replace(std::make_unique<PlayState>(std::move(*level), input_, config_,
                                                         rng_.seed(), *renderer_, logger_, *weapons,
-                                                        *enemies));
+                                                        *enemies, *waves, *entries));
         },
         error));
 }

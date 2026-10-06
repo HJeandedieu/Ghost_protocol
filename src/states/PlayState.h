@@ -19,6 +19,7 @@
 #include "systems/PagerSystem.h"
 #include "systems/PickupSystem.h"
 #include "systems/RippleSystem.h"
+#include "systems/WaveSpawner.h"
 #include "world/Level.h"
 #include "world/World.h"
 
@@ -29,7 +30,8 @@ class PlayState : public IState {
    public:
     PlayState(Level level, const Input& input, const Config& config, std::uint32_t seed,
               Renderer& renderer, Logger& logger, const std::vector<WeaponSpec>& weapons,
-              const std::vector<EnemySpec>& enemies);
+              const std::vector<EnemySpec>& enemies, const std::vector<WaveSpec>& waves,
+              const std::map<std::string, TileCoord>& entries);
     void enter() override;
     void exit() override;
     void update(float dt) override;
@@ -57,5 +59,6 @@ class PlayState : public IState {
     CombatSystem combat_;
     PickupSystem pickups_;
     EnemyCombatSystem enemyCombat_;
+    WaveSpawner waves_;
     const Config& config_;
 };
