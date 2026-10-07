@@ -122,6 +122,24 @@ Config Config::load(const std::string& path, Logger& logger) {
         logger.log(LogLevel::Warn, "Invalid ui.transition_time; using default");
         config.ui.transitionTime = UiConfig{}.transitionTime;
     }
+    config.ui.payoutLineTime =
+        readNumber(ui, "payout_line_time", config.ui.payoutLineTime, "ui", logger);
+    if (config.ui.payoutLineTime <= 0) {
+        logger.log(LogLevel::Warn, "Invalid ui.payout_line_time; using default");
+        config.ui.payoutLineTime = .18f;
+    }
+    config.ui.payoutCountTime =
+        readNumber(ui, "payout_count_time", config.ui.payoutCountTime, "ui", logger);
+    if (config.ui.payoutCountTime <= 0) {
+        logger.log(LogLevel::Warn, "Invalid ui.payout_count_time; using default");
+        config.ui.payoutCountTime = 1.2f;
+    }
+    config.ui.payoutStampTime =
+        readNumber(ui, "payout_stamp_time", config.ui.payoutStampTime, "ui", logger);
+    if (config.ui.payoutStampTime <= 0) {
+        logger.log(LogLevel::Warn, "Invalid ui.payout_stamp_time; using default");
+        config.ui.payoutStampTime = .25f;
+    }
     const auto& render = groupOrEmpty(data, "render", empty);
     config.render.ambientFloorAlpha = readNumber(
         render, "ambient_floor_alpha", config.render.ambientFloorAlpha, "render", logger, 1.0f);

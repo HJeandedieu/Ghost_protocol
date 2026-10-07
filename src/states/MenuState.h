@@ -14,7 +14,7 @@ class MenuState : public IState {
     MenuState(const Input& input, Renderer& renderer, UiConfig config, const Settings& settings,
               std::function<void()> start, std::function<bool(const Settings&)> save,
               std::function<void()> quit, std::string error = "",
-              std::function<void()> settingsBack = {});
+              std::function<void()> settingsBack = {}, const Scores* scores = nullptr);
     void enter() override {}
     void exit() override {}
     void update(float dt) override;
@@ -34,6 +34,7 @@ class MenuState : public IState {
     std::function<void()> quit_;
     std::function<void()> settingsBack_;
     std::string error_;
+    const Scores* scores_ = nullptr;
     Page page_ = Page::Menu;
     int focus_ = 0;
     int dragged_ = -1;

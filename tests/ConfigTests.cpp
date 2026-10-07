@@ -287,3 +287,27 @@ TEST(Config, UiTimingLoadsOverridesAndRejectsZeroNegativeAndOverflow) {
     EXPECT_FLOAT_EQ(ui.hoverTime, .15f);
     EXPECT_NE(console.str().find("[WARN]"), std::string::npos);
 }
+
+TEST(Config, PayoutTimingsLoadAndInvalidValuesFallBack) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    std::ostringstream output;
+    Logger logger(output, "");
+    data["ui"]["payout_line_time"] = .4;
+    data["ui"]["payout_count_time"] = 2;
+    data["ui"]["payout_stamp_time"] = .5;
+    auto ui = Config::load(files.write("payout.json", data.dump()), logger).ui;
+    EXPECT_FLOAT_EQ(ui.payoutLineTime, .4f);
+    EXPECT_FLOAT_EQ(ui.payoutCountTime, 2);
+    EXPECT_FLOAT_EQ(ui.payoutStampTime, .5f);
+    for (const auto& value :
+         {nlohmann::json(0), nlohmann::json(-1), nlohmann::json("bad"), nlohmann::json(1e100)}) {
+        for (const char* key : {"payout_line_time", "payout_count_time", "payout_stamp_time"})
+            data["ui"][key] = value;
+        ui = Config::load(files.write("invalid-payout.json", data.dump()), logger).ui;
+        EXPECT_FLOAT_EQ(ui.payoutLineTime, .18f);
+        EXPECT_FLOAT_EQ(ui.payoutCountTime, 1.2f);
+        EXPECT_FLOAT_EQ(ui.payoutStampTime, .25f);
+    }
+}

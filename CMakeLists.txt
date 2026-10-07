@@ -59,7 +59,7 @@ add_library(ghost_core STATIC
     src/core/Config.cpp src/core/Logger.cpp src/core/Rng.cpp src/core/Time.cpp
     src/states/StateMachine.cpp src/render/Letterbox.cpp
     src/world/TileMap.cpp src/world/LevelLoader.cpp
-    src/core/Assets.cpp src/core/SaveStore.cpp
+    src/core/Assets.cpp src/core/SaveStore.cpp src/core/Scores.cpp
     src/entities/Player.cpp src/entities/Guard.cpp src/entities/Weapon.cpp src/entities/EnemySpec.cpp src/entities/Enemy.cpp
     src/entities/GuardAI.cpp
     src/entities/SecurityCamera.cpp src/entities/Laser.cpp
@@ -112,7 +112,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/ConfigTests.cpp tests/LoggerTests.cpp tests/RngTests.cpp tests/TimeTests.cpp
         tests/StateMachineTests.cpp tests/LetterboxTests.cpp
         tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
-        tests/AssetsTests.cpp tests/SaveStoreTests.cpp tests/WidgetsTests.cpp tests/GameplayInputGateTests.cpp tests/ScreenNavigationTests.cpp
+        tests/AssetsTests.cpp tests/SaveStoreTests.cpp tests/ScoresTests.cpp tests/WidgetsTests.cpp tests/GameplayInputGateTests.cpp tests/ScreenNavigationTests.cpp
         tests/PlayerTests.cpp tests/GuardTests.cpp tests/WeaponTests.cpp tests/EnemySpecTests.cpp tests/EnemyCombatTests.cpp
         tests/GuardAITests.cpp tests/WaveSpawnerTests.cpp tests/ObjectiveSystemTests.cpp tests/ScoreSystemTests.cpp
         tests/FollowCameraTests.cpp tests/AlarmSequenceTests.cpp
@@ -146,7 +146,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tests/ValidateLevelTests.py")
     set_tests_properties(LevelValidator LevelValidatorTests PROPERTIES TIMEOUT 15)
     if(GP_BUILD_RENDER_TESTS)
-        add_executable(ghost_render_tests tests/RenderTests.cpp src/states/BriefingState.cpp src/states/PauseState.cpp src/states/GameOverState.cpp src/states/MenuState.cpp src/render/Renderer.cpp src/states/PlayState.cpp
+        add_executable(ghost_render_tests tests/RenderTests.cpp tests/PayoutStateTests.cpp src/states/BriefingState.cpp src/states/PauseState.cpp src/states/GameOverState.cpp src/states/MenuState.cpp src/render/Renderer.cpp src/states/PlayState.cpp
             src/states/LoadoutState.cpp src/states/PayoutState.cpp src/ui/UiAssets.cpp)
         target_link_libraries(ghost_render_tests PRIVATE ghost_core raylib GTest::gtest_main)
         add_dependencies(ghost_render_tests ghost_game)

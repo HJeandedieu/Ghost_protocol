@@ -35,6 +35,9 @@ class Game {
     const Config config_;
     SaveStore saveStore_;
     Settings settings_;
+    Scores scores_;
+    std::string missionDifficulty_ = "normal";
+    bool payoutRecorded_ = false;
     bool quit_ = false;
     Rng rng_;
     Time time_;
