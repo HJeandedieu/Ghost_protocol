@@ -17,6 +17,8 @@ this register does not grant redistribution rights or claim ownership.
 | `assets/shaders/glsl330/post.fs` | Original project code | Ghost Protocol project | Project-owned | None | Desktop vignette and grain |
 | `assets/shaders/glsl100/post.fs` | Original project code | Ghost Protocol project | Project-owned | None | Web variant of vignette and grain |
 | `assets/config/enemies.json` | Enemy and wave catalog from Data Formats §3 | Ghost Protocol project | Project-owned | None | Enemy tuning and planned assault composition |
+| `assets/fonts/Orbitron-Bold.ttf`, `Orbitron-Medium.ttf` | [Official Orbitron upstream](https://github.com/googlefonts/orbitron-vf/tree/master/fonts/ttf), unmodified static exports | The Orbitron Project Authors | SIL OFL 1.1 | Copyright and licence retained in `assets/fonts/Orbitron-OFL.txt` | Titles, HUD numbers, menu buttons |
+| `assets/fonts/Inter-Medium.ttf` | [Official Inter 4.1 release](https://github.com/rsms/inter/releases/tag/v4.1), unmodified static export | The Inter Project Authors | SIL OFL 1.1 | Copyright and licence retained in `assets/fonts/Inter-OFL.txt` | Body text and subtitles |
 
 Log each future runtime font, texture, sound, and music file with its source,
 author, licence, and attribution requirements before adding it to a release.
