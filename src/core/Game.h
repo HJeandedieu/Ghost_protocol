@@ -26,6 +26,9 @@ class Game {
     void toggleFullscreen();
     bool applySettings(const Settings& settings);
     void showLoadout();
+    void showBriefing();
+    void showPause(int stage, bool loud);
+    void showBusted(int stage, bool loud);
     void showPayout(Payout payout);
     void startMission(int stage = 1, bool loud = false);
     Logger logger_;

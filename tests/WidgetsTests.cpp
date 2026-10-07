@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "ui/Widgets.h"
+
 TEST(Widgets, HoverUsesCubicEaseAndReturnsToRest) {
     Button button;
     button.update(.075f, true, .15f);

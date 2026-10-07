@@ -7,8 +7,11 @@
 #include "render/Letterbox.h"
 #include "render/Renderer.h"
 #include "states/BootState.h"
+#include "states/BriefingState.h"
+#include "states/GameOverState.h"
 #include "states/LoadoutState.h"
 #include "states/MenuState.h"
+#include "states/PauseState.h"
 #include "states/PayoutState.h"
 #include "states/PlayState.h"
 #include "world/LevelLoader.h"
@@ -155,7 +158,7 @@ void Game::showMenu(const std::string& error) {
     logger_.log(LogLevel::Info, "State: Menu");
     renderer_->startTransition(config_.ui.transitionTime, true);
     states_.replace(std::make_unique<MenuState>(
-        input_, *renderer_, config_.ui, settings_, [this] { showLoadout(); },
+        input_, *renderer_, config_.ui, settings_, [this] { showBriefing(); },
         [this](const Settings& settings) { return applySettings(settings); },
         [this] { quit_ = true; }, error));
 }
@@ -188,7 +191,9 @@ void Game::startMission(int stage, bool loud) {
         std::move(*level), input_, config_, rng_.seed(), *renderer_, logger_, *weapons, *enemies,
         *waves, *entries, stage, loud,
         [this](int retryStage, bool wasLoud) { startMission(retryStage, wasLoud); }, missionRun_,
-        [this](Payout payout) { showPayout(std::move(payout)); }, loadout_, difficulty_));
+        [this](Payout payout) { showPayout(std::move(payout)); }, loadout_, difficulty_,
+        [this](int currentStage, bool currentLoud) { showPause(currentStage, currentLoud); },
+        [this](int currentStage, bool currentLoud) { showBusted(currentStage, currentLoud); }));
 }
 
 bool Game::applySettings(const Settings& settings) {
@@ -231,7 +236,45 @@ void Game::showLoadout() {
             missionRun_ = std::make_shared<MissionRun>();
             startMission();
         },
-        settings_.difficulty == "easy"));
+        settings_.difficulty == "easy", [this] { showBriefing(); }));
+}
+void Game::showBriefing() {
+    renderer_->startTransition(config_.ui.transitionTime);
+    states_.replace(std::make_unique<BriefingState>(
+        input_, *renderer_, config_.ui, [this] { showLoadout(); }, [this] { showMenu(); }));
+}
+void Game::showPause(int stage, bool loud) {
+    renderer_->freezeFrame();
+    renderer_->startTransition(config_.ui.transitionTime);
+    const auto resume = [this] {
+        renderer_->startTransition(config_.ui.transitionTime, true);
+        states_.pop();
+    };
+    const auto settings = [this] {
+        renderer_->startTransition(config_.ui.transitionTime);
+        states_.push(std::make_unique<MenuState>(
+            input_, *renderer_, config_.ui, settings_, [] {},
+            [this](const Settings& next) { return applySettings(next); }, [] {}, "",
+            [this] {
+                renderer_->startTransition(config_.ui.transitionTime, true);
+                states_.pop();
+            }));
+    };
+    states_.push(std::make_unique<PauseState>(
+        input_, *renderer_, config_.ui,
+        std::array<std::function<void()>, 4>{{resume, settings,
+                                              [this, stage, loud] { startMission(stage, loud); },
+                                              [this] { showMenu(); }}}));
+}
+void Game::showBusted(int stage, bool loud) {
+    renderer_->freezeFrame();
+    renderer_->startTransition(config_.ui.transitionTime);
+    const char* quips[] = {"Cuffs: bigger than expected.", "Gotham PD sends its regards.",
+                           "Your lawyer is on hold. Forever."};
+    const std::string quip = quips[rng_.uniformInt(0, 2)];
+    states_.replace(std::make_unique<GameOverState>(
+        input_, *renderer_, config_.ui, quip, [this, stage, loud] { startMission(stage, loud); },
+        [this] { showMenu(); }));
 }
 void Game::showPayout(Payout payout) {
     renderer_->startTransition(config_.ui.transitionTime);

@@ -17,6 +17,7 @@ class UiAssets {
     Font button() const { return button_; }
     Font body() const { return body_; }
     Texture2D logo() const { return logo_; }
+    Texture2D wordmark() const { return wordmark_; }
     bool fontsLoaded() const;
     void text(const char* value, Vector2 position, float size, Color color, bool body = false,
               bool bold = false) const;
@@ -26,4 +27,5 @@ class UiAssets {
     Font button_{};
     Font body_{};
     Texture2D logo_{};
+    Texture2D wordmark_{};
 };

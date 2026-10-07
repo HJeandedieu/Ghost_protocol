@@ -8,10 +8,14 @@
 #include "entities/Player.h"
 #include "render/AlarmSequence.h"
 #include "render/Renderer.h"
+#include "states/BriefingState.h"
+#include "states/GameOverState.h"
 #include "states/LoadoutState.h"
 #include "states/MenuState.h"
+#include "states/PauseState.h"
 #include "states/PayoutState.h"
 #include "states/PlayState.h"
+#include "states/StateMachine.h"
 #include "systems/CombatSystem.h"
 #include "systems/DetectionSystem.h"
 #include "systems/InteractionSystem.h"
@@ -33,6 +37,183 @@ class Render : public testing::Test {
         if (IsWindowReady()) CloseWindow();
     }
 };
+
+TEST_F(Render, BriefingSupportsEverySlideBackAndSkipDuringTransitions) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    Input input;
+    int starts = 0, backs = 0;
+    BriefingState briefing(input, renderer, {}, [&] { ++starts; }, [&] { ++backs; });
+    const char* names[] = {"facade", "vault", "van", "tagline"};
+    for (int i = 0; i < 4; ++i) {
+        EXPECT_EQ(briefing.slide(), i);
+        briefing.update(.25f);
+        renderer.updateTransition(1);
+        renderer.beginFrame();
+        briefing.render(0);
+        renderer.present();
+        auto image = LoadImageFromTexture(renderer.frameTexture());
+        ImageFlipVertical(&image);
+        EXPECT_TRUE(ExportImage(
+            image, TextFormat(GP_RENDER_OUTPUT_DIRECTORY "/day23-briefing-%s.png", names[i])));
+        UnloadImage(image);
+        input.confirmPressed = true;
+        briefing.update(.016f);
+        input.clearEdges();
+    }
+    EXPECT_EQ(starts, 1);
+    input.backPressed = true;
+    briefing.update(.016f);
+    EXPECT_EQ(briefing.slide(), 2);
+    input.clearEdges();
+    input.pingPressed = true;
+    briefing.update(.016f);
+    EXPECT_EQ(starts, 2);
+    EXPECT_EQ(backs, 0);
+    BriefingState first(input, renderer, {}, [&] { ++starts; }, [&] { ++backs; });
+    input.clearEdges();
+    input.backPressed = true;
+    first.update(.016f);
+    EXPECT_EQ(backs, 1);
+    renderer.setReduceEffects(true);
+    renderer.beginFrame();
+    first.render(0);
+    renderer.present();
+}
+
+TEST_F(Render, PauseSettingsReturnToFrozenPauseAndResumeWithoutReplacingPlay) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    Input input;
+    Settings settings;
+    StateMachine states;
+    int resumes = 0, restarts = 0, menus = 0, saves = 0;
+    renderer.beginFrame();
+    ClearBackground({30, 74, 74, 255});
+    renderer.present();
+    renderer.freezeFrame();
+    auto pause = std::make_unique<PauseState>(
+        input, renderer, UiConfig{},
+        std::array<std::function<void()>, 4>{{[&] { ++resumes; },
+                                              [&] {
+                                                  states.push(std::make_unique<MenuState>(
+                                                      input, renderer, UiConfig{}, settings, [] {},
+                                                      [&](const Settings& next) {
+                                                          settings = next;
+                                                          ++saves;
+                                                          return true;
+                                                      },
+                                                      [] {}, "", [&] { states.pop(); }));
+                                              },
+                                              [&] { ++restarts; }, [&] { ++menus; }}});
+    states.push(std::move(pause));
+    renderer.beginFrame();
+    states.render(0);
+    renderer.present();
+    auto image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day23-pause.png"));
+    UnloadImage(image);
+    input.menuVertical = 1;
+    input.confirmPressed = true;
+    states.update(.016f);
+    input.clearEdges();
+    EXPECT_EQ(states.size(), 2u);
+    input.menuHorizontal = -1;
+    states.update(.016f);
+    input.clearEdges();
+    EXPECT_EQ(saves, 1);
+    input.backPressed = true;
+    states.update(.016f);
+    input.clearEdges();
+    EXPECT_EQ(states.size(), 1u);
+    EXPECT_EQ(resumes, 0);
+    input.menuVertical = 1;
+    input.confirmPressed = true;
+    states.update(.016f);
+    input.clearEdges();
+    EXPECT_EQ(restarts, 1);
+    input.menuVertical = 1;
+    input.confirmPressed = true;
+    states.update(.016f);
+    input.clearEdges();
+    EXPECT_EQ(menus, 1);
+    input.backPressed = true;
+    states.update(.016f);
+    EXPECT_EQ(resumes, 1);
+}
+
+TEST_F(Render, BustedQuipIsStableAndRetryMenuAndEscapeRemainAvailable) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    Input input;
+    int retries = 0, menus = 0;
+    renderer.beginFrame();
+    ClearBackground({30, 74, 74, 255});
+    renderer.present();
+    renderer.freezeFrame();
+    GameOverState busted(
+        input, renderer, {}, "Your lawyer is on hold. Forever.", [&] { ++retries; },
+        [&] { ++menus; });
+    renderer.beginFrame();
+    busted.render(0);
+    renderer.present();
+    auto image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day23-busted.png"));
+    UnloadImage(image);
+    input.confirmPressed = true;
+    busted.update(.016f);
+    input.clearEdges();
+    EXPECT_EQ(retries, 1);
+    input.menuVertical = 1;
+    input.confirmPressed = true;
+    busted.update(.016f);
+    input.clearEdges();
+    EXPECT_EQ(menus, 1);
+    input.backPressed = true;
+    busted.update(.016f);
+    EXPECT_EQ(menus, 2);
+}
+
+TEST_F(Render, PauseRequestStopsMissionTimeBeforeAnyGameplayTick) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    Config config;
+    Input input;
+    auto level = LevelLoader::load("assets/levels/gotham_central.json", logger);
+    auto weapons = loadWeapons("assets/config/weapons.json", logger);
+    ASSERT_TRUE(level);
+    ASSERT_TRUE(weapons);
+    auto run = std::make_shared<MissionRun>();
+    run->seconds = 12;
+    run->deaths = 2;
+    int pausedStage = 0;
+    bool pausedLoud = false;
+    PlayState play(std::move(*level), input, config, 7, renderer, logger, *weapons, {}, {}, {}, 3,
+                   true, {}, run, {}, {{"whisper", "chatter"}}, {}, [&](int stage, bool loud) {
+                       pausedStage = stage;
+                       pausedLoud = loud;
+                   });
+    const auto before = play.world().player.pos;
+    input.move = {1, 0};
+    input.backPressed = true;
+    play.update(1.f / 60);
+    EXPECT_EQ(pausedStage, 3);
+    EXPECT_TRUE(pausedLoud);
+    EXPECT_DOUBLE_EQ(run->seconds, 12);
+    EXPECT_EQ(run->deaths, 2);
+    EXPECT_FLOAT_EQ(play.world().player.pos.x, before.x);
+    input.clearEdges();
+    input.move = {};
+    play.update(1.f / 60);
+    EXPECT_GT(run->seconds, 12);
+    EXPECT_EQ(run->deaths, 2);
+}
 
 TEST_F(Render, PrescribedFontsLoadAndMissingAssetsRetainUsableFallback) {
     std::ostringstream output;

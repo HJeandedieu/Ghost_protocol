@@ -29,6 +29,9 @@ UiAssets::UiAssets(Logger& logger, const std::string& root)
       button_(loadFont((root + "/fonts/Orbitron-Medium.ttf").c_str(), logger)),
       body_(loadFont((root + "/fonts/Inter-Medium.ttf").c_str(), logger)) {
     const auto logoPath = root + "/ui/logo.png";
+    const auto wordmarkPath = root + "/ui/logo_wordmark.png";
+    if (FileExists(wordmarkPath.c_str())) wordmark_ = LoadTexture(wordmarkPath.c_str());
+    if (wordmark_.id) SetTextureFilter(wordmark_, TEXTURE_FILTER_BILINEAR);
     if (FileExists(logoPath.c_str())) logo_ = LoadTexture(logoPath.c_str());
     if (logo_.id != 0)
         SetTextureFilter(logo_, TEXTURE_FILTER_BILINEAR);
@@ -40,6 +43,7 @@ UiAssets::~UiAssets() {
     unloadFont(button_);
     unloadFont(body_);
     if (logo_.id != 0) UnloadTexture(logo_);
+    if (wordmark_.id != 0) UnloadTexture(wordmark_);
 }
 bool UiAssets::fontsLoaded() const {
     const auto fallback = GetFontDefault().texture.id;

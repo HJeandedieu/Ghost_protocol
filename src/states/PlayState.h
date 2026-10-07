@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "core/EventBus.h"
+#include "core/GameplayInputGate.h"
 #include "core/Input.h"
 #include "entities/GuardAI.h"
 #include "entities/Player.h"
@@ -39,7 +40,8 @@ class PlayState : public IState {
               std::function<void(int, bool)> retry = {}, std::shared_ptr<MissionRun> run = {},
               std::function<void(Payout)> finish = {},
               std::array<std::string, 2> loadout = {{"whisper", "chatter"}},
-              DifficultyPreset difficulty = {});
+              DifficultyPreset difficulty = {}, std::function<void(int, bool)> pause = {},
+              std::function<void(int, bool)> busted = {});
     void enter() override;
     void exit() override;
     void update(float dt) override;
@@ -79,4 +81,7 @@ class PlayState : public IState {
     std::function<void(Payout)> finish_;
     ScoreSystem score_;
     Rng payoutRng_;
+    std::function<void(int, bool)> pause_, busted_;
+    bool bustedShown_ = false;
+    GameplayInputGate inputGate_;
 };

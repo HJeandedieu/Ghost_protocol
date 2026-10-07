@@ -17,7 +17,7 @@ Color mix(Color a, Color b, float t) {
 MenuState::MenuState(const Input& input, Renderer& renderer, UiConfig config,
                      const Settings& settings, std::function<void()> start,
                      std::function<bool(const Settings&)> save, std::function<void()> quit,
-                     std::string error)
+                     std::string error, std::function<void()> settingsBack)
     : input_(input),
       renderer_(renderer),
       config_(config),
@@ -25,7 +25,10 @@ MenuState::MenuState(const Input& input, Renderer& renderer, UiConfig config,
       start_(std::move(start)),
       save_(std::move(save)),
       quit_(std::move(quit)),
-      error_(std::move(error)) {}
+      settingsBack_(std::move(settingsBack)),
+      error_(std::move(error)) {
+    if (settingsBack_) page_ = Page::Settings;
+}
 int MenuState::rows() const {
     if (page_ == Page::Settings) return 9;
     if (page_ == Page::Credits) return 1;
@@ -51,6 +54,10 @@ void MenuState::changePage(Page page) {
 void MenuState::update(float dt) {
     elapsed_ += dt;
     if (input_.backPressed && page_ != Page::Menu) {
+        if (settingsBack_) {
+            settingsBack_();
+            return;
+        }
         changePage(Page::Menu);
         return;
     }
@@ -86,6 +93,10 @@ void MenuState::update(float dt) {
                 if (i == 6) next.reduceEffects = !next.reduceEffects;
                 if (i == 7) next.difficulty = next.difficulty == "easy" ? "normal" : "easy";
                 if (i == 8) {
+                    if (settingsBack_) {
+                        settingsBack_();
+                        return;
+                    }
                     changePage(Page::Menu);
                     return;
                 }
