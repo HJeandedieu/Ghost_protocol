@@ -18,6 +18,8 @@
 
 Game::Game()
     : config_(Config::load("assets/config/tuning.json", logger_)),
+      saveStore_(logger_),
+      settings_(saveStore_.loadSettings()),
       rng_(
           static_cast<std::uint32_t>(std::chrono::system_clock::now().time_since_epoch().count())) {
     logger_.log(LogLevel::Info,
@@ -40,7 +42,15 @@ int Game::run() {
 #ifndef __EMSCRIPTEN__
     SetTargetFPS(60);
 #endif
+    SetExitKey(KEY_NULL);
     renderer_ = std::make_unique<Renderer>(logger_, config_.render);
+    renderer_->setReduceEffects(settings_.reduceEffects);
+    renderer_->setHints(settings_.hints);
+#ifndef __EMSCRIPTEN__
+    InitAudioDevice();
+    SetMasterVolume(settings_.volumeMaster);
+    if (settings_.fullscreen) toggleFullscreen();
+#endif
 #ifdef __EMSCRIPTEN__
     constexpr bool kWaitForClick = true;
 #else
@@ -49,6 +59,7 @@ int Game::run() {
     states_.replace(std::make_unique<BootState>(input_, kWaitForClick, [this] {
 #ifdef __EMSCRIPTEN__
         InitAudioDevice();
+        SetMasterVolume(settings_.volumeMaster);
 #endif
         showMenu();
     }));
@@ -56,10 +67,11 @@ int Game::run() {
     emscripten_set_main_loop_arg([](void* context) { static_cast<Game*>(context)->tick(); }, this,
                                  0, true);
 #else
-    while (!WindowShouldClose()) {
+    while (!quit_ && !WindowShouldClose()) {
         tick();
     }
     renderer_.reset();
+    if (IsAudioDeviceReady()) CloseAudioDevice();
     CloseWindow();
     logger_.log(LogLevel::Info, "Ghost Protocol closed cleanly");
 #endif
@@ -70,7 +82,16 @@ void Game::tick() {
     // The key queue also retains short down/up taps occurring between rendered frames.
     for (int key = GetKeyPressed(); key != 0; key = GetKeyPressed()) {
         if (key == KEY_ENTER || key == KEY_KP_ENTER) input_.confirmPressed = true;
-        if (key == KEY_F11) toggleFullscreen();
+        if (key == KEY_ESCAPE) input_.backPressed = true;
+        if (key == KEY_DOWN || key == KEY_TAB) input_.menuVertical = 1;
+        if (key == KEY_UP) input_.menuVertical = -1;
+        if (key == KEY_LEFT) input_.menuHorizontal = -1;
+        if (key == KEY_RIGHT) input_.menuHorizontal = 1;
+        if (key == KEY_F11) {
+            toggleFullscreen();
+            settings_.fullscreen = IsWindowFullscreen();
+            saveStore_.saveSettings(settings_);
+        }
         if (key == KEY_C || key == KEY_LEFT_CONTROL) input_.crouchPressed = true;
         if (key == KEY_SPACE) input_.pingPressed = true;
         if (key == KEY_R) input_.reloadPressed = true;
@@ -125,13 +146,18 @@ void Game::tick() {
 }
 
 void Game::update(float dt) {
+    renderer_->updateTransition(dt);
     states_.update(dt);
     input_.clearEdges();
 }
 
 void Game::showMenu(const std::string& error) {
     logger_.log(LogLevel::Info, "State: Menu");
-    states_.replace(std::make_unique<MenuState>(input_, [this] { showLoadout(); }, error));
+    renderer_->startTransition(config_.ui.transitionTime, true);
+    states_.replace(std::make_unique<MenuState>(
+        input_, *renderer_, config_.ui, settings_, [this] { showLoadout(); },
+        [this](const Settings& settings) { return applySettings(settings); },
+        [this] { quit_ = true; }, error));
 }
 
 void Game::startMission(int stage, bool loud) {
@@ -156,6 +182,7 @@ void Game::startMission(int stage, bool loud) {
         showMenu("Unable to load police waves. Check the enemy file and try again.");
         return;
     }
+    renderer_->startTransition(config_.ui.transitionTime);
     logger_.log(LogLevel::Info, "State: Play");
     states_.replace(std::make_unique<PlayState>(
         std::move(*level), input_, config_, rng_.seed(), *renderer_, logger_, *weapons, *enemies,
@@ -164,7 +191,20 @@ void Game::startMission(int stage, bool loud) {
         [this](Payout payout) { showPayout(std::move(payout)); }, loadout_, difficulty_));
 }
 
+bool Game::applySettings(const Settings& settings) {
+    if (!saveStore_.saveSettings(settings)) return false;
+    settings_ = settings;
+    renderer_->setReduceEffects(settings_.reduceEffects);
+    renderer_->setHints(settings_.hints);
+    if (IsAudioDeviceReady()) SetMasterVolume(settings_.volumeMaster);
+    if (IsWindowFullscreen() != settings_.fullscreen) toggleFullscreen();
+    return true;
+}
+
 void Game::toggleFullscreen() {
+#ifdef __EMSCRIPTEN__
+    ToggleFullscreen();
+#else
     if (!IsWindowFullscreen()) {
         windowedWidth_ = GetScreenWidth();
         windowedHeight_ = GetScreenHeight();
@@ -175,18 +215,26 @@ void Game::toggleFullscreen() {
         ToggleFullscreen();
         SetWindowSize(windowedWidth_, windowedHeight_);
     }
+#endif
 }
 
 void Game::showLoadout() {
-    states_.replace(std::make_unique<LoadoutState>(input_, [this](auto loadout, bool easy) {
-        loadout_ = std::move(loadout);
-        difficulty_ = easy ? config_.difficulty.easy : config_.difficulty.normal;
-        if (!easy) difficulty_.maxAlive = config_.alarm.maxAlive;
-        missionRun_ = std::make_shared<MissionRun>();
-        startMission();
-    }));
+    renderer_->startTransition(config_.ui.transitionTime);
+    states_.replace(std::make_unique<LoadoutState>(
+        input_,
+        [this](auto loadout, bool easy) {
+            loadout_ = std::move(loadout);
+            settings_.difficulty = easy ? "easy" : "normal";
+            saveStore_.saveSettings(settings_);
+            difficulty_ = easy ? config_.difficulty.easy : config_.difficulty.normal;
+            if (!easy) difficulty_.maxAlive = config_.alarm.maxAlive;
+            missionRun_ = std::make_shared<MissionRun>();
+            startMission();
+        },
+        settings_.difficulty == "easy"));
 }
 void Game::showPayout(Payout payout) {
+    renderer_->startTransition(config_.ui.transitionTime);
     logger_.log(LogLevel::Info, "State: Payout");
     states_.replace(
         std::make_unique<PayoutState>(input_, std::move(payout), [this] { showMenu(); }));

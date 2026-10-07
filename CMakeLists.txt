@@ -90,7 +90,7 @@ if(EMSCRIPTEN)
         "--shell-file" "${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html"
         "-sINITIAL_MEMORY=134217728" "-sALLOW_MEMORY_GROWTH=1"
         "-sMAXIMUM_MEMORY=536870912"
-        "-sEXPORTED_RUNTIME_METHODS=HEAPF32")
+        "-sEXPORTED_RUNTIME_METHODS=HEAPF32,requestFullscreen")
     add_custom_target(ghost_web DEPENDS ghost_game)
 endif()
 
@@ -112,7 +112,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/ConfigTests.cpp tests/LoggerTests.cpp tests/RngTests.cpp tests/TimeTests.cpp
         tests/StateMachineTests.cpp tests/LetterboxTests.cpp
         tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
-        tests/AssetsTests.cpp tests/SaveStoreTests.cpp
+        tests/AssetsTests.cpp tests/SaveStoreTests.cpp tests/WidgetsTests.cpp
         tests/PlayerTests.cpp tests/GuardTests.cpp tests/WeaponTests.cpp tests/EnemySpecTests.cpp tests/EnemyCombatTests.cpp
         tests/GuardAITests.cpp tests/WaveSpawnerTests.cpp tests/ObjectiveSystemTests.cpp tests/ScoreSystemTests.cpp
         tests/FollowCameraTests.cpp tests/AlarmSequenceTests.cpp
@@ -146,7 +146,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tests/ValidateLevelTests.py")
     set_tests_properties(LevelValidator LevelValidatorTests PROPERTIES TIMEOUT 15)
     if(GP_BUILD_RENDER_TESTS)
-        add_executable(ghost_render_tests tests/RenderTests.cpp src/render/Renderer.cpp src/states/PlayState.cpp
+        add_executable(ghost_render_tests tests/RenderTests.cpp src/states/MenuState.cpp src/render/Renderer.cpp src/states/PlayState.cpp
             src/states/LoadoutState.cpp src/states/PayoutState.cpp src/ui/UiAssets.cpp)
         target_link_libraries(ghost_render_tests PRIVATE ghost_core raylib GTest::gtest_main)
         add_dependencies(ghost_render_tests ghost_game)

@@ -49,6 +49,11 @@ struct PingConfig {
     float hazardRevealRadius = 120.0f;
 };
 
+struct UiConfig {
+    float hoverTime = 0.15f;
+    float transitionTime = 0.25f;
+};
+
 struct RenderConfig {
     float ambientFloorAlpha = 0.18f;
     float ambientWallAlpha = 0.45f;
@@ -195,6 +200,7 @@ class Config {
     EnemyCombatConfig enemyCombat;
     ViewConfig view;
     RenderConfig render;
+    UiConfig ui;
     PingConfig ping;
     NoiseConfig noise;
     GuardConfig guard;

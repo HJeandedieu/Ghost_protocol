@@ -7,8 +7,9 @@
 #include "states/IState.h"
 class LoadoutState : public IState {
    public:
-    LoadoutState(const Input& input, std::function<void(std::array<std::string, 2>, bool)> start)
-        : input_(input), start_(std::move(start)) {}
+    LoadoutState(const Input& input, std::function<void(std::array<std::string, 2>, bool)> start,
+                 bool easy = false)
+        : input_(input), start_(std::move(start)), easy_(easy) {}
     void enter() override {}
     void exit() override {}
     void update(float dt) override;
