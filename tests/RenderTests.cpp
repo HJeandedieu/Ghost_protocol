@@ -1152,7 +1152,9 @@ TEST_F(Render, LoadoutChoicesAndPayoutReturnRemainResponsive) {
     Rng rng(8);
     auto payout = score.finalize(true, 599, 1, rng);
     int menus = 0;
-    PayoutState result(input, payout, [&] { ++menus; });
+    PayoutState result(input, renderer, UiConfig{}, payout, [&] { ++menus; }, [&] { ++menus; });
+    input.confirmPressed = false;
+    result.update(5);
     renderer.beginFrame();
     result.render(0);
     renderer.present();
@@ -1160,6 +1162,7 @@ TEST_F(Render, LoadoutChoicesAndPayoutReturnRemainResponsive) {
     ImageFlipVertical(&screenshot);
     ExportImage(screenshot, GP_RENDER_OUTPUT_DIRECTORY "/day21-payout.png");
     UnloadImage(screenshot);
+    input.confirmPressed = true;
     result.update(.01f);
     EXPECT_EQ(menus, 1);
 }

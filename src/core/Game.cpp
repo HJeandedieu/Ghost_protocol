@@ -23,6 +23,7 @@ Game::Game()
     : config_(Config::load("assets/config/tuning.json", logger_)),
       saveStore_(logger_),
       settings_(saveStore_.loadSettings()),
+      scores_(saveStore_.loadScores()),
       rng_(
           static_cast<std::uint32_t>(std::chrono::system_clock::now().time_since_epoch().count())) {
     logger_.log(LogLevel::Info,
@@ -160,7 +161,7 @@ void Game::showMenu(const std::string& error) {
     states_.replace(std::make_unique<MenuState>(
         input_, *renderer_, config_.ui, settings_, [this] { showBriefing(); },
         [this](const Settings& settings) { return applySettings(settings); },
-        [this] { quit_ = true; }, error));
+        [this] { quit_ = true; }, error, std::function<void()>{}, &scores_));
 }
 
 void Game::startMission(int stage, bool loud) {
@@ -234,6 +235,8 @@ void Game::showLoadout() {
             difficulty_ = easy ? config_.difficulty.easy : config_.difficulty.normal;
             if (!easy) difficulty_.maxAlive = config_.alarm.maxAlive;
             missionRun_ = std::make_shared<MissionRun>();
+            missionDifficulty_ = settings_.difficulty;
+            payoutRecorded_ = false;
             startMission();
         },
         settings_.difficulty == "easy", [this] { showBriefing(); }));
@@ -279,6 +282,13 @@ void Game::showBusted(int stage, bool loud) {
 void Game::showPayout(Payout payout) {
     renderer_->startTransition(config_.ui.transitionTime);
     logger_.log(LogLevel::Info, "State: Payout");
-    states_.replace(
-        std::make_unique<PayoutState>(input_, std::move(payout), [this] { showMenu(); }));
+    if (missionRun_ && !payoutRecorded_) {
+        payoutRecorded_ = true;
+        scores_.record(missionDifficulty_, payout.finalAmount, payout.rank, missionRun_->seconds,
+                       !missionRun_->alarmEver);
+        saveStore_.saveScores(scores_);
+    }
+    states_.replace(std::make_unique<PayoutState>(
+        input_, *renderer_, config_.ui, std::move(payout), [this] { showLoadout(); },
+        [this] { showMenu(); }));
 }

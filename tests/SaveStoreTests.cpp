@@ -79,3 +79,53 @@ TEST(SaveStore, UnwritableParentReportsFailureWithoutCrashing) {
     EXPECT_FLOAT_EQ(store.loadSettings().volumeMaster, .8f);
     EXPECT_NE(output.str().find("[WARN] Cannot save settings"), std::string::npos);
 }
+
+TEST(SaveStore, ScoresSurviveRestartAndCorruptionUsesDefaults) {
+    TestFiles files;
+    std::ostringstream output;
+    Logger logger(output, "");
+    SaveStore store(logger, files.path("save/settings.json"));
+    auto scores = store.loadScores();
+    scores.record("easy", 150000.50, 'A', 123.5, true);
+    ASSERT_TRUE(store.saveScores(scores));
+    SaveStore restarted(logger, files.path("save/settings.json"));
+    auto loaded = restarted.loadScores();
+    EXPECT_DOUBLE_EQ(loaded.easy.bestPayout, 150000.50);
+    EXPECT_DOUBLE_EQ(loaded.easy.bestTime, 123.5);
+    EXPECT_EQ(loaded.easy.bestRank, "A");
+    EXPECT_EQ(loaded.easy.ghostRuns, 1u);
+    auto invalid = scores;
+    invalid.easy.bestTime = -1;
+    EXPECT_FALSE(store.saveScores(invalid));
+    EXPECT_DOUBLE_EQ(store.loadScores().easy.bestTime, 123.5);
+    files.write("save/scores.json", "{broken");
+    EXPECT_EQ(store.loadScores().easy.bestRank, "-");
+    EXPECT_NE(output.str().find("Missing or corrupt scores"), std::string::npos);
+    EXPECT_FALSE(SaveStore::decodeScores("{}"));
+    EXPECT_FALSE(SaveStore::decodeScores("[]"));
+}
+
+TEST(SaveStore, InvalidScoreFieldsAndFailedWritesDoNotOverwriteValidRecords) {
+    TestFiles files;
+    std::ostringstream output;
+    Logger logger(output, "");
+    SaveStore store(logger, files.path("settings.json"));
+    Scores scores;
+    scores.record("hard", 123, 'C', 10, false);
+    ASSERT_TRUE(store.saveScores(scores));
+    auto invalid = scores;
+    invalid.hard.bestPayout = std::numeric_limits<double>::infinity();
+    EXPECT_FALSE(store.saveScores(invalid));
+    EXPECT_DOUBLE_EQ(store.loadScores().hard.bestPayout, 123);
+    invalid = scores;
+    invalid.hard.bestRank = "X";
+    EXPECT_FALSE(store.saveScores(invalid));
+    auto text = SaveStore::encodeScores(scores);
+    auto position = text.find("\"ghost_runs\": 0");
+    ASSERT_NE(position, std::string::npos);
+    text.replace(position, std::string("\"ghost_runs\": 0").size(), "\"ghost_runs\": 0.5");
+    EXPECT_FALSE(SaveStore::decodeScores(text));
+    const auto parent = files.write("blocked", "file");
+    SaveStore blocked(logger, parent + "/settings.json");
+    EXPECT_FALSE(blocked.saveScores(scores));
+}

@@ -17,7 +17,7 @@ Color mix(Color a, Color b, float t) {
 MenuState::MenuState(const Input& input, Renderer& renderer, UiConfig config,
                      const Settings& settings, std::function<void()> start,
                      std::function<bool(const Settings&)> save, std::function<void()> quit,
-                     std::string error, std::function<void()> settingsBack)
+                     std::string error, std::function<void()> settingsBack, const Scores* scores)
     : input_(input),
       renderer_(renderer),
       config_(config),
@@ -26,7 +26,8 @@ MenuState::MenuState(const Input& input, Renderer& renderer, UiConfig config,
       save_(std::move(save)),
       quit_(std::move(quit)),
       settingsBack_(std::move(settingsBack)),
-      error_(std::move(error)) {
+      error_(std::move(error)),
+      scores_(scores) {
     if (settingsBack_) page_ = Page::Settings;
 }
 int MenuState::rows() const {
@@ -154,6 +155,12 @@ void MenuState::render(float alpha) {
     art.text("ARE YOU IN OR OUT?", {96, 692}, 14, kGrey, true);
     art.text("GHOST PROTOCOL", {1000, 692}, 14, kTeal, true);
     if (page_ == Page::Menu) {
+        if (scores_) {
+            const auto& record = scores_->forDifficulty(settings_.difficulty);
+            art.text(TextFormat("BEST / %s    $%.0f    RANK %s", settings_.difficulty.c_str(),
+                                std::round(record.bestPayout), record.bestRank.c_str()),
+                     {96, 656}, 18, kGold, true);
+        }
         const auto logo = art.logo();
         if (logo.id) {
             const float scale = std::min(392.f / logo.width, 232.f / logo.height);

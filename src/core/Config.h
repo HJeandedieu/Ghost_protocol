@@ -52,6 +52,7 @@ struct PingConfig {
 struct UiConfig {
     float hoverTime = 0.15f;
     float transitionTime = 0.25f;
+    float payoutLineTime = .18f, payoutCountTime = 1.2f, payoutStampTime = .25f;
 };
 
 struct RenderConfig {
