@@ -22,7 +22,8 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
                      const std::map<std::string, TileCoord>& entries, int stage, bool loud,
                      std::function<void(int, bool)> retry, std::shared_ptr<MissionRun> run,
                      std::function<void(Payout)> finish, std::array<std::string, 2> loadout,
-                     DifficultyPreset difficulty)
+                     DifficultyPreset difficulty, std::function<void(int, bool)> pause,
+                     std::function<void(int, bool)> busted)
     : world_(missionWorld(std::move(level), config, stage)),
       input_(input),
       camera_(world_.player.pos, config.view),
@@ -50,7 +51,9 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       run_(run ? std::move(run) : std::make_shared<MissionRun>()),
       finish_(std::move(finish)),
       score_(config.payout),
-      payoutRng_(seed) {
+      payoutRng_(seed),
+      pause_(std::move(pause)),
+      busted_(std::move(busted)) {
     noise_.setWeapons(weapons, config.noise);
     noise_.setEnemies(enemies);
     interaction_.loadBank(world_, config_);
@@ -98,6 +101,16 @@ void PlayState::exit() {}
 void PlayState::update(float dt) {
     if (!std::isfinite(dt) || dt <= 0) return;
     if (objectives_->complete()) return;
+    if (!world_.player.dead() && input_.backPressed && pause_) {
+        inputGate_.blockFire();
+        pause_(objectives_->stage(), world_.alarmLoud);
+        return;
+    }
+    if (downed_ && busted_ && !bustedShown_) {
+        bustedShown_ = true;
+        busted_(objectives_->stage(), world_.alarmLoud);
+        return;
+    }
     run_->advance(dt, !world_.player.dead());
     const float realDt = dt;
     dt = alarmSequence_.advance(realDt);
@@ -167,7 +180,8 @@ void PlayState::update(float dt) {
     for (auto& enemy : world_.enemies) tickRevealables.push_back(enemy.get());
     ripple_.update(dt, world_.level.map, tickRevealables);
     if (!world_.alarmLoud) ripple_.applyProximity(player.pos, world_.level.map, hazards_);
-    combat_.update(dt, input_, facing_ * (180.0f / 3.14159265358979323846f), world_);
+    combat_.update(dt, inputGate_.filter(input_), facing_ * (180.0f / 3.14159265358979323846f),
+                   world_);
 #ifndef NDEBUG
     if (input_.debugDamagePressed)
         combat_.applyDamage(world_.player, config_.player.armor, "debug");
@@ -207,5 +221,5 @@ void PlayState::render(float alpha) {
     renderer_.drawStealthHud(alarm_, pagers_, world_.guards);
     if (world_.alarmLoud) renderer_.drawWaveHud(waves_);
     renderer_.drawAlarmSequence(alarmSequence_);
-    if (downed_) renderer_.drawBusted(objectives_->stage());
+    if (downed_ && !busted_) renderer_.drawBusted(objectives_->stage());
 }

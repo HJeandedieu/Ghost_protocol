@@ -13,7 +13,8 @@ class MenuState : public IState {
    public:
     MenuState(const Input& input, Renderer& renderer, UiConfig config, const Settings& settings,
               std::function<void()> start, std::function<bool(const Settings&)> save,
-              std::function<void()> quit, std::string error = "");
+              std::function<void()> quit, std::string error = "",
+              std::function<void()> settingsBack = {});
     void enter() override {}
     void exit() override {}
     void update(float dt) override;
@@ -31,6 +32,7 @@ class MenuState : public IState {
     std::function<void()> start_;
     std::function<bool(const Settings&)> save_;
     std::function<void()> quit_;
+    std::function<void()> settingsBack_;
     std::string error_;
     Page page_ = Page::Menu;
     int focus_ = 0;

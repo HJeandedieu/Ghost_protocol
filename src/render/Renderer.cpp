@@ -233,6 +233,7 @@ Renderer::Renderer(Logger& logger, const RenderConfig& config)
         logger.log(LogLevel::Error, "Post shader unavailable; using plain rendering");
 }
 Renderer::~Renderer() {
+    if (frozen_.id) UnloadRenderTexture(frozen_);
     if (outgoing_.id) UnloadRenderTexture(outgoing_);
     if (timeLocation_ >= 0) UnloadShader(post_);
     UnloadRenderTexture(world_);
@@ -266,6 +267,16 @@ void Renderer::compose(bool effects) {
     composed_ = true;
 }
 
+void Renderer::freezeFrame() {
+    if (!frozen_.id) frozen_ = LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight);
+    BeginTextureMode(frozen_);
+    ClearBackground(BLACK);
+    DrawTextureRec(surface_.texture, {0, 0, 1280, -720}, {0, 0}, WHITE);
+    EndTextureMode();
+}
+void Renderer::drawFrozenFrame() const {
+    if (frozen_.id) DrawTextureRec(frozen_.texture, {0, 0, 1280, -720}, {0, 0}, WHITE);
+}
 void Renderer::startTransition(float duration, bool backwards) {
     if (!outgoing_.id) outgoing_ = LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight);
     BeginTextureMode(outgoing_);
@@ -949,7 +960,7 @@ void Renderer::drawLoadout(int excluded, bool easy) {
     }
     DrawText(easy ? "C: difficulty TOURIST (Easy)" : "C: difficulty PROFESSIONAL (Normal)", 200,
              472, 24, bone);
-    DrawText("ENTER: start heist", 200, 568, 24, gold);
+    DrawText("ENTER: start heist    ESC: back to briefing", 200, 568, 24, gold);
 }
 void Renderer::drawPayout(const Payout& payout) {
     constexpr Color bone{233, 228, 208, 255}, gold{242, 183, 5, 255};

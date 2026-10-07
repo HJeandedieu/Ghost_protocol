@@ -3,6 +3,10 @@
 #include "render/Renderer.h"
 void LoadoutState::update(float dt) {
     (void)dt;
+    if (input_.backPressed && back_) {
+        back_();
+        return;
+    }
     if (input_.loadoutExcluded >= 0 && input_.loadoutExcluded < 3)
         excluded_ = input_.loadoutExcluded;
     if (input_.crouchPressed) easy_ = !easy_;

@@ -40,6 +40,9 @@ class Renderer {
     void beginFrame();
     void present();
     void startTransition(float duration, bool backwards = false);
+    void freezeFrame();
+    void drawFrozenFrame() const;
+    bool reduceEffects() const { return reduceEffects_; }
     void updateTransition(float dt) { transitionElapsed_ += dt; }
     void setHints(bool enabled) { hints_ = enabled; }
     void setReduceEffects(bool enabled) { reduceEffects_ = enabled; }
@@ -82,6 +85,7 @@ class Renderer {
     RenderTexture2D surface_;
     RenderTexture2D world_;
     RenderTexture2D outgoing_{};
+    RenderTexture2D frozen_{};
     float transitionElapsed_ = 1;
     float transitionDuration_ = 0;
     bool transitionBackwards_ = false;
