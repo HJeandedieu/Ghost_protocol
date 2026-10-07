@@ -354,8 +354,17 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
             if (level.name == "Gotham Central Bank" && tile == TileType::Floor)
                 drawBankFurniture(x, y, size, std::max(reveal, config_.ambientFloorAlpha),
                                   wallColor, floorColor);
-            if (reveal > 0 && tile != TileType::Wall && tile != TileType::Floor &&
-                !map.isOpen(x, y) && tile != TileType::PlayerSpawn &&
+            if (reveal > 0 && tile == TileType::Bollard) {
+                const auto point = map.tileCenter({x, y});
+                if (map.isOpen(x, y))
+                    DrawCircleLinesV({point.x, point.y}, size * .16f, Fade(kBone, reveal * .25f));
+                else {
+                    DrawCircleV({point.x, point.y}, size * .16f, Fade(kBone, reveal));
+                    DrawCircleV({point.x, point.y}, size * .08f, Fade(kGold, reveal));
+                }
+            }
+            if (reveal > 0 && tile != TileType::Bollard && tile != TileType::Wall &&
+                tile != TileType::Floor && !map.isOpen(x, y) && tile != TileType::PlayerSpawn &&
                 !(objectives && (tile == TileType::Money || tile == TileType::VaultDoor ||
                                  tile == TileType::VanSpawn))) {
                 const auto center = map.tileCenter({x, y});

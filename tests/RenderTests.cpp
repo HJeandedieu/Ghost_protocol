@@ -946,3 +946,46 @@ TEST_F(Render, LoadoutChoicesAndPayoutReturnRemainResponsive) {
     result.update(.01f);
     EXPECT_EQ(menus, 1);
 }
+
+TEST_F(Render, EscapeVanAppearsAfterArrivalAndLoweredBollardsBecomeRecessedDots) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    Config config;
+    Level level;
+    std::istringstream ascii(".............\n..N.b.Z.v....\n.............");
+    level.map = TileMap::parse(ascii, 48);
+    level.map.fillLight(LightLevel::Lit);
+    level.playerSpawn = {2, 1};
+    World world(std::move(level), config.player);
+    EventBus events;
+    InteractionSystem interaction(events);
+    interaction.loadBank(world, config);
+    AlarmDirector alarm(events, logger, world);
+    ObjectiveSystem mission(events, world, interaction, alarm, config, 6);
+    RippleSystem ripple(config.ping, world.level.map);
+    const auto van = world.level.map.tileCenter({8, 1});
+    renderer.prepareLevel(world.level);
+    const auto capture = [&] {
+        renderer.beginFrame();
+        renderer.drawLevel(world.level, world.player, ripple, van, 0, 1, false, 7, {}, {}, {},
+                           false, nullptr, {}, false, {}, nullptr, nullptr, &mission);
+        renderer.present();
+        auto image = LoadImageFromTexture(renderer.frameTexture());
+        ImageFlipVertical(&image);
+        return image;
+    };
+    auto before = capture();
+    EXPECT_LT(GetImageColor(before, 664, 360).g, 120);
+    UnloadImage(before);
+    interaction.update(config.mission.bollardHold, true, world);
+    mission.update(config.mission.bollardHold);
+    EXPECT_TRUE(world.level.map.isOpen(4, 1));
+    EXPECT_FALSE(mission.vanArrived());
+    mission.update(config.mission.vanDelay);
+    auto after = capture();
+    EXPECT_GT(GetImageColor(after, 664, 360).g, 120);
+    EXPECT_TRUE(ExportImage(after, GP_RENDER_OUTPUT_DIRECTORY "/day21-escape-van.png"));
+    UnloadImage(after);
+}
