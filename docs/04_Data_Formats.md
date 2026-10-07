@@ -35,7 +35,7 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
               "medkit_amount": 50, "armor_amount": 50, "collect_radius": 50 },
   "view": { "lead_px": 60, "follow_rate": 8 },
   "render": { "ambient_floor_alpha": 0.18, "ambient_wall_alpha": 0.45 },
-  "ui": { "hover_time": 0.15, "transition_time": 0.25 },
+  "ui": { "hover_time": 0.15, "transition_time": 0.25, "payout_line_time": 0.18, "payout_count_time": 1.2, "payout_stamp_time": 0.25 },
   "ping": { "small_radius": 260, "big_radius": 520, "tap_max": 0.25, "charge_max": 0.8,
             "speed": 800, "fade": 2.5, "cooldown": 3.0, "noise_mult": 0.6, "halo": 96,
             "hazard_reveal_radius": 120 },
@@ -89,6 +89,9 @@ Recovery pickup tuning (author approved 6 October 2026): `pickup.medkit_chance` 
 Day 19 alarm presentation tuning (author approved 6 October 2026): `alarm.trauma_decay` is the trauma reduction per unscaled second (1.5); `alarm.banner_time` is the unscaled banner duration from the alarm (2.5 s); `alarm.shake_pixels` is the maximum world translation amplitude at trauma 1 (12 px). These values must be finite and nonnegative; missing or invalid values fall back to those defaults and log a WARN. Shake amplitude is `shake_pixels * trauma * trauma`, halved by Reduce Effects. Shake affects world presentation only; HUD and gameplay coordinates remain stable. Timing and start-once behavior follow Systems Contract §3.3.1.
 
 Day 22 UI timing tuning (author approved 7 October 2026): `ui.hover_time` is the duration of button hover/focus easing (0.15 s), and `ui.transition_time` is the duration of screen entrances/exits (0.25 s), preserving Design Docs section 1.6. Both must be finite and strictly positive. Missing or invalid values fall back to those defaults with a WARN. Presentation uses cubic ease-out; input remains usable throughout animation. Reduce Effects uses a simple fade instead of moving wipes/parallax.
+
+
+Day 24 payout presentation tuning (author approved 7 October 2026): `ui.payout_line_time` (0.18 s) is the interval between receipt lines, `ui.payout_count_time` (1.2 s) is the final amount count-up duration after the last line, and `ui.payout_stamp_time` (0.25 s) is the rank stamp entrance duration after counting finishes. Each must be finite and strictly positive; missing or invalid values use its default with a WARN. Reduce Effects shows the receipt and final amount immediately and fades in the rank over `ui.payout_stamp_time`. Buttons remain usable throughout.
 
 ## 3. weapons.json and enemies.json
 ```json
@@ -183,6 +186,8 @@ were approved by the author on 5 October 2026.
   "hard":   { "best_payout": 0, "best_rank": "-", "best_time": 0, "ghost_runs": 0 } }
 ```
 Missing or corrupt files are replaced by defaults with a WARN log. Saves are written to a temp file and renamed (desktop) so a crash never corrupts them.
+
+Day 24 score records (author approved 7 October 2026): `best_payout` is the highest completed final payout, retaining cents, and `best_rank` belongs to that payout. Equal or lower payouts preserve both. `best_time` independently records the fastest completed run in real seconds; zero means unset. `ghost_runs` increments once per alarm-free completion. Records stay separate for easy, normal and hard; hard remains reserved until playable. Numeric fields must be finite and non-negative, `ghost_runs` an integer, and `best_rank` one of `-`, `C`, `B`, `A`, `S`. Missing or invalid records make the file corrupt and use the default replacement policy above. Web scores use localStorage, consistent with settings.
 
 ## 6. Voice lines manifest
 `voice_lines.json` is generated from the table in `05_Design_Docs.md` section 7: `{ "id": "V01", "file": "audio/voice/V01.ogg", "text": "...", "priority": 1..3, "trigger": "..." }`. Priority 3 (panic, alarm) interrupts anything; priority 1 never interrupts.

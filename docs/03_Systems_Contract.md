@@ -173,6 +173,10 @@ Author-approved tuning, 6 October 2026:
 - Payout order is delivered subtotal, ghost bonus (only if no alarm ever fired), time bonus (strictly below payout.time_bonus_limit), Handler cut on subtotal plus bonuses, comedic deductions, then death penalty. Clamp the final result to zero; rank uses this final amount. Keep cents internally and round only for display.
 - Finalize samples an inclusive uniform integer deduction count from zero to payout.deduction_max_count (3), then an independent inclusive uniform whole-dollar amount from zero to payout.deduction_max_amount (500) for each line using the supplied seeded Rng. Finalize once on mission completion and retain that result for display, so rendering never rerolls deductions.
 
+- Day 24 records a mission completion once under its active difficulty before presenting Payout. Highest final payout and its rank update together; ties preserve both. Fastest completed real time updates independently (zero means unset). Each alarm-free completion increments ghost_runs once, including runs with stage retries. Rendering, screen re-entry and navigation never record it again.
+- PLAY AGAIN opens loadout for a fresh mission; confirming loadout resets run statistics. MENU returns to the main menu, which shows the selected difficulty's best payout and rank.
+- Receipt lines appear in calculation order, followed by the final amount counting up and the rank stamp entering, using Data Formats section 2's payout timing keys. Show the finalized zero-to-three deductions; never force three or reroll for display. Reduce Effects shows the receipt/final amount immediately with a simple rank fade. Navigation works throughout; presentation never changes money or finalized payout.
+
 ## 4. Interfaces (C++ signatures, abbreviated)
 ```cpp
 struct Vec2 { float x, y; };
