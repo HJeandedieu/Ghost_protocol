@@ -19,7 +19,7 @@ class ScoreSystem {
    public:
     explicit ScoreSystem(const PayoutConfig& config) : config_(config) {}
     void addBag(float value);
-    Payout finalize(bool ghostRun, float seconds, int deaths, Rng& rng) const;
+    Payout finalize(bool ghostRun, double seconds, int deaths, Rng& rng) const;
     char rank(double finalPayout) const;
 
    private:

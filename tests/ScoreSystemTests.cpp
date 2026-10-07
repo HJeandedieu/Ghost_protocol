@@ -29,6 +29,7 @@ TEST(ScoreSystem, TimeLimitIsExclusiveAndAlarmRemovesGhostBonus) {
     auto p = score.finalize(false, 600, 0, rng);
     EXPECT_DOUBLE_EQ(p.ghostBonus, 0);
     EXPECT_DOUBLE_EQ(p.timeBonus, 0);
+    EXPECT_DOUBLE_EQ(score.finalize(false, 599.999999, 0, rng).timeBonus, config.timeBonus);
     EXPECT_NEAR(p.finalAmount, 17000, .01);
     EXPECT_DOUBLE_EQ(
         score.finalize(true, std::numeric_limits<float>::quiet_NaN(), 0, rng).timeBonus, 0);

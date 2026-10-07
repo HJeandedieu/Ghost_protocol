@@ -64,8 +64,7 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
     events_.subscribe<BagDelivered>([this](const auto& event) { score_.addBag(event.value); });
     events_.subscribe<MissionComplete>([this](const auto&) {
         if (finish_)
-            finish_(score_.finalize(!run_->alarmEver, static_cast<float>(run_->seconds),
-                                    run_->deaths, payoutRng_));
+            finish_(score_.finalize(!run_->alarmEver, run_->seconds, run_->deaths, payoutRng_));
     });
     detection_.bindCameras(world_.cameras);
     renderer_.prepareLevel(world_.level);

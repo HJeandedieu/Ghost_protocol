@@ -16,7 +16,7 @@ char ScoreSystem::rank(double value) const {
     if (value >= config_.rankB) return 'B';
     return 'C';
 }
-Payout ScoreSystem::finalize(bool ghostRun, float seconds, int deaths, Rng& rng) const {
+Payout ScoreSystem::finalize(bool ghostRun, double seconds, int deaths, Rng& rng) const {
     Payout result;
     result.subtotal = subtotal_;
     result.ghostBonus = ghostRun ? subtotal_ * config_.ghostBonus : 0;
