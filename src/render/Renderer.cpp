@@ -215,7 +215,8 @@ void Renderer::drawGuardCone(const Guard& guard, Vec2 position, const TileMap& m
 Renderer::Renderer(Logger& logger, const RenderConfig& config)
     : surface_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)),
       world_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)),
-      config_(config) {
+      config_(config),
+      uiAssets_(logger) {
 #ifdef __EMSCRIPTEN__
     const char* path = "assets/shaders/glsl100/post.fs";
 #else

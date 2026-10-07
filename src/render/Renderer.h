@@ -9,6 +9,7 @@
 #include "entities/RecoveryPickup.h"
 #include "raylib.h"
 #include "render/HealthHud.h"
+#include "ui/UiAssets.h"
 
 struct Level;
 class Player;
@@ -40,6 +41,7 @@ class Renderer {
     void present();
     void setReduceEffects(bool enabled) { reduceEffects_ = enabled; }
     Texture2D frameTexture() const { return surface_.texture; }
+    const UiAssets& uiAssets() const { return uiAssets_; }
     void prepareLevel(const Level& level);
     void drawInteractionHud(const World& world, const InteractionSystem& interaction,
                             float noiseRadius, float maximumNoise,
@@ -77,6 +79,7 @@ class Renderer {
     RenderTexture2D surface_;
     RenderTexture2D world_;
     RenderConfig config_;
+    UiAssets uiAssets_;
     HealthHud healthHud_;
     Shader post_{};
     int timeLocation_ = -1;

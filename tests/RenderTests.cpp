@@ -33,6 +33,32 @@ class Render : public testing::Test {
     }
 };
 
+TEST_F(Render, PrescribedFontsLoadAndMissingAssetsRetainUsableFallback) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    const auto& assets = renderer.uiAssets();
+    ASSERT_TRUE(assets.fontsLoaded());
+    ASSERT_NE(assets.logo().id, 0u);
+    renderer.beginFrame();
+    assets.text("GHOST PROTOCOL", {64, 64}, 44, {233, 228, 208, 255}, false, true);
+    assets.text("START HEIST", {64, 144}, 24, {233, 228, 208, 255});
+    assets.text("Are you in or out?", {64, 216}, 22, {233, 228, 208, 255}, true);
+    renderer.present();
+    auto image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day22-fonts.png"));
+    UnloadImage(image);
+    {
+        UiAssets missing(logger, "assets/not-present");
+        EXPECT_FALSE(missing.fontsLoaded());
+        EXPECT_EQ(missing.body().texture.id, GetFontDefault().texture.id);
+        EXPECT_EQ(missing.logo().id, 0u);
+    }
+    EXPECT_NE(GetFontDefault().texture.id, 0u);
+    EXPECT_NE(output.str().find("[ERROR] Font unavailable"), std::string::npos);
+}
+
 TEST_F(Render, MissionLootUsesRuntimeStateAndBustedRetriesCurrentStage) {
     std::ostringstream console;
     Logger logger(console, "");
