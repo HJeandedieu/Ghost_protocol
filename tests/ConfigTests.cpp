@@ -264,3 +264,26 @@ TEST(Config, PayoutRatesRetainJsonDoublePrecision) {
     EXPECT_DOUBLE_EQ(config.payout.handlerCut, .15);
     EXPECT_DOUBLE_EQ(config.payout.ghostBonus, .25);
 }
+
+TEST(Config, UiTimingLoadsOverridesAndRejectsZeroNegativeAndOverflow) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    std::ostringstream console;
+    Logger logger(console, "");
+    data["ui"] = {{"hover_time", .3}, {"transition_time", .5}};
+    auto ui = Config::load(files.write("ui.json", data.dump()), logger).ui;
+    EXPECT_FLOAT_EQ(ui.hoverTime, .3f);
+    EXPECT_FLOAT_EQ(ui.transitionTime, .5f);
+    for (const auto& invalid :
+         {nlohmann::json(0), nlohmann::json(-1), nlohmann::json(1e100), nlohmann::json("bad")}) {
+        data["ui"] = {{"hover_time", invalid}, {"transition_time", invalid}};
+        ui = Config::load(files.write("invalid-ui.json", data.dump()), logger).ui;
+        EXPECT_FLOAT_EQ(ui.hoverTime, .15f);
+        EXPECT_FLOAT_EQ(ui.transitionTime, .25f);
+    }
+    data.erase("ui");
+    ui = Config::load(files.write("missing-ui.json", data.dump()), logger).ui;
+    EXPECT_FLOAT_EQ(ui.hoverTime, .15f);
+    EXPECT_NE(console.str().find("[WARN]"), std::string::npos);
+}

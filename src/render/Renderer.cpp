@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <sstream>
 #include <string>
 
 #include "core/Logger.h"
@@ -25,6 +26,7 @@
 #include "systems/ScoreSystem.h"
 #include "systems/VisionSystem.h"
 #include "systems/WaveSpawner.h"
+#include "ui/Widgets.h"
 #include "world/Level.h"
 #include "world/Raycast.h"
 #include "world/World.h"
@@ -231,6 +233,7 @@ Renderer::Renderer(Logger& logger, const RenderConfig& config)
         logger.log(LogLevel::Error, "Post shader unavailable; using plain rendering");
 }
 Renderer::~Renderer() {
+    if (outgoing_.id) UnloadRenderTexture(outgoing_);
     if (timeLocation_ >= 0) UnloadShader(post_);
     UnloadRenderTexture(world_);
     UnloadRenderTexture(surface_);
@@ -263,9 +266,41 @@ void Renderer::compose(bool effects) {
     composed_ = true;
 }
 
+void Renderer::startTransition(float duration, bool backwards) {
+    if (!outgoing_.id) outgoing_ = LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight);
+    BeginTextureMode(outgoing_);
+    ClearBackground(BLACK);
+    DrawTextureRec(surface_.texture, {0, 0, 1280, -720}, {0, 0}, WHITE);
+    EndTextureMode();
+    transitionDuration_ = duration;
+    transitionElapsed_ = 0;
+    transitionBackwards_ = backwards;
+}
+
 void Renderer::present() {
     if (!composed_) compose(false);
+    if (transitionElapsed_ < transitionDuration_ && outgoing_.id) {
+        const float p = transitionProgress(transitionElapsed_, transitionDuration_);
+        if (reduceEffects_) {
+            DrawTextureRec(outgoing_.texture, {0, 0, 1280, -720}, {0, 0}, Fade(WHITE, 1 - p));
+        } else {
+            // Three staggered directional panels retain the outgoing composition.
+            for (int row = 0; row < 3; ++row) {
+                const float local = std::clamp(p * 1.2f - row * .1f, 0.f, 1.f);
+                const int width = static_cast<int>((1 - local) * 1280);
+                const int x = transitionBackwards_ ? 0 : 1280 - width;
+                if (width > 0) {
+                    BeginScissorMode(x, row * 240, width, 240);
+                    DrawTextureRec(outgoing_.texture, {0, 0, 1280, -720}, {0, 0}, WHITE);
+                    DrawRectangle(x, row * 240, 4, 240, Palette::Teal);
+                    EndScissorMode();
+                }
+            }
+        }
+    }
+#ifndef NDEBUG
     DrawFPS(16, 16);
+#endif
     EndTextureMode();
     BeginDrawing();
     ClearBackground(BLACK);
@@ -284,7 +319,7 @@ void Renderer::drawPlaceholder(const char* title, const char* subtitle) {
     constexpr Color kTeal = {63, 143, 140, 255};
     DrawText(title, (Letterbox::kWidth - MeasureText(title, 40)) / 2, 288, 40, kBone);
     DrawText(subtitle, (Letterbox::kWidth - MeasureText(subtitle, 20)) / 2, 360, 20, kTeal);
-    DrawText("F11 fullscreen  |  ESC quit", 24, Letterbox::kHeight - 40, 18, kBone);
+    DrawText("F11 fullscreen", 24, Letterbox::kHeight - 40, 18, kBone);
 }
 
 void Renderer::drawError(const char* message) {
@@ -730,25 +765,20 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
         DrawRectangle(0, 64, Letterbox::kWidth, Letterbox::kHeight - 112,
                       Fade({255, 59, 92, 255}, healthHud_.flashFraction() * 0.12f));
 
-    DrawRectangle(0, 0, Letterbox::kWidth, 64, {20, 22, 27, 255});
-    DrawText(level.name.c_str(), 160, 20, 24, kBone);
-    DrawText(player.isCrouched() ? "CROUCH" : (player.isSprinting() ? "SPRINT" : "WALK"), 440, 24,
-             20, kGold);
-    DrawRectangle(0, Letterbox::kHeight - 48, Letterbox::kWidth, 48, {20, 22, 27, 255});
+    uiAssets_.text(level.name.c_str(), {464, 24}, 18, kBone);
+    uiAssets_.text(player.isCrouched()    ? "CROUCH"
+                   : player.isSprinting() ? "SPRINT"
+                                          : "WALK",
+                   {464, 48}, 14, kGold, true);
+    if (hints_)
+        uiAssets_.text("WASD move  |  SPACE ping  |  E interact  |  G throw", {448, 692}, 14, kBone,
+                       true);
 #ifndef NDEBUG
-    DrawText("WASD/arrows | Shift sprint | C/Ctrl crouch | Space ping | E interact | F3 overview",
-             24, Letterbox::kHeight - 32, 18, kBone);
-    if (overview) {
-        const auto details = std::to_string(map.width()) + " x " + std::to_string(map.height()) +
-                             " | Tile " + std::to_string(map.tileSize()) + " px | Seed " +
-                             std::to_string(seed);
-        DrawText(details.c_str(), 600, 24, 18, Palette::Teal);
-    }
+    if (overview)
+        uiAssets_.text(TextFormat("%d x %d | Seed %u", map.width(), map.height(), seed), {464, 72},
+                       14, Palette::Teal, true);
 #else
     (void)seed;
-    DrawText(
-        "WASD/arrows | Shift sprint | C/Ctrl crouch | Space ping | E interact | F11 fullscreen", 24,
-        Letterbox::kHeight - 32, 18, kBone);
 #endif
 }
 
@@ -762,32 +792,57 @@ void Renderer::drawInteractionHud(const World& world, const InteractionSystem& i
         world.powerOn ? "Gate open: reach the vault corridor"
                       : (world.player.hasKeycard() ? "Find the breaker and restore gate power"
                                                    : "Enter the bank and find the red keycard");
-    DrawRectangle(24, 80, 520, 88, kSlate);
-    DrawText(objectives ? objectives->objective() : objective, 40, 96, 18, kBone);
+    std::string words = objectives ? objectives->objective() : objective;
+    std::istringstream stream(words);
+    std::vector<std::string> lines;
+    std::string word, line;
+    while (stream >> word) {
+        const auto candidate = line.empty() ? word : line + " " + word;
+        if (!line.empty() && MeasureTextEx(uiAssets_.body(), candidate.c_str(), 18, 1).x > 194) {
+            lines.push_back(line);
+            line = word;
+        } else
+            line = candidate;
+    }
+    if (!line.empty()) lines.push_back(line);
+    const float height = 48 + lines.size() * 22.f + (world.alarmLoud ? 0 : 24);
+    DrawRectangleRounded({24, 80, 226, height}, .07f, 8, kSlate);
+    DrawRectangleRoundedLinesEx({24, 80, 226, height}, .07f, 8, 2, Fade(kBone, .2f));
+    uiAssets_.text("OBJECTIVE", {40, 96}, 14, kTeal);
+    float y = 120;
+    for (const auto& value : lines) {
+        uiAssets_.text(value.c_str(), {40, y}, 18, kBone, true);
+        y += 22;
+    }
     if (objectives) {
-        DrawText(TextFormat("BAGS %d/%d  %s", objectives->pickedCount(),
-                            static_cast<int>(objectives->bags().size()),
-                            world.player.carryingBag() ? "G: THROW" : "HANDS FREE"),
-                 40, 184, 18, {242, 183, 5, 255});
-        DrawText(TextFormat("DELIVERED %d  |  VAN %s", objectives->deliveredCount(),
-                            objectives->vanArrived() ? "READY"
-                            : objectives->bollardsLowered()
-                                ? TextFormat("%.1fs", objectives->vanRemaining())
-                                : "WAITING FOR BOLLARDS"),
-                 40, 208, 16, kBone);
+        DrawRectangleRounded({1116, 24, 140, 54}, .2f, 8, kSlate);
+        DrawRectangleRoundedLinesEx({1116, 24, 140, 54}, .2f, 8, 2, Fade(kBone, .2f));
+        DrawRectangleRounded({1130, 40, 18, 22}, .3f, 8, {242, 183, 5, 255});
+        DrawLine(1134, 38, 1144, 38, kBone);
+        uiAssets_.text(TextFormat("%d / %d", objectives->deliveredCount(),
+                                  static_cast<int>(objectives->bags().size())),
+                       {1160, 40}, 20, kBone, false, true);
+        uiAssets_.text(world.player.carryingBag() ? "G: THROW BAG" : "HANDS FREE", {1032, 88}, 14,
+                       kBone, true);
+        const char* van = objectives->vanArrived() ? "VAN READY"
+                          : objectives->bollardsLowered()
+                              ? TextFormat("VAN %.1fs", objectives->vanRemaining())
+                              : "BOLLARDS UP";
+        uiAssets_.text(van, {1032, 112}, 14, kTeal, true);
     }
     if (!world.alarmLoud) {
         const int filled =
             maximumNoise > 0
                 ? std::clamp(static_cast<int>(std::ceil(noiseRadius / maximumNoise * 6)), 0, 6)
                 : 0;
-        DrawText("NOISE", 40, 136, 14, kBone);
+        uiAssets_.text("NOISE", {40, y + 4}, 14, kBone, true);
         for (int i = 0; i < 6; ++i)
-            DrawRectangle(104 + i * 24, 136, 16, 12, i < filled ? kTeal : Color{40, 44, 50, 255});
+            DrawRectangle(104 + i * 20, static_cast<int>(y + 4), 12, 12,
+                          i < filled ? kTeal : Color{40, 44, 50, 255});
     }
     if (world.securityLoopRemaining > 0)
-        DrawText(TextFormat("SECURITY LOOP %.0fs", world.securityLoopRemaining), 288, 136, 14,
-                 kTeal);
+        uiAssets_.text(TextFormat("SECURITY LOOP %.0fs", world.securityLoopRemaining), {272, 96},
+                       14, kTeal, true);
     if (const auto* target = interaction.target()) {
         DrawRectangle(312, Letterbox::kHeight - 112, 704, 56, kSlate);
         DrawText(target->prompt.c_str(), 336, Letterbox::kHeight - 96, 20, kBone);
@@ -824,37 +879,38 @@ void Renderer::drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pag
 void Renderer::drawWaveHud(const WaveSpawner& waves) const {
     constexpr Color kBone{233, 228, 208, 255};
     constexpr Color kGold{242, 183, 5, 255};
-    DrawRectangleRounded({1010, 80, 246, 88}, 0.1f, 4, {20, 22, 27, 255});
-    DrawRectangleLinesEx({1010, 80, 246, 88}, 1, Fade(kBone, 0.65f));
-    DrawText(TextFormat("ASSAULT  %d", waves.waveIndex()), 1026, 96, 22, kGold);
-    DrawText(TextFormat("NEXT WAVE  %.0fs", std::ceil(waves.nextWaveRemaining())), 1026, 130, 16,
-             kBone);
+    DrawRectangleRounded({1010, 160, 246, 88}, 0.1f, 4, {20, 22, 27, 255});
+    DrawRectangleLinesEx({1010, 160, 246, 88}, 1, Fade(kBone, 0.65f));
+    uiAssets_.text(TextFormat("ASSAULT  %d", waves.waveIndex()), {1026, 176}, 20, kGold, false,
+                   true);
+    uiAssets_.text(TextFormat("NEXT WAVE  %.0fs", std::ceil(waves.nextWaveRemaining())),
+                   {1026, 210}, 18, kBone, true);
 }
 void Renderer::drawWeaponHud(const CombatSystem& combat) const {
     const auto& weapon = combat.activeWeapon();
     constexpr Color kBone{233, 228, 208, 255};
     constexpr Color kGold{242, 183, 5, 255};
-    DrawRectangle(24, 510, 272, 146, {20, 22, 27, 255});
-    DrawRectangleLinesEx({24, 510, 272, 146}, 1, Fade(kBone, 0.6f));
+    DrawRectangle(24, 550, 272, 146, {20, 22, 27, 255});
+    DrawRectangleLinesEx({24, 550, 272, 146}, 1, Fade(kBone, 0.6f));
     const std::string name = std::to_string(combat.activeSlot() + 1) + "  " + weapon.spec().name;
-    DrawText(name.c_str(), 40, 522, 22, kBone);
+    uiAssets_.text(name.c_str(), {40, 562}, 20, kBone, false, true);
     const std::string ammunition =
         std::to_string(weapon.ammunition()) + " / " + std::to_string(weapon.reserve());
-    DrawText(ammunition.c_str(), 40, 554, 26, kGold);
+    uiAssets_.text(ammunition.c_str(), {40, 594}, 28, kGold, false, true);
     if (weapon.reloadRemaining() > 0) {
-        DrawText("RELOADING", 158, 560, 16, kBone);
+        DrawText("RELOADING", 158, 600, 16, kBone);
         const float progress = 1 - weapon.reloadRemaining() / weapon.spec().reload;
-        DrawRectangle(40, 584, static_cast<int>(232 * progress), 3, kGold);
+        DrawRectangle(40, 624, static_cast<int>(232 * progress), 3, kGold);
     }
     if (!healthHud_.initialized()) return;
-    const auto meter = [](float shown, float maximum, float y, Color color, const char* label) {
-        DrawText(label, 40, static_cast<int>(y) - 14, 10, {233, 228, 208, 255});
+    const auto meter = [this](float shown, float maximum, float y, Color color, const char* label) {
+        uiAssets_.text(label, {40, y - 16}, 14, {233, 228, 208, 255}, true);
         DrawRectangleRounded({40, y, 240, 12}, 1, 8, {40, 44, 50, 255});
         const float fraction = maximum > 0 ? std::clamp(shown / maximum, 0.0f, 1.0f) : 0;
         if (fraction > 0) DrawRectangleRounded({40, y, 240 * fraction, 12}, 1, 8, color);
     };
-    meter(healthHud_.displayedHp(), healthHud_.maximumHp(), 606, {255, 59, 92, 255}, "HEALTH");
-    meter(healthHud_.displayedArmor(), healthHud_.maximumArmor(), 636, kBone, "ARMOR");
+    meter(healthHud_.displayedHp(), healthHud_.maximumHp(), 646, {255, 59, 92, 255}, "HEALTH");
+    meter(healthHud_.displayedArmor(), healthHud_.maximumArmor(), 676, kBone, "ARMOR");
 }
 
 void Renderer::drawAlarmSequence(const AlarmSequence& sequence) const {

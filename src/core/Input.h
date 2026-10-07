@@ -3,6 +3,9 @@
 
 // Frame edges are retained until a fixed tick consumes them.
 struct Input {
+    bool backPressed = false;
+    int menuVertical = 0;
+    int menuHorizontal = 0;
     bool confirmPressed = false;
     bool startClicked = false;
     bool debugPressed = false;
@@ -28,6 +31,9 @@ struct Input {
     int loadoutExcluded = -1;
     int weaponWheel = 0;
     void clearEdges() {
+        backPressed = false;
+        menuVertical = 0;
+        menuHorizontal = 0;
         confirmPressed = false;
         startClicked = false;
         debugPressed = false;

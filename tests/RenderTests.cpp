@@ -9,6 +9,7 @@
 #include "render/AlarmSequence.h"
 #include "render/Renderer.h"
 #include "states/LoadoutState.h"
+#include "states/MenuState.h"
 #include "states/PayoutState.h"
 #include "states/PlayState.h"
 #include "systems/CombatSystem.h"
@@ -207,15 +208,19 @@ TEST_F(Render, ShaderCompilesDarknessIsPreservedAndHudRemainsUnprocessed) {
     level.map.setLight(2, 6, LightLevel::Lit);
     Player player({640, 360}, PlayerConfig{});
     RippleSystem ripple(PingConfig{}, level.map);
+    World world(level, PlayerConfig{});
+    EventBus events;
+    InteractionSystem interaction(events);
     renderer.beginFrame();
     renderer.drawLevel(level, player, ripple, player.pos, 0, 1, false, 1234);
+    renderer.drawInteractionHud(world, interaction, 0, 280);
     renderer.present();
     auto image = LoadImageFromTexture(renderer.frameTexture());
     ImageFlipVertical(&image);
     const auto dark = GetImageColor(image, 200, 360);
     const auto lit = GetImageColor(image, 120, 312);
     const auto halo = GetImageColor(image, 680, 360);
-    const auto hud = GetImageColor(image, 20, 10);
+    const auto hud = GetImageColor(image, 30, 100);
     EXPECT_LT(dark.g, 30);
     EXPECT_GT(lit.g, 45);
     EXPECT_GT(halo.g, 45);
@@ -257,10 +262,15 @@ TEST_F(Render, InteractionPromptAndSixSegmentNoiseMeterRemainReadable) {
     renderer.present();
     auto image = LoadImageFromTexture(renderer.frameTexture());
     ImageFlipVertical(&image);
-    for (int segment = 0; segment < 6; ++segment) {
-        const auto color = GetImageColor(image, 108 + segment * 24, 140);
-        EXPECT_EQ(color.g, segment < 3 ? 143 : 44);
+    bool segmentsFound = false;
+    for (int y = 160; y < 240; ++y) {
+        bool matches = true;
+        for (int segment = 0; segment < 6; ++segment)
+            matches = matches &&
+                      GetImageColor(image, 108 + segment * 20, y).g == (segment < 3 ? 143 : 44);
+        segmentsFound = segmentsFound || matches;
     }
+    EXPECT_TRUE(segmentsFound);
     const auto prompt = GetImageColor(image, 316, 612);
     EXPECT_EQ(prompt.r, 20);
     EXPECT_EQ(prompt.g, 22);
@@ -630,16 +640,16 @@ TEST_F(Render, HealthAndArmorBarsDrainWithWorldHitFlashAndRemainStableWithGuards
     renderer.present();
     auto image = LoadImageFromTexture(renderer.frameTexture());
     ImageFlipVertical(&image);
-    const auto health = GetImageColor(image, 80, 612);
+    const auto health = GetImageColor(image, 80, 652);
     EXPECT_EQ(health.r, 255);
     EXPECT_EQ(health.g, 59);
-    const auto armor = GetImageColor(image, 100, 642);
+    const auto armor = GetImageColor(image, 100, 682);
     EXPECT_EQ(armor.r, 233);
     EXPECT_EQ(armor.g, 228);
-    EXPECT_EQ(GetImageColor(image, 180, 642).r, 40);
-    EXPECT_EQ(GetImageColor(image, 274, 642).r, 40);
+    EXPECT_EQ(GetImageColor(image, 180, 682).r, 40);
+    EXPECT_EQ(GetImageColor(image, 274, 682).r, 40);
     EXPECT_GT(GetImageColor(image, 400, 200).r, 20);
-    EXPECT_EQ(GetImageColor(image, 30, 540).r, 20);
+    EXPECT_EQ(GetImageColor(image, 30, 580).r, 20);
     EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day16-health-preview.png"));
     EXPECT_FLOAT_EQ(world.player.hp(), 85);
     EXPECT_FLOAT_EQ(world.player.armor(), 0);
@@ -715,7 +725,7 @@ TEST_F(Render, PoliceSilhouettesAndWaveHudReadStateWithoutRevealingEnemies) {
     ImageFlipVertical(&image);
     EXPECT_GT(GetImageColor(image, 920, 360).r, 150);  // Bone shield arc faces right.
     EXPECT_GT(GetImageColor(image, 980, 360).r, 150);  // Gold armored vest stripe.
-    EXPECT_EQ(GetImageColor(image, 1015, 85).r, 20);   // Stable framed HUD background.
+    EXPECT_EQ(GetImageColor(image, 1015, 165).r, 20);  // Stable framed HUD background.
     EXPECT_EQ(waves.waveIndex(), 1);
     for (const auto& enemy : world.enemies) EXPECT_FLOAT_EQ(enemy->reveal, 0);
     EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day18-police-preview.png"));
@@ -746,7 +756,7 @@ TEST_F(Render, PlayStateStartsAssaultClockAfterAlarmAndDisplaysWaveHud) {
     renderer.present();
     auto image = LoadImageFromTexture(renderer.frameTexture());
     ImageFlipVertical(&image);
-    const auto quiet = GetImageColor(image, 1100, 160);
+    const auto quiet = GetImageColor(image, 1100, 244);
     UnloadImage(image);
     input.weaponSlot = 1;
     input.firePressed = true;
@@ -762,18 +772,18 @@ TEST_F(Render, PlayStateStartsAssaultClockAfterAlarmAndDisplaysWaveHud) {
     renderer.present();
     image = LoadImageFromTexture(renderer.frameTexture());
     ImageFlipVertical(&image);
-    const auto assault = GetImageColor(image, 1100, 160);
+    const auto assault = GetImageColor(image, 1100, 244);
     EXPECT_EQ(assault.r, 20);
     EXPECT_EQ(assault.g, 22);
     EXPECT_EQ(assault.b, 27);
     EXPECT_TRUE(quiet.r != assault.r || quiet.g != assault.g || quiet.b != assault.b);
     ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day18-runtime-preview.png");
     renderer.beginFrame();
-    DrawText("ASSAULT  1", 1026, 96, 22, {242, 183, 5, 255});
+    renderer.uiAssets().text("ASSAULT  1", {1026, 176}, 20, {242, 183, 5, 255}, false, true);
     renderer.present();
     auto expected = LoadImageFromTexture(renderer.frameTexture());
     ImageFlipVertical(&expected);
-    for (int y = 96; y < 120; ++y)
+    for (int y = 176; y < 200; ++y)
         for (int x = 1026; x < 1220; ++x) {
             const auto actualPixel = GetImageColor(image, x, y);
             const auto expectedPixel = GetImageColor(expected, x, y);
@@ -829,7 +839,7 @@ TEST_F(Render, LoudUsesFullRedVisibilityBoneRimAndHidesNoiseAndPingEffects) {
     const auto rim = GetImageColor(image, 655, 360);
     EXPECT_EQ(rim.r, 233);
     EXPECT_EQ(rim.g, 228);
-    const auto noise = GetImageColor(image, 108, 140);
+    const auto noise = GetImageColor(image, 108, 168);
     EXPECT_EQ(noise.r, 20);
     EXPECT_EQ(noise.g, 22);
     EXPECT_EQ(noise.b, 27);
@@ -884,8 +894,8 @@ TEST_F(Render, AlarmPaletteBarsAndBannerRespectRealTimeAndStableHud) {
     sequence.advance(2.4f);
     image = draw();
     EXPECT_EQ(GetImageColor(image, 300, 360).r, 122);
-    EXPECT_EQ(GetImageColor(image, 200, 20).r, 20);
-    EXPECT_EQ(GetImageColor(image, 100, 4).r, 20);
+    EXPECT_EQ(GetImageColor(image, 200, 20).r, 122);
+    EXPECT_EQ(GetImageColor(image, 100, 4).r, 122);
     ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day19-alarm-settled.png");
     UnloadImage(image);
 }
@@ -1014,4 +1024,72 @@ TEST_F(Render, EscapeVanAppearsAfterArrivalAndLoweredBollardsBecomeRecessedDots)
     EXPECT_GT(GetImageColor(after, 664, 360).g, 120);
     EXPECT_TRUE(ExportImage(after, GP_RENDER_OUTPUT_DIRECTORY "/day21-escape-van.png"));
     UnloadImage(after);
+}
+
+TEST_F(Render, MenuControlsSaveSettingsAndRemainResponsiveDuringTransitions) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    Input input;
+    Settings saved;
+    int saves = 0, starts = 0;
+    bool accept = true;
+    MenuState menu(
+        input, renderer, UiConfig{}, saved, [&] { ++starts; },
+        [&](const Settings& settings) {
+            ++saves;
+            if (accept) saved = settings;
+            return accept;
+        },
+        [] {});
+    auto capture = [&](const char* name) {
+        renderer.updateTransition(1);
+        renderer.beginFrame();
+        menu.render(1);
+        renderer.present();
+        auto image = LoadImageFromTexture(renderer.frameTexture());
+        ImageFlipVertical(&image);
+        EXPECT_TRUE(ExportImage(image, name));
+        UnloadImage(image);
+    };
+    menu.update(.2f);
+    capture(GP_RENDER_OUTPUT_DIRECTORY "/day22-menu.png");
+    input.menuVertical = 1;
+    menu.update(.016f);
+    input.clearEdges();
+    input.confirmPressed = true;
+    menu.update(.016f);
+    input.clearEdges();  // Open settings, incoming transition still active.
+    input.menuHorizontal = -1;
+    menu.update(.016f);
+    input.clearEdges();
+    EXPECT_FLOAT_EQ(saved.volumeMaster, .79f);
+    EXPECT_EQ(saves, 1);
+    input.mouseInViewport = true;
+    input.mouseLogical = {776, 232};
+    input.startClicked = true;
+    menu.update(.016f);
+    input.clearEdges();
+    EXPECT_FLOAT_EQ(saved.volumeMusic, .5f);
+    input.mouseLogical = {300, 576};
+    input.startClicked = true;
+    menu.update(.016f);
+    input.clearEdges();
+    EXPECT_FALSE(saved.reduceEffects);  // Difficulty changes separately from Reduce Effects.
+    EXPECT_EQ(saved.difficulty, "easy");
+    capture(GP_RENDER_OUTPUT_DIRECTORY "/day22-settings.png");
+    const float previous = saved.volumeMaster;
+    accept = false;
+    input.mouseLogical = {640, 176};
+    input.startClicked = true;
+    menu.update(.016f);
+    input.clearEdges();
+    EXPECT_FLOAT_EQ(saved.volumeMaster, previous);
+    input.backPressed = true;
+    menu.update(.016f);
+    input.clearEdges();
+    input.confirmPressed = true;
+    menu.update(.016f);
+    input.clearEdges();
+    EXPECT_EQ(starts, 1);
 }

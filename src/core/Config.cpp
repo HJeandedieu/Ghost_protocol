@@ -110,6 +110,18 @@ Config Config::load(const std::string& path, Logger& logger) {
     config.view.leadPx = readNumber(view, "lead_px", config.view.leadPx, "view", logger);
     config.view.followRate =
         readNumber(view, "follow_rate", config.view.followRate, "view", logger);
+    const auto& ui = groupOrEmpty(data, "ui", empty);
+    config.ui.hoverTime = readNumber(ui, "hover_time", config.ui.hoverTime, "ui", logger);
+    config.ui.transitionTime =
+        readNumber(ui, "transition_time", config.ui.transitionTime, "ui", logger);
+    if (config.ui.hoverTime <= 0) {
+        logger.log(LogLevel::Warn, "Invalid ui.hover_time; using default");
+        config.ui.hoverTime = UiConfig{}.hoverTime;
+    }
+    if (config.ui.transitionTime <= 0) {
+        logger.log(LogLevel::Warn, "Invalid ui.transition_time; using default");
+        config.ui.transitionTime = UiConfig{}.transitionTime;
+    }
     const auto& render = groupOrEmpty(data, "render", empty);
     config.render.ambientFloorAlpha = readNumber(
         render, "ambient_floor_alpha", config.render.ambientFloorAlpha, "render", logger, 1.0f);

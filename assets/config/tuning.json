@@ -27,6 +27,7 @@
     "lead_px": 60,
     "follow_rate": 8
   },
+  "ui": {"hover_time": 0.15, "transition_time": 0.25},
   "render": {
     "ambient_floor_alpha": 0.18,
     "ambient_wall_alpha": 0.45

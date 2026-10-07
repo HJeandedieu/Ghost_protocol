@@ -39,6 +39,9 @@ class Renderer {
     Renderer& operator=(const Renderer&) = delete;
     void beginFrame();
     void present();
+    void startTransition(float duration, bool backwards = false);
+    void updateTransition(float dt) { transitionElapsed_ += dt; }
+    void setHints(bool enabled) { hints_ = enabled; }
     void setReduceEffects(bool enabled) { reduceEffects_ = enabled; }
     Texture2D frameTexture() const { return surface_.texture; }
     const UiAssets& uiAssets() const { return uiAssets_; }
@@ -78,6 +81,10 @@ class Renderer {
    private:
     RenderTexture2D surface_;
     RenderTexture2D world_;
+    RenderTexture2D outgoing_{};
+    float transitionElapsed_ = 1;
+    float transitionDuration_ = 0;
+    bool transitionBackwards_ = false;
     RenderConfig config_;
     UiAssets uiAssets_;
     HealthHud healthHud_;
@@ -87,6 +94,7 @@ class Renderer {
     float alarmPulse_ = 0;
     bool composed_ = false;
     bool reduceEffects_ = false;
+    bool hints_ = true;
     std::vector<float> coneAngles_;
     std::vector<float> coneDistances_;
     std::vector<Vec2> coneDirections_;
