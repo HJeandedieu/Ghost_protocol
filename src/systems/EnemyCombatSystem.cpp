@@ -15,8 +15,16 @@ float distance(Vec2 a, Vec2 b) { return std::hypot(a.x - b.x, a.y - b.y); }
 }  // namespace
 EnemyCombatSystem::EnemyCombatSystem(EventBus& events, World& world, CombatSystem& combat,
                                      PickupSystem& pickups, const std::vector<EnemySpec>& specs,
-                                     const Config& config, std::uint32_t seed)
-    : events_(events), world_(world), combat_(combat), config_(config), specs_(specs), rng_(seed) {
+                                     const Config& config, std::uint32_t seed,
+                                     float damageMultiplier)
+    : events_(events),
+      world_(world),
+      combat_(combat),
+      config_(config),
+      damageMultiplier_(damageMultiplier >= 0 ? damageMultiplier
+                                              : config.difficulty.normal.enemyDmg),
+      specs_(specs),
+      rng_(seed) {
     const auto guardSpec = std::find_if(specs_.begin(), specs_.end(),
                                         [](const auto& s) { return s.id == "patrol_guard"; });
     if (guardSpec != specs_.end())
@@ -159,9 +167,7 @@ void EnemyCombatSystem::updateActor(Entity& entity, float& facing, const EnemySp
         shots_.push_back({entity.pos, endpoint, 0});
         events_.publish(
             ShotFired{entity.id, spec.id, entity.pos, {std::cos(facing), std::sin(facing)}});
-        if (hit)
-            combat_.applyDamage(world_.player, spec.damage * config_.difficulty.normal.enemyDmg,
-                                entity.id);
+        if (hit) combat_.applyDamage(world_.player, spec.damage * damageMultiplier_, entity.id);
         ++actor.bullet;
         if (actor.bullet >= spec.burst) {
             actor.bullet = 0;

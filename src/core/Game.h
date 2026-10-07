@@ -8,6 +8,7 @@
 #include "core/Rng.h"
 #include "core/Time.h"
 #include "states/StateMachine.h"
+#include "systems/ScoreSystem.h"
 
 class Renderer;
 
@@ -22,6 +23,8 @@ class Game {
     void update(float dt);
     void showMenu(const std::string& error = "");
     void toggleFullscreen();
+    void showLoadout();
+    void showPayout(Payout payout);
     void startMission(int stage = 1, bool loud = false);
     Logger logger_;
     const Config config_;
@@ -30,6 +33,9 @@ class Game {
     Input input_;
     StateMachine states_;
     std::unique_ptr<Renderer> renderer_;
+    std::array<std::string, 2> loadout_{{"whisper", "chatter"}};
+    DifficultyPreset difficulty_;
+    std::shared_ptr<MissionRun> missionRun_;
     int windowedWidth_ = 1280;
     int windowedHeight_ = 720;
 };

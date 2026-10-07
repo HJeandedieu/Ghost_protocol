@@ -54,7 +54,40 @@ ObjectiveSystem::ObjectiveSystem(EventBus& events, World& world, InteractionSyst
     for (int y = 0; y < map.height(); ++y)
         for (int x = 0; x < map.width(); ++x) {
             const Vec2 position = map.tileCenter({x, y});
-            if (map.tile(x, y) == TileType::VaultDoor) {
+            if (map.tile(x, y) == TileType::BollardPanel) {
+                interaction_.add({"bollards:" + std::to_string(x) + ":" + std::to_string(y),
+                                  position, config_.mission.bollardHold, "Hold E: lower bollards",
+                                  [this](const Player&) { return !bollardsLowered_; },
+                                  [this](World&) {
+                                      openTiles(world_.level.map, TileType::Bollard);
+                                      bollardsLowered_ = loweredThisTick_ = true;
+                                      vanAge_ = 0;
+                                  }});
+            } else if (map.tile(x, y) == TileType::PickupZone) {
+                interaction_.add({"escape:" + std::to_string(x) + ":" + std::to_string(y), position,
+                                  0, "E: leave with the cash",
+                                  [this, x, y](const Player& player) {
+                                      const auto& tiles = world_.level.map;
+                                      return !complete_ && stage_ == 6 && vanArrived() &&
+                                             deliveredCount() > 0 &&
+                                             static_cast<int>(player.pos.x / tiles.tileSize()) ==
+                                                 x &&
+                                             static_cast<int>(player.pos.y / tiles.tileSize()) == y;
+                                  },
+                                  [this](World&) {
+                                      for (auto& bag : bags_) {
+                                          if (bag.state != BagState::Carried) continue;
+                                          bag.pos = bag.prevPos = world_.player.pos;
+                                          bag.state = BagState::Delivered;
+                                          world_.player.setCarryingBag(false);
+                                          events_.publish(BagDelivered{bag.id, bag.value});
+                                      }
+                                      complete_ = true;
+                                      events_.publish(ObjectiveCompleted{"S6"});
+                                      events_.publish(MissionComplete{});
+                                  },
+                                  false, InteractionControl::Plain});
+            } else if (map.tile(x, y) == TileType::VaultDoor) {
                 vaultPosition_ = position;
                 const std::string id = "vault:" + std::to_string(x) + ":" + std::to_string(y);
                 interaction_.add(
@@ -178,7 +211,9 @@ void ObjectiveSystem::completeStage() {
 }
 
 void ObjectiveSystem::update(float dt) {
-    if (!std::isfinite(dt) || dt <= 0 || world_.player.dead()) return;
+    if (!std::isfinite(dt) || dt <= 0 || world_.player.dead() || complete_) return;
+    if (bollardsLowered_ && !loweredThisTick_) vanAge_ += dt;
+    loweredThisTick_ = false;
     const auto& map = world_.level.map;
     const auto pos = world_.player.pos;
     const auto previous = world_.player.prevPos;
@@ -215,6 +250,13 @@ void ObjectiveSystem::update(float dt) {
     for (auto& bag : bags_) {
         bag.burstAge += dt;
         if (bag.state == BagState::Carried) bag.pos = bag.prevPos = pos;
+        if ((bag.state == BagState::Carried || bag.state == BagState::Dropped) &&
+            map.tile(static_cast<int>(bag.pos.x / size), static_cast<int>(bag.pos.y / size)) ==
+                TileType::PickupZone) {
+            if (bag.state == BagState::Carried) world_.player.setCarryingBag(false);
+            bag.state = BagState::Delivered;
+            events_.publish(BagDelivered{bag.id, bag.value});
+        }
         interaction_.setPrompt(
             bag.id, bag.state == BagState::Dropped ? "E: pick up dropped bag"
                     : bag.dye == DyeState::Armed   ? "E: take cash (armed dye) | Shift+E: disarm"
@@ -240,7 +282,10 @@ const char* ObjectiveSystem::objective() const {
         case 5:
             return "S5  CASH AND DYE: collect a bag";
         default:
-            return "S6  GET OUT: carry cash to the street";
+            if (!bollardsLowered_) return "S6  GET OUT: lower the street bollards";
+            if (!vanArrived()) return "S6  GET OUT: van inbound; deliver bags";
+            if (deliveredCount() == 0) return "S6  GET OUT: deliver a bag to the pickup zone";
+            return "S6  GET OUT: E in the pickup zone to leave";
     }
 }
 
@@ -255,4 +300,14 @@ std::vector<Entity*> ObjectiveSystem::revealables() {
     for (auto& bag : bags_)
         if (bag.state != BagState::Delivered) result.push_back(&bag);
     return result;
+}
+
+int ObjectiveSystem::deliveredCount() const {
+    return static_cast<int>(std::count_if(bags_.begin(), bags_.end(), [](const Bag& bag) {
+        return bag.state == BagState::Delivered;
+    }));
+}
+float ObjectiveSystem::vanRemaining() const {
+    return bollardsLowered_ ? static_cast<float>(std::max(0.0, config_.mission.vanDelay - vanAge_))
+                            : 0;
 }

@@ -22,6 +22,7 @@
 #include "systems/ObjectiveSystem.h"
 #include "systems/PagerSystem.h"
 #include "systems/RippleSystem.h"
+#include "systems/ScoreSystem.h"
 #include "systems/VisionSystem.h"
 #include "systems/WaveSpawner.h"
 #include "world/Level.h"
@@ -355,7 +356,8 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                                   wallColor, floorColor);
             if (reveal > 0 && tile != TileType::Wall && tile != TileType::Floor &&
                 !map.isOpen(x, y) && tile != TileType::PlayerSpawn &&
-                !(objectives && (tile == TileType::Money || tile == TileType::VaultDoor))) {
+                !(objectives && (tile == TileType::Money || tile == TileType::VaultDoor ||
+                                 tile == TileType::VanSpawn))) {
                 const auto center = map.tileCenter({x, y});
                 const auto color = map.isPassable(x, y) ? kGold : kBone;
                 DrawRectangleRec(
@@ -531,6 +533,18 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
             if (shot.age < 0.05f)
                 DrawCircleV({shot.from.x, shot.from.y}, 5, Fade(kGold, 1 - shot.age / 0.05f));
         }
+    if (objectives && objectives->vanArrived()) {
+        for (int y = 0; y < map.height(); ++y)
+            for (int x = 0; x < map.width(); ++x)
+                if (map.tile(x, y) == TileType::VanSpawn) {
+                    const auto p = map.tileCenter({x, y});
+                    DrawRectangleRounded({p.x - 44, p.y - 24, 88, 48}, .18f, 8, {20, 22, 27, 255});
+                    DrawRectangleRoundedLinesEx({p.x - 44, p.y - 24, 88, 48}, .18f, 8, 2, kBone);
+                    DrawRectangleRec({p.x + 18, p.y - 18, 16, 36}, {63, 143, 140, 255});
+                    DrawCircleV({p.x - 24, p.y - 24}, 6, kBone);
+                    DrawCircleV({p.x - 24, p.y + 24}, 6, kBone);
+                }
+    }
     for (const auto& pickup : pickups) {
         const int tx = static_cast<int>(pickup->pos.x / map.tileSize());
         const int ty = static_cast<int>(pickup->pos.y / map.tileSize());
@@ -740,11 +754,18 @@ void Renderer::drawInteractionHud(const World& world, const InteractionSystem& i
                                                    : "Enter the bank and find the red keycard");
     DrawRectangle(24, 80, 520, 88, kSlate);
     DrawText(objectives ? objectives->objective() : objective, 40, 96, 18, kBone);
-    if (objectives)
+    if (objectives) {
         DrawText(TextFormat("BAGS %d/%d  %s", objectives->pickedCount(),
                             static_cast<int>(objectives->bags().size()),
                             world.player.carryingBag() ? "G: THROW" : "HANDS FREE"),
                  40, 184, 18, {242, 183, 5, 255});
+        DrawText(TextFormat("DELIVERED %d  |  VAN %s", objectives->deliveredCount(),
+                            objectives->vanArrived() ? "READY"
+                            : objectives->bollardsLowered()
+                                ? TextFormat("%.1fs", objectives->vanRemaining())
+                                : "WAITING FOR BOLLARDS"),
+                 40, 208, 16, kBone);
+    }
     if (!world.alarmLoud) {
         const int filled =
             maximumNoise > 0
@@ -847,4 +868,43 @@ void Renderer::drawBusted(int stage) const {
     DrawText("BUSTED", 520, 272, 48, Palette::Alarm);
     DrawText(TextFormat("Retry from S%d", stage), 520, 344, 24, Palette::Bone);
     DrawText("ENTER: RETRY", 520, 402, 24, Color{242, 183, 5, 255});
+}
+
+void Renderer::drawLoadout(int excluded, bool easy) {
+    constexpr Color bone{233, 228, 208, 255}, gold{242, 183, 5, 255};
+    DrawRectangle(160, 80, 960, 560, {20, 22, 27, 255});
+    DrawText("LOADOUT", 200, 112, 36, bone);
+    DrawText("Carry two guns. Press 1, 2 or 3 to leave one behind.", 200, 176, 22, bone);
+    const char* names[] = {"1  WHISPER - suppressed pistol", "2  CHATTER - SMG",
+                           "3  GAVEL - shotgun"};
+    for (int i = 0; i < 3; ++i) {
+        DrawText(names[i], 200, 248 + i * 64, 24, i == excluded ? Color{133, 133, 133, 255} : gold);
+        DrawText(i == excluded ? "LEAVE" : "EQUIPPED", 880, 248 + i * 64, 20, bone);
+    }
+    DrawText(easy ? "C: difficulty TOURIST (Easy)" : "C: difficulty PROFESSIONAL (Normal)", 200,
+             472, 24, bone);
+    DrawText("ENTER: start heist", 200, 568, 24, gold);
+}
+void Renderer::drawPayout(const Payout& payout) {
+    constexpr Color bone{233, 228, 208, 255}, gold{242, 183, 5, 255};
+    DrawRectangle(240, 32, 800, 656, {20, 22, 27, 255});
+    DrawText("HEIST COMPLETE", 280, 64, 36, bone);
+    int y = 136;
+    const auto line = [&](const char* label, double value) {
+        DrawText(label, 280, y, 22, bone);
+        DrawText(TextFormat("$%.0f", value), 816, y, 22, gold);
+        y += 40;
+    };
+    line("Delivered cash", payout.subtotal);
+    line("Ghost bonus", payout.ghostBonus);
+    line("Time bonus", payout.timeBonus);
+    line("Handler's cut", -payout.handlerCut);
+    const char* quips[] = {"Van air freshener", "Emotional support coffee",
+                           "Suspicious parking fee"};
+    for (std::size_t i = 0; i < payout.deductions.size(); ++i)
+        line(quips[i % 3], -payout.deductions[i]);
+    line("Deaths", -payout.deathPenalty);
+    DrawText(TextFormat("RANK %c    PAYOUT $%.0f", payout.rank, payout.finalAmount), 280, 556, 28,
+             gold);
+    DrawText("ENTER: return to menu", 280, 632, 22, bone);
 }

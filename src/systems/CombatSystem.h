@@ -22,7 +22,8 @@ struct HitResult {
 };
 class CombatSystem {
    public:
-    CombatSystem(EventBus& events, const std::vector<WeaponSpec>& specs, std::uint32_t seed);
+    CombatSystem(EventBus& events, const std::vector<WeaponSpec>& specs, std::uint32_t seed,
+                 std::array<std::string, 2> loadout = {{"whisper", "chatter"}});
     void update(float dt, const Input& input, float dirDeg, World& world);
     void applyDamage(Entity& target, float amount, const std::string& sourceId);
     void updateHealth(float dt, Player& player);

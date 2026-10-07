@@ -17,7 +17,8 @@ struct EnemyShot {
 class EnemyCombatSystem {
    public:
     EnemyCombatSystem(EventBus&, World&, CombatSystem&, PickupSystem&,
-                      const std::vector<EnemySpec>&, const Config&, std::uint32_t seed);
+                      const std::vector<EnemySpec>&, const Config&, std::uint32_t seed,
+                      float damageMultiplier = -1);
     void update(float dt);
     bool spawnDebugCop();
     const std::vector<EnemyShot>& shots() const { return shots_; }
@@ -35,6 +36,7 @@ class EnemyCombatSystem {
     World& world_;
     CombatSystem& combat_;
     const Config& config_;
+    float damageMultiplier_;
     std::vector<EnemySpec> specs_;
     Rng rng_;
     std::unordered_map<std::string, Actor> actors_;

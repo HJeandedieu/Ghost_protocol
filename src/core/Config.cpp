@@ -290,6 +290,22 @@ Config Config::load(const std::string& path, Logger& logger) {
     config.payout.rankS = readNumber(payout, "rank_s", config.payout.rankS, "payout", logger);
     config.payout.rankA = readNumber(payout, "rank_a", config.payout.rankA, "payout", logger);
     config.payout.rankB = readNumber(payout, "rank_b", config.payout.rankB, "payout", logger);
+    const auto readPayoutInteger = [&](const char* key, int fallback) {
+        const auto entry = payout.find(key);
+        if (entry != payout.end() && entry->is_number()) {
+            const double value = entry->get<double>();
+            if (std::isfinite(value) && value >= 0 && value <= std::numeric_limits<int>::max() &&
+                std::floor(value) == value)
+                return static_cast<int>(value);
+        }
+        logger.log(LogLevel::Warn,
+                   std::string("Missing or invalid tuning key: payout.") + key + "; using default");
+        return fallback;
+    };
+    config.payout.deductionMaxCount =
+        readPayoutInteger("deduction_max_count", config.payout.deductionMaxCount);
+    config.payout.deductionMaxAmount =
+        readPayoutInteger("deduction_max_amount", config.payout.deductionMaxAmount);
     const auto& difficulty = groupOrEmpty(data, "difficulty", empty);
     const auto& easy = groupOrEmpty(difficulty, "easy", empty);
     config.difficulty.easy.enemyDmg =

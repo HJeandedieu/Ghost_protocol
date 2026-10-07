@@ -153,3 +153,15 @@ TEST_F(CombatSystemTest, UnsuppressedShotOutsideHearingDoesNotRaiseAlarm) {
     bus.dispatch();
     EXPECT_EQ(alarm.state(), AlarmState::Quiet);
 }
+
+TEST_F(CombatSystemTest, LoadoutEquipsAnyTwoDistinctGunsIncludingGavel) {
+    auto world = makeWorld();
+    CombatSystem combat(bus, specs, 42, {{"gavel", "whisper"}});
+    EXPECT_EQ(combat.activeWeapon().spec().id, "gavel");
+    Input input;
+    input.weaponSlot = 1;
+    combat.update(.01f, input, 0, world);
+    EXPECT_EQ(combat.activeWeapon().spec().id, "whisper");
+    EXPECT_THROW((CombatSystem(bus, specs, 42, {{"gavel", "gavel"}})), std::invalid_argument);
+    EXPECT_THROW((CombatSystem(bus, specs, 42, {{"unknown", "whisper"}})), std::invalid_argument);
+}

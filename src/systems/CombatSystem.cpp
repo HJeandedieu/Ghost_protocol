@@ -9,7 +9,7 @@
 #include "world/World.h"
 namespace {
 constexpr float kRadians = 3.14159265358979323846f / 180.0f;
-WeaponSpec selected(const std::vector<WeaponSpec>& specs, const char* id) {
+WeaponSpec selected(const std::vector<WeaponSpec>& specs, const std::string& id) {
     const auto entry =
         std::find_if(specs.begin(), specs.end(), [id](const auto& spec) { return spec.id == id; });
     if (entry == specs.end()) throw std::invalid_argument("Missing default weapon");
@@ -17,10 +17,12 @@ WeaponSpec selected(const std::vector<WeaponSpec>& specs, const char* id) {
 }
 }  // namespace
 CombatSystem::CombatSystem(EventBus& events, const std::vector<WeaponSpec>& specs,
-                           std::uint32_t seed)
+                           std::uint32_t seed, std::array<std::string, 2> loadout)
     : events_(events),
-      weapons_{Weapon(selected(specs, "whisper")), Weapon(selected(specs, "chatter"))},
-      rng_(seed) {}
+      weapons_{Weapon(selected(specs, loadout[0])), Weapon(selected(specs, loadout[1]))},
+      rng_(seed) {
+    if (loadout[0] == loadout[1]) throw std::invalid_argument("Loadout needs two distinct weapons");
+}
 void CombatSystem::update(float dt, const Input& input, float dirDeg, World& world) {
     if (!std::isfinite(dt) || dt <= 0) return;
     updateHealth(dt, world.player);

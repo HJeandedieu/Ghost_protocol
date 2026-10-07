@@ -25,6 +25,7 @@ struct Input {
     bool fireHeld = false;
     bool reloadPressed = false;
     int weaponSlot = -1;
+    int loadoutExcluded = -1;
     int weaponWheel = 0;
     void clearEdges() {
         confirmPressed = false;
@@ -42,6 +43,7 @@ struct Input {
         firePressed = false;
         reloadPressed = false;
         weaponSlot = -1;
+        loadoutExcluded = -1;
         weaponWheel = 0;
     }
 };

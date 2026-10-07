@@ -169,6 +169,8 @@ struct PayoutConfig {
     float rankS = 200000.0f;
     float rankA = 150000.0f;
     float rankB = 90000.0f;
+    int deductionMaxCount = 3;
+    int deductionMaxAmount = 500;
 };
 
 struct DifficultyPreset {
