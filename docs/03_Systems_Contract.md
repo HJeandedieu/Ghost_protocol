@@ -153,6 +153,13 @@ If the alarm was already Loud when the player died, the retry keeps the Loud sta
 - **Why cancel camera call-ins:** the loop disables the cameras, so a countdown started by a now-disabled camera must not still be able to end the stealth phase. On the shipped map no camera covers the panel, so this edge case is rare, but the rule is fixed so behaviour is the same on any map.
 
 
+### 3.8 Escape payout and retry accounting (Day 21; FR-18, FR-19)
+
+- ScoreSystem credits only delivered bags, using the BagDelivered value; picking up, throwing or spoiling cash does not credit money. The existing retry preset resets all delivered cash.
+- One mission run retains elapsed real time, the number of PlayerDowned events, and whether an alarm has ever fired across stage retries. Time advances during active gameplay, including the alarm cinematic, but stops on Busted and Payout screens. A new mission from loadout resets these statistics. Each downing counts once.
+- Payout order is delivered subtotal, ghost bonus (only if no alarm ever fired), time bonus (strictly below payout.time_bonus_limit), Handler cut on subtotal plus bonuses, comedic deductions, then death penalty. Clamp the final result to zero; rank uses this final amount. Keep cents internally and round only for display.
+- Finalize samples an inclusive uniform integer deduction count from zero to payout.deduction_max_count (3), then an independent inclusive uniform whole-dollar amount from zero to payout.deduction_max_amount (500) for each line using the supplied seeded Rng. Finalize once on mission completion and retain that result for display, so rendering never rerolls deductions.
+
 ### 3.7 Police recovery pickups (FR-14)
 Author-approved tuning, 6 October 2026:
 - Each defeated police enemy (`cop`, `shield_cop`, or `heavy`) gets exactly one seeded RNG roll on death. Patrol guards and takedown bodies never drop recovery pickups. Repeated death notifications for the same enemy must not roll again.

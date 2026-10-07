@@ -63,7 +63,8 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
                "retry_positions": { "s3": [21,32], "s4": [52,16], "s5": [52,8], "s6": [52,8] } },
   "payout": { "bag": 20000, "spoiled": 10000, "ghost_bonus": 0.25, "time_bonus": 10000,
               "time_bonus_limit": 600, "handler_cut": 0.15, "death_penalty": 10000,
-              "rank_s": 200000, "rank_a": 150000, "rank_b": 90000 },
+              "rank_s": 200000, "rank_a": 150000, "rank_b": 90000,
+              "deduction_max_count": 3, "deduction_max_amount": 500 },
   "difficulty": {
     "easy":   { "enemy_dmg": 0.6, "detect_fill": 0.75, "ammo": 1.5, "max_alive": 12 },
     "normal": { "enemy_dmg": 1.0, "detect_fill": 1.0,  "ammo": 1.0, "max_alive": 12 },
@@ -250,3 +251,5 @@ Format: OGG mono 44.1 kHz for SFX, OGG stereo for music, voice OGG mono 64 kbps.
 ```
 
 Legend of landmarks: Alley spawn `@` (bottom-left) -> Loading Dock -> Service Door `S` -> Staff Corridor (x 20-23) -> rooms on its east side -> Main Hall (centre) -> Vault Corridor with gate `GGG` and Vault door `VVV` (top centre) -> Foyer and front doors `FFF` (bottom centre) -> Street with pickup zone `Z`, bollards `bb` and van spawn `v`.
+
+Day 21 payout tuning: `payout.deduction_max_count` (3) and `payout.deduction_max_amount` (500) are non-negative integers. Missing, fractional, negative, non-finite or out-of-range values fall back to their defaults with a WARN. These bound the inclusive seeded rolls in Systems Contract section 3.8.
