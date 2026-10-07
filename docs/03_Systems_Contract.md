@@ -272,6 +272,8 @@ Vault and cash controls: E selects quiet cracking or cash pickup; Shift+E select
 | Pickup zone | 0.0 | bag held (drop) / E to leave | Deliver / leave |
 | Pager body | 1.5 s | pager ringing | Answered |
 
+Day 22 presentation timing reads `ui.hover_time` and `ui.transition_time` from tuning.json (Data Formats section 2). These preserve the existing Design Docs section 1.6 durations and affect presentation only. Hover/focus and screen animation cannot delay input or write world state; Reduce Effects replaces moving wipes/parallax with a simple fade.
+
 ## 6. Rules the code must never break
 1. `reveal` is written only by `RippleSystem`.
 2. Only `AlarmDirector` changes the alarm state.
