@@ -256,3 +256,11 @@ TEST(Config, PayoutDeductionLimitsRejectFractionalNegativeAndOverflow) {
     EXPECT_EQ(config.payout.deductionMaxCount, 0);
     EXPECT_EQ(config.payout.deductionMaxAmount, 500);
 }
+
+TEST(Config, PayoutRatesRetainJsonDoublePrecision) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    const auto config = Config::load("assets/config/tuning.json", logger);
+    EXPECT_DOUBLE_EQ(config.payout.handlerCut, .15);
+    EXPECT_DOUBLE_EQ(config.payout.ghostBonus, .25);
+}

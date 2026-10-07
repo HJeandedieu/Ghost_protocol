@@ -275,16 +275,25 @@ Config Config::load(const std::string& path, Logger& logger) {
         }
     }
     const auto& payout = groupOrEmpty(data, "payout", empty);
+    const auto readPayoutRate = [&](const char* key, double fallback) {
+        const auto entry = payout.find(key);
+        if (entry != payout.end() && entry->is_number()) {
+            const double value = entry->get<double>();
+            if (std::isfinite(value) && value >= 0 && value <= std::numeric_limits<float>::max())
+                return value;
+        }
+        logger.log(LogLevel::Warn,
+                   std::string("Missing or invalid tuning key: payout.") + key + "; using default");
+        return fallback;
+    };
     config.payout.bag = readNumber(payout, "bag", config.payout.bag, "payout", logger);
     config.payout.spoiled = readNumber(payout, "spoiled", config.payout.spoiled, "payout", logger);
-    config.payout.ghostBonus =
-        readNumber(payout, "ghost_bonus", config.payout.ghostBonus, "payout", logger);
+    config.payout.ghostBonus = readPayoutRate("ghost_bonus", config.payout.ghostBonus);
     config.payout.timeBonus =
         readNumber(payout, "time_bonus", config.payout.timeBonus, "payout", logger);
     config.payout.timeBonusLimit =
         readNumber(payout, "time_bonus_limit", config.payout.timeBonusLimit, "payout", logger);
-    config.payout.handlerCut =
-        readNumber(payout, "handler_cut", config.payout.handlerCut, "payout", logger);
+    config.payout.handlerCut = readPayoutRate("handler_cut", config.payout.handlerCut);
     config.payout.deathPenalty =
         readNumber(payout, "death_penalty", config.payout.deathPenalty, "payout", logger);
     config.payout.rankS = readNumber(payout, "rank_s", config.payout.rankS, "payout", logger);

@@ -96,3 +96,15 @@ TEST(ScoreSystem, MissionClockRetainsActiveRealTimeAndStopsOnBusted) {
     EXPECT_EQ(fresh.deaths, 0);
     EXPECT_FALSE(fresh.alarmEver);
 }
+
+TEST(ScoreSystem, HandlerRatePrecisionPreservesExactNormalRankBoundary) {
+    PayoutConfig config;
+    config.deductionMaxCount = 0;
+    ScoreSystem score(config);
+    for (int i = 0; i < 10; ++i) score.addBag(config.bag);
+    Rng rng(42);
+    const auto payout = score.finalize(false, 600, 2, rng);
+    EXPECT_DOUBLE_EQ(payout.handlerCut, 30000);
+    EXPECT_DOUBLE_EQ(payout.finalAmount, 150000);
+    EXPECT_EQ(payout.rank, 'A');
+}
