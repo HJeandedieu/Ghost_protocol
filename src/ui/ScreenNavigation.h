@@ -1,6 +1,5 @@
 #pragma once
 #include <array>
-#include <functional>
 
 #include "core/Input.h"
 #include "ui/Widgets.h"

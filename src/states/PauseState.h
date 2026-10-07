@@ -1,4 +1,7 @@
 #pragma once
+#include <array>
+#include <functional>
+
 #include "core/Config.h"
 #include "states/IState.h"
 #include "ui/ScreenNavigation.h"

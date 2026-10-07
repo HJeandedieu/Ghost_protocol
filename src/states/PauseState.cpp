@@ -1,5 +1,7 @@
 #include "states/PauseState.h"
 
+#include <utility>
+
 #include "ui/ScreenDrawing.h"
 PauseState::PauseState(const Input& input, Renderer& renderer, UiConfig config,
                        std::array<std::function<void()>, 4> actions)

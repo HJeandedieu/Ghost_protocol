@@ -112,7 +112,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/ConfigTests.cpp tests/LoggerTests.cpp tests/RngTests.cpp tests/TimeTests.cpp
         tests/StateMachineTests.cpp tests/LetterboxTests.cpp
         tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
-        tests/AssetsTests.cpp tests/SaveStoreTests.cpp tests/WidgetsTests.cpp
+        tests/AssetsTests.cpp tests/SaveStoreTests.cpp tests/WidgetsTests.cpp tests/GameplayInputGateTests.cpp tests/ScreenNavigationTests.cpp
         tests/PlayerTests.cpp tests/GuardTests.cpp tests/WeaponTests.cpp tests/EnemySpecTests.cpp tests/EnemyCombatTests.cpp
         tests/GuardAITests.cpp tests/WaveSpawnerTests.cpp tests/ObjectiveSystemTests.cpp tests/ScoreSystemTests.cpp
         tests/FollowCameraTests.cpp tests/AlarmSequenceTests.cpp

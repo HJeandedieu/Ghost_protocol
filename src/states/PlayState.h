@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "core/EventBus.h"
+#include "core/GameplayInputGate.h"
 #include "core/Input.h"
 #include "entities/GuardAI.h"
 #include "entities/Player.h"
