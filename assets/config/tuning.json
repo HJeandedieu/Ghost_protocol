@@ -140,7 +140,9 @@
     "death_penalty": 10000,
     "rank_s": 200000,
     "rank_a": 150000,
-    "rank_b": 90000
+    "rank_b": 90000,
+    "deduction_max_count": 3,
+    "deduction_max_amount": 500
   },
   "difficulty": {
     "easy": {

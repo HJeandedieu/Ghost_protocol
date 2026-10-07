@@ -71,14 +71,15 @@ add_library(ghost_core STATIC
     src/systems/DetectionSystem.cpp
     src/systems/AlarmDirector.cpp src/systems/PagerSystem.cpp
     src/systems/LaserSystem.cpp src/systems/CombatSystem.cpp src/systems/PickupSystem.cpp src/systems/EnemyCombatSystem.cpp
-    src/systems/WaveSpawner.cpp src/systems/ObjectiveSystem.cpp
+    src/systems/WaveSpawner.cpp src/systems/ObjectiveSystem.cpp src/systems/ScoreSystem.cpp
 )
 target_include_directories(ghost_core PUBLIC src)
 target_link_libraries(ghost_core PRIVATE nlohmann_json::nlohmann_json)
 gp_enable_warnings(ghost_core)
 
 add_executable(ghost_game src/main.cpp src/core/Game.cpp src/render/Renderer.cpp
-    src/states/BootState.cpp src/states/MenuState.cpp src/states/PlayState.cpp)
+    src/states/BootState.cpp src/states/MenuState.cpp src/states/PlayState.cpp
+    src/states/LoadoutState.cpp src/states/PayoutState.cpp)
 target_link_libraries(ghost_game PRIVATE ghost_core raylib)
 gp_enable_warnings(ghost_game)
 gp_copy_mingw_runtime(ghost_game)
@@ -113,7 +114,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
         tests/AssetsTests.cpp
         tests/PlayerTests.cpp tests/GuardTests.cpp tests/WeaponTests.cpp tests/EnemySpecTests.cpp tests/EnemyCombatTests.cpp
-        tests/GuardAITests.cpp tests/WaveSpawnerTests.cpp tests/ObjectiveSystemTests.cpp
+        tests/GuardAITests.cpp tests/WaveSpawnerTests.cpp tests/ObjectiveSystemTests.cpp tests/ScoreSystemTests.cpp
         tests/FollowCameraTests.cpp tests/AlarmSequenceTests.cpp
         tests/RaycastTests.cpp tests/RippleSystemTests.cpp
         tests/PathfinderTests.cpp
@@ -145,7 +146,8 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tests/ValidateLevelTests.py")
     set_tests_properties(LevelValidator LevelValidatorTests PROPERTIES TIMEOUT 15)
     if(GP_BUILD_RENDER_TESTS)
-        add_executable(ghost_render_tests tests/RenderTests.cpp src/render/Renderer.cpp src/states/PlayState.cpp)
+        add_executable(ghost_render_tests tests/RenderTests.cpp src/render/Renderer.cpp src/states/PlayState.cpp
+            src/states/LoadoutState.cpp src/states/PayoutState.cpp)
         target_link_libraries(ghost_render_tests PRIVATE ghost_core raylib GTest::gtest_main)
         add_dependencies(ghost_render_tests ghost_game)
         gp_enable_warnings(ghost_render_tests)

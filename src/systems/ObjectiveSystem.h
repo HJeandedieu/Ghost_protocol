@@ -24,6 +24,13 @@ class ObjectiveSystem {
     float thermiteAge() const { return thermiteAge_; }
     Vec2 vaultPosition() const { return vaultPosition_; }
     int pickedCount() const;
+    int deliveredCount() const;
+    bool bollardsLowered() const { return bollardsLowered_; }
+    bool vanArrived() const {
+        return bollardsLowered_ && vanAge_ + 1e-6 >= config_.mission.vanDelay;
+    }
+    float vanRemaining() const;
+    bool complete() const { return complete_; }
     const std::vector<Bag>& bags() const { return bags_; }
     std::vector<Entity*> revealables();
 
@@ -42,6 +49,10 @@ class ObjectiveSystem {
     bool openedThisTick_ = false;
     bool thermitePlacedThisTick_ = false;
     bool pickedAny_ = false;
+    bool bollardsLowered_ = false;
+    bool loweredThisTick_ = false;
+    bool complete_ = false;
+    double vanAge_ = 0;
     bool serviceCrossed_ = false;
     bool approachedService_ = false;
     Vec2 vaultPosition_{};

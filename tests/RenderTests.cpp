@@ -8,6 +8,8 @@
 #include "entities/Player.h"
 #include "render/AlarmSequence.h"
 #include "render/Renderer.h"
+#include "states/LoadoutState.h"
+#include "states/PayoutState.h"
 #include "states/PlayState.h"
 #include "systems/CombatSystem.h"
 #include "systems/DetectionSystem.h"
@@ -88,15 +90,28 @@ TEST_F(Render, MissionLootUsesRuntimeStateAndBustedRetriesCurrentStage) {
     bool retryLoud = false;
     const auto loadedWeapons = loadWeapons("assets/config/weapons.json", logger);
     ASSERT_TRUE(loadedWeapons);
-    PlayState play(std::move(test), input, lethal, 7, renderer, logger, *loadedWeapons, {spec}, {},
-                   {}, 2, true, [&](int stage, bool loud) {
-                       retryStage = stage;
-                       retryLoud = loud;
-                   });
+    auto missionRun = std::make_shared<MissionRun>();
+    missionRun->seconds = 12;
+    missionRun->deaths = 3;
+    PlayState play(
+        std::move(test), input, lethal, 7, renderer, logger, *loadedWeapons, {spec}, {}, {}, 2,
+        true,
+        [&](int stage, bool loud) {
+            retryStage = stage;
+            retryLoud = loud;
+        },
+        missionRun);
     EXPECT_EQ(play.world().guards.front().state(), GuardState::Combat);
     EXPECT_TRUE(play.world().alarmLoud);
     for (int tick = 0; tick < 600 && !play.world().player.dead(); ++tick) play.update(1.f / 60);
     ASSERT_TRUE(play.world().player.dead());
+    EXPECT_EQ(missionRun->deaths, 4);
+    EXPECT_TRUE(missionRun->alarmEver);
+    const auto deathTime = missionRun->seconds;
+    EXPECT_GT(deathTime, 12);
+    for (int i = 0; i < 60; ++i) play.update(1.f / 60);
+    EXPECT_DOUBLE_EQ(missionRun->seconds, deathTime);
+    EXPECT_EQ(missionRun->deaths, 4);
     renderer.beginFrame();
     play.render(1);
     renderer.present();
@@ -882,4 +897,95 @@ TEST_F(Render, AlarmSequenceRendersShippedBankWithoutWritingReveal) {
     for (const auto& guard : world.guards) EXPECT_FLOAT_EQ(guard.reveal, 0);
     for (const auto& camera : world.cameras) EXPECT_FLOAT_EQ(camera.reveal, 0);
     for (const auto& laser : world.lasers) EXPECT_FLOAT_EQ(laser.reveal, 0);
+}
+
+TEST_F(Render, LoadoutChoicesAndPayoutReturnRemainResponsive) {
+    Input input;
+    std::array<std::string, 2> chosen;
+    bool easy = false;
+    int starts = 0;
+    LoadoutState loadout(input, [&](auto weapons, bool tourist) {
+        chosen = weapons;
+        easy = tourist;
+        ++starts;
+    });
+    input.loadoutExcluded = 0;
+    input.crouchPressed = true;
+    loadout.update(.01f);
+    input.clearEdges();
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.beginFrame();
+    loadout.render(0);
+    renderer.present();
+    auto screenshot = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&screenshot);
+    ExportImage(screenshot, GP_RENDER_OUTPUT_DIRECTORY "/day21-loadout.png");
+    UnloadImage(screenshot);
+    input.confirmPressed = true;
+    loadout.update(.01f);
+    EXPECT_EQ(starts, 1);
+    EXPECT_TRUE(easy);
+    EXPECT_EQ(chosen[0], "chatter");
+    EXPECT_EQ(chosen[1], "gavel");
+    PayoutConfig config;
+    ScoreSystem score(config);
+    score.addBag(200000);
+    Rng rng(8);
+    auto payout = score.finalize(true, 599, 1, rng);
+    int menus = 0;
+    PayoutState result(input, payout, [&] { ++menus; });
+    renderer.beginFrame();
+    result.render(0);
+    renderer.present();
+    screenshot = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&screenshot);
+    ExportImage(screenshot, GP_RENDER_OUTPUT_DIRECTORY "/day21-payout.png");
+    UnloadImage(screenshot);
+    result.update(.01f);
+    EXPECT_EQ(menus, 1);
+}
+
+TEST_F(Render, EscapeVanAppearsAfterArrivalAndLoweredBollardsBecomeRecessedDots) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    Config config;
+    Level level;
+    std::istringstream ascii(".............\n..N.b.Z.v....\n.............");
+    level.map = TileMap::parse(ascii, 48);
+    level.map.fillLight(LightLevel::Lit);
+    level.playerSpawn = {2, 1};
+    World world(std::move(level), config.player);
+    EventBus events;
+    InteractionSystem interaction(events);
+    interaction.loadBank(world, config);
+    AlarmDirector alarm(events, logger, world);
+    ObjectiveSystem mission(events, world, interaction, alarm, config, 6);
+    RippleSystem ripple(config.ping, world.level.map);
+    const auto van = world.level.map.tileCenter({8, 1});
+    renderer.prepareLevel(world.level);
+    const auto capture = [&] {
+        renderer.beginFrame();
+        renderer.drawLevel(world.level, world.player, ripple, van, 0, 1, false, 7, {}, {}, {},
+                           false, nullptr, {}, false, {}, nullptr, nullptr, &mission);
+        renderer.present();
+        auto image = LoadImageFromTexture(renderer.frameTexture());
+        ImageFlipVertical(&image);
+        return image;
+    };
+    auto before = capture();
+    EXPECT_LT(GetImageColor(before, 664, 360).g, 120);
+    UnloadImage(before);
+    interaction.update(config.mission.bollardHold, true, world);
+    mission.update(config.mission.bollardHold);
+    EXPECT_TRUE(world.level.map.isOpen(4, 1));
+    EXPECT_FALSE(mission.vanArrived());
+    mission.update(config.mission.vanDelay);
+    auto after = capture();
+    EXPECT_GT(GetImageColor(after, 664, 360).g, 120);
+    EXPECT_TRUE(ExportImage(after, GP_RENDER_OUTPUT_DIRECTORY "/day21-escape-van.png"));
+    UnloadImage(after);
 }

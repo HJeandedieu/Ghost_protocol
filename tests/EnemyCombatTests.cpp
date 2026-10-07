@@ -278,3 +278,12 @@ TEST(Config, EnemyCombatInvalidPositiveValuesFallBackAndZeroReactionIsAllowed) {
     EXPECT_FLOAT_EQ(config.enemyCombat.reactionTime, 0);
     EXPECT_NE(output.str().find("[WARN]"), std::string::npos);
 }
+
+TEST_F(EnemyCombatTest, EasyDamageMultiplierAppliesToPoliceBullets) {
+    start(1);
+    ai = std::make_unique<EnemyCombatSystem>(bus, world, combat, pickups, specs, config, 42,
+                                             config.difficulty.easy.enemyDmg);
+    const float before = world.player.armor();
+    tick(24);
+    EXPECT_NEAR(before - world.player.armor(), 7 * config.difficulty.easy.enemyDmg, 1e-4);
+}

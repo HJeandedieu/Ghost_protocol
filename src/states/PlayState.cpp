@@ -20,7 +20,9 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
                      Renderer& renderer, Logger& logger, const std::vector<WeaponSpec>& weapons,
                      const std::vector<EnemySpec>& enemies, const std::vector<WaveSpec>& waves,
                      const std::map<std::string, TileCoord>& entries, int stage, bool loud,
-                     std::function<void(int, bool)> retry)
+                     std::function<void(int, bool)> retry, std::shared_ptr<MissionRun> run,
+                     std::function<void(Payout)> finish, std::array<std::string, 2> loadout,
+                     DifficultyPreset difficulty)
     : world_(missionWorld(std::move(level), config, stage)),
       input_(input),
       camera_(world_.player.pos, config.view),
@@ -29,23 +31,41 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       renderer_(renderer),
       noise_(events_),
       interaction_(events_),
-      detection_(events_, logger, world_.guards, config.difficulty.normal.detectFill),
+      detection_(events_, logger, world_.guards, difficulty.detectFill),
       alarm_(events_, logger, world_),
       pagers_(events_, config.pager, world_, interaction_),
       lasers_(events_, config.laser, config.noise.laser),
-      combat_(events_, weapons, seed),
+      combat_(events_, weapons, seed, loadout),
       pickups_(events_, config.pickup, seed),
-      enemyCombat_(events_, world_, combat_, pickups_, enemies, config, seed),
-      waves_(events_, world_, enemies, waves, entries, config.alarm),
+      enemyCombat_(events_, world_, combat_, pickups_, enemies, config, seed, difficulty.enemyDmg),
+      waves_(events_, world_, enemies, waves, entries,
+             [&] {
+                 auto alarm = config.alarm;
+                 alarm.maxAlive = difficulty.maxAlive;
+                 return alarm;
+             }()),
       alarmSequence_(events_, config.alarm, seed),
       config_(config),
-      retry_(std::move(retry)) {
+      retry_(std::move(retry)),
+      run_(run ? std::move(run) : std::make_shared<MissionRun>()),
+      finish_(std::move(finish)),
+      score_(config.payout),
+      payoutRng_(seed) {
     noise_.setWeapons(weapons, config.noise);
     noise_.setEnemies(enemies);
     interaction_.loadBank(world_, config_);
     objectives_ =
         std::make_unique<ObjectiveSystem>(events_, world_, interaction_, alarm_, config_, stage);
-    events_.subscribe<PlayerDowned>([this](const PlayerDowned&) { downed_ = true; });
+    events_.subscribe<PlayerDowned>([this](const PlayerDowned&) {
+        if (!downed_) ++run_->deaths;
+        downed_ = true;
+    });
+    events_.subscribe<AlarmTriggered>([this](const auto&) { run_->alarmEver = true; });
+    events_.subscribe<BagDelivered>([this](const auto& event) { score_.addBag(event.value); });
+    events_.subscribe<MissionComplete>([this](const auto&) {
+        if (finish_)
+            finish_(score_.finalize(!run_->alarmEver, run_->seconds, run_->deaths, payoutRng_));
+    });
     detection_.bindCameras(world_.cameras);
     renderer_.prepareLevel(world_.level);
     renderer_.resetHealthHud(world_.player);
@@ -77,6 +97,8 @@ void PlayState::enter() {}
 void PlayState::exit() {}
 void PlayState::update(float dt) {
     if (!std::isfinite(dt) || dt <= 0) return;
+    if (objectives_->complete()) return;
+    run_->advance(dt, !world_.player.dead());
     const float realDt = dt;
     dt = alarmSequence_.advance(realDt);
     if (world_.player.dead()) {
@@ -98,6 +120,10 @@ void PlayState::update(float dt) {
     pagers_.update(dt);
     interaction_.update(dt, input_.interactHeld || input_.interactPressed, world_,
                         input_.sprintHeld);
+    if (objectives_->complete()) {
+        events_.dispatch();
+        return;
+    }
 #ifndef NDEBUG
     if (input_.debugCopPressed) enemyCombat_.spawnDebugCop();
     if (input_.debugMedkitPressed)

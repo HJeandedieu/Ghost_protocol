@@ -22,6 +22,7 @@
 #include "systems/PagerSystem.h"
 #include "systems/PickupSystem.h"
 #include "systems/RippleSystem.h"
+#include "systems/ScoreSystem.h"
 #include "systems/WaveSpawner.h"
 #include "world/Level.h"
 #include "world/World.h"
@@ -35,7 +36,10 @@ class PlayState : public IState {
               Renderer& renderer, Logger& logger, const std::vector<WeaponSpec>& weapons,
               const std::vector<EnemySpec>& enemies, const std::vector<WaveSpec>& waves,
               const std::map<std::string, TileCoord>& entries, int stage = 1, bool loud = false,
-              std::function<void(int, bool)> retry = {});
+              std::function<void(int, bool)> retry = {}, std::shared_ptr<MissionRun> run = {},
+              std::function<void(Payout)> finish = {},
+              std::array<std::string, 2> loadout = {{"whisper", "chatter"}},
+              DifficultyPreset difficulty = {});
     void enter() override;
     void exit() override;
     void update(float dt) override;
@@ -71,4 +75,8 @@ class PlayState : public IState {
     std::unique_ptr<ObjectiveSystem> objectives_;
     std::function<void(int, bool)> retry_;
     bool downed_ = false;
+    std::shared_ptr<MissionRun> run_;
+    std::function<void(Payout)> finish_;
+    ScoreSystem score_;
+    Rng payoutRng_;
 };

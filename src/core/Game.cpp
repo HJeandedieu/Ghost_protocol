@@ -7,7 +7,9 @@
 #include "render/Letterbox.h"
 #include "render/Renderer.h"
 #include "states/BootState.h"
+#include "states/LoadoutState.h"
 #include "states/MenuState.h"
+#include "states/PayoutState.h"
 #include "states/PlayState.h"
 #include "world/LevelLoader.h"
 #ifdef __EMSCRIPTEN__
@@ -72,8 +74,15 @@ void Game::tick() {
         if (key == KEY_C || key == KEY_LEFT_CONTROL) input_.crouchPressed = true;
         if (key == KEY_SPACE) input_.pingPressed = true;
         if (key == KEY_R) input_.reloadPressed = true;
-        if (key == KEY_ONE) input_.weaponSlot = 0;
-        if (key == KEY_TWO) input_.weaponSlot = 1;
+        if (key == KEY_ONE) {
+            input_.weaponSlot = 0;
+            input_.loadoutExcluded = 0;
+        }
+        if (key == KEY_TWO) {
+            input_.weaponSlot = 1;
+            input_.loadoutExcluded = 1;
+        }
+        if (key == KEY_THREE) input_.loadoutExcluded = 2;
         if (key == KEY_E) input_.interactPressed = true;
         if (key == KEY_G) input_.throwPressed = true;
 #ifndef NDEBUG
@@ -122,7 +131,7 @@ void Game::update(float dt) {
 
 void Game::showMenu(const std::string& error) {
     logger_.log(LogLevel::Info, "State: Menu");
-    states_.replace(std::make_unique<MenuState>(input_, [this] { startMission(); }, error));
+    states_.replace(std::make_unique<MenuState>(input_, [this] { showLoadout(); }, error));
 }
 
 void Game::startMission(int stage, bool loud) {
@@ -151,7 +160,8 @@ void Game::startMission(int stage, bool loud) {
     states_.replace(std::make_unique<PlayState>(
         std::move(*level), input_, config_, rng_.seed(), *renderer_, logger_, *weapons, *enemies,
         *waves, *entries, stage, loud,
-        [this](int retryStage, bool wasLoud) { startMission(retryStage, wasLoud); }));
+        [this](int retryStage, bool wasLoud) { startMission(retryStage, wasLoud); }, missionRun_,
+        [this](Payout payout) { showPayout(std::move(payout)); }, loadout_, difficulty_));
 }
 
 void Game::toggleFullscreen() {
@@ -165,4 +175,19 @@ void Game::toggleFullscreen() {
         ToggleFullscreen();
         SetWindowSize(windowedWidth_, windowedHeight_);
     }
+}
+
+void Game::showLoadout() {
+    states_.replace(std::make_unique<LoadoutState>(input_, [this](auto loadout, bool easy) {
+        loadout_ = std::move(loadout);
+        difficulty_ = easy ? config_.difficulty.easy : config_.difficulty.normal;
+        if (!easy) difficulty_.maxAlive = config_.alarm.maxAlive;
+        missionRun_ = std::make_shared<MissionRun>();
+        startMission();
+    }));
+}
+void Game::showPayout(Payout payout) {
+    logger_.log(LogLevel::Info, "State: Payout");
+    states_.replace(
+        std::make_unique<PayoutState>(input_, std::move(payout), [this] { showMenu(); }));
 }

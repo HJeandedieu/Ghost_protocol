@@ -28,6 +28,7 @@ class AlarmSequence;
 class PagerSystem;
 class ObjectiveSystem;
 struct World;
+struct Payout;
 
 class Renderer {
    public:
@@ -44,6 +45,8 @@ class Renderer {
                             float noiseRadius, float maximumNoise,
                             const ObjectiveSystem* objectives = nullptr) const;
     void drawBusted(int stage) const;
+    static void drawLoadout(int excluded, bool easy);
+    static void drawPayout(const Payout& payout);
     static void drawPlaceholder(const char* title, const char* subtitle);
     static void drawError(const char* message);
     void resetHealthHud(const Player& player) {

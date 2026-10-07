@@ -237,3 +237,30 @@ TEST(Config, AmbientRenderAlphaLoadsOverridesAndRejectsOutOfRangeValues) {
     EXPECT_FLOAT_EQ(missing.render.ambientFloorAlpha, 0.18f);
     EXPECT_FLOAT_EQ(missing.render.ambientWallAlpha, 0.45f);
 }
+
+TEST(Config, PayoutDeductionLimitsRejectFractionalNegativeAndOverflow) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    std::ostringstream output;
+    Logger logger(output, "");
+    data["payout"]["deduction_max_count"] = 1.5;
+    data["payout"]["deduction_max_amount"] = -2;
+    auto config = Config::load(files.write("payout-invalid.json", data.dump()), logger);
+    EXPECT_EQ(config.payout.deductionMaxCount, 3);
+    EXPECT_EQ(config.payout.deductionMaxAmount, 500);
+    EXPECT_NE(output.str().find("payout.deduction_max_count"), std::string::npos);
+    data["payout"]["deduction_max_count"] = 0;
+    data["payout"]["deduction_max_amount"] = 999999999999LL;
+    config = Config::load(files.write("payout-overflow.json", data.dump()), logger);
+    EXPECT_EQ(config.payout.deductionMaxCount, 0);
+    EXPECT_EQ(config.payout.deductionMaxAmount, 500);
+}
+
+TEST(Config, PayoutRatesRetainJsonDoublePrecision) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    const auto config = Config::load("assets/config/tuning.json", logger);
+    EXPECT_DOUBLE_EQ(config.payout.handlerCut, .15);
+    EXPECT_DOUBLE_EQ(config.payout.ghostBonus, .25);
+}

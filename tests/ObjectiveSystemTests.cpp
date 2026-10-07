@@ -324,3 +324,98 @@ TEST(ObjectiveSystem, InteractionRangeIs48PixelsEvenOnLargerTiles) {
     interaction.update(0.01f, true, world);
     EXPECT_EQ(collected, 1);
 }
+
+TEST(ObjectiveSystem, BollardsHoldAndVanDelayCannotBeSkippedOrRestarted) {
+    Mission run("...........\n..N.b.Z.v..\n...........", 6);
+    run.world.player.pos = run.world.player.prevPos = run.world.level.map.tileCenter({2, 1});
+    run.tick(3, true);
+    EXPECT_FALSE(run.objectives->bollardsLowered());
+    run.tick(1, true);
+    EXPECT_TRUE(run.objectives->bollardsLowered());
+    EXPECT_TRUE(run.world.level.map.isOpen(4, 1));
+    EXPECT_FALSE(run.objectives->vanArrived());
+    run.tick(9.9f, true);
+    EXPECT_FALSE(run.objectives->vanArrived());
+    run.tick(.1f);
+    EXPECT_TRUE(run.objectives->vanArrived());
+    run.tick(100, true);
+    EXPECT_TRUE(run.objectives->vanArrived());
+}
+TEST(ObjectiveSystem, CarriedAndThrownCashDeliverExactlyOnceButVanRequiredToLeave) {
+    Mission run("............\n..N.b.Z.v.M.\n............", 6);
+    int delivered = 0, completed = 0;
+    run.events.subscribe<BagDelivered>([&](const auto& event) {
+        ++delivered;
+        EXPECT_EQ(event.value, 10000);
+    });
+    run.events.subscribe<MissionComplete>([&](const auto&) { ++completed; });
+    run.world.player.pos = run.world.player.prevPos = run.world.level.map.tileCenter({6, 1});
+    run.tick(1, true);
+    EXPECT_EQ(completed, 0);
+    run.world.player.pos = run.world.player.prevPos = run.world.level.map.tileCenter({9, 1});
+    run.tick(.01f, true);
+    ASSERT_TRUE(run.world.player.carryingBag());
+    run.world.player.pos = run.world.player.prevPos = run.world.level.map.tileCenter({6, 1});
+    run.tick(.01f);
+    EXPECT_EQ(delivered, 1);
+    EXPECT_FALSE(run.world.player.carryingBag());
+    run.tick(1, true);
+    EXPECT_EQ(completed, 0);
+    EXPECT_EQ(delivered, 1);
+    run.world.player.pos = run.world.player.prevPos = run.world.level.map.tileCenter({2, 1});
+    run.tick(4, true);
+    run.tick(10);
+    run.world.player.pos = run.world.player.prevPos = run.world.level.map.tileCenter({5, 1});
+    run.tick(.01f, true);
+    EXPECT_FALSE(run.objectives->complete());
+    run.world.player.pos = run.world.player.prevPos = run.world.level.map.tileCenter({6, 1});
+    run.tick(.01f, true);
+    EXPECT_EQ(completed, 1);
+    EXPECT_TRUE(run.objectives->complete());
+    run.tick(1, true);
+    EXPECT_EQ(completed, 1);
+    EXPECT_EQ(delivered, 1);
+}
+TEST(ObjectiveSystem, BagThrownIntoPickupZoneDeliversWithoutVanAndCannotBeRecollected) {
+    Mission run(".............\n..V.M.....Zv.\n.............", 5);
+    run.cash();
+    run.tick(.01f, true);
+    run.objectives->throwBag({1, 0});
+    run.tick(.01f);
+    EXPECT_EQ(run.objectives->deliveredCount(), 1);
+    EXPECT_EQ(run.objectives->bags()[0].state, BagState::Delivered);
+    run.world.player.pos = run.world.player.prevPos = run.objectives->bags()[0].pos;
+    run.tick(.01f, true);
+    EXPECT_FALSE(run.world.player.carryingBag());
+    EXPECT_FALSE(run.objectives->complete());
+}
+TEST(ObjectiveSystem, VanDoesNotAllowDepartureWithoutCashOrOutsidePickupZone) {
+    Mission run("...........\n..N.b.Z.v..\n...........", 6);
+    run.world.player.pos = run.world.player.prevPos = run.world.level.map.tileCenter({2, 1});
+    run.tick(4, true);
+    run.tick(10);
+    run.world.player.pos = run.world.player.prevPos = run.world.level.map.tileCenter({6, 1});
+    run.tick(1, true);
+    EXPECT_FALSE(run.objectives->complete());
+}
+
+TEST(ObjectiveSystem, DepartureCreditsNewCarriedBagBeforeMissionCompleteOnSameTick) {
+    Mission run(".............\n..N.M.M.Z.v..\n.............", 6);
+    int credited = 0, atCompletion = 0;
+    run.events.subscribe<BagDelivered>([&](const auto&) { ++credited; });
+    run.events.subscribe<MissionComplete>([&](const auto&) { atCompletion = credited; });
+    run.cash();
+    run.tick(.01f, true);
+    run.world.player.pos = run.world.player.prevPos = run.world.level.map.tileCenter({8, 1});
+    run.tick(.01f);
+    run.world.player.pos = run.world.player.prevPos = run.world.level.map.tileCenter({2, 1});
+    run.tick(4, true);
+    run.tick(10);
+    run.world.player.pos = run.world.player.prevPos = run.world.level.map.tileCenter({6, 1});
+    run.tick(.01f, true);
+    ASSERT_TRUE(run.world.player.carryingBag());
+    run.world.player.pos = run.world.player.prevPos = run.world.level.map.tileCenter({8, 1});
+    run.tick(.01f, true);
+    EXPECT_EQ(atCompletion, 2);
+    EXPECT_EQ(run.objectives->deliveredCount(), 2);
+}

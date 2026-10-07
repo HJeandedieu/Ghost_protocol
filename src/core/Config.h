@@ -161,14 +161,16 @@ struct MissionConfig {
 struct PayoutConfig {
     float bag = 20000.0f;
     float spoiled = 10000.0f;
-    float ghostBonus = 0.25f;
+    double ghostBonus = 0.25;
     float timeBonus = 10000.0f;
     float timeBonusLimit = 600.0f;
-    float handlerCut = 0.15f;
+    double handlerCut = 0.15;
     float deathPenalty = 10000.0f;
     float rankS = 200000.0f;
     float rankA = 150000.0f;
     float rankB = 90000.0f;
+    int deductionMaxCount = 3;
+    int deductionMaxAmount = 500;
 };
 
 struct DifficultyPreset {
