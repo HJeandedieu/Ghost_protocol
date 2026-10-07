@@ -259,6 +259,21 @@ Config Config::load(const std::string& path, Logger& logger) {
         readNumber(mission, "van_delay", config.mission.vanDelay, "mission", logger);
     config.mission.throwDistance =
         readNumber(mission, "throw_distance", config.mission.throwDistance, "mission", logger);
+    const auto& retry = groupOrEmpty(mission, "retry_positions", empty);
+    for (std::size_t i = 0; i < config.mission.retryPositions.size(); ++i) {
+        const std::string key = "s" + std::to_string(i + 3);
+        const auto point = retry.find(key);
+        if (point != retry.end() && point->is_array() && point->size() == 2 &&
+            (*point)[0].is_number_integer() && (*point)[1].is_number_integer() &&
+            (*point)[0].get<double>() >= 0 && (*point)[1].get<double>() >= 0 &&
+            (*point)[0].get<double>() <= std::numeric_limits<int>::max() &&
+            (*point)[1].get<double>() <= std::numeric_limits<int>::max()) {
+            config.mission.retryPositions[i] = {(*point)[0].get<int>(), (*point)[1].get<int>()};
+        } else {
+            logger.log(LogLevel::Warn, "Missing or invalid tuning key: mission.retry_positions." +
+                                           key + "; using default");
+        }
+    }
     const auto& payout = groupOrEmpty(data, "payout", empty);
     config.payout.bag = readNumber(payout, "bag", config.payout.bag, "payout", logger);
     config.payout.spoiled = readNumber(payout, "spoiled", config.payout.spoiled, "payout", logger);

@@ -7,6 +7,7 @@ class AlarmSequence {
    public:
     AlarmSequence(EventBus& events, const AlarmConfig& config, std::uint32_t seed);
     float advance(float realDt);
+    void restoreLoud();
     float paletteBlend() const;
     float barsFraction() const;
     float vignettePulse() const;
@@ -21,5 +22,6 @@ class AlarmSequence {
     Rng rng_;
     double elapsed_ = 0;
     bool started_ = false;
+    bool restored_ = false;
     Vec2 direction_{};
 };

@@ -12,6 +12,7 @@
 #include "systems/CombatSystem.h"
 #include "systems/DetectionSystem.h"
 #include "systems/InteractionSystem.h"
+#include "systems/ObjectiveSystem.h"
 #include "systems/RippleSystem.h"
 #include "systems/WaveSpawner.h"
 #include "world/LevelLoader.h"
@@ -29,6 +30,126 @@ class Render : public testing::Test {
         if (IsWindowReady()) CloseWindow();
     }
 };
+
+TEST_F(Render, MissionLootUsesRuntimeStateAndBustedRetriesCurrentStage) {
+    std::ostringstream console;
+    Logger logger(console, "");
+    Renderer renderer(logger);
+    Config config;
+    auto level = LevelLoader::load("assets/levels/gotham_central.json", logger);
+    ASSERT_TRUE(level);
+    World world(std::move(*level), config.player);
+    ObjectiveSystem::applyPreset(world, config.mission, 5);
+    EventBus events;
+    InteractionSystem interaction(events);
+    interaction.loadBank(world, config);
+    AlarmDirector alarm(events, logger, world);
+    ObjectiveSystem mission(events, world, interaction, alarm, config, 5);
+    world.player.pos = world.player.prevPos = world.level.map.tileCenter({52, 4});
+    RippleSystem ripple(config.ping, world.level.map);
+    ripple.startPing(world.player.pos, 0);
+    auto lootRevealables = mission.revealables();
+    ripple.update(0.65f, world.level.map, lootRevealables);
+    renderer.beginFrame();
+    renderer.drawLevel(world.level, world.player, ripple, world.player.pos, 0, 1, false, 7, {}, {},
+                       {}, false, nullptr, {}, false, {}, nullptr, nullptr, &mission);
+    renderer.drawInteractionHud(world, interaction, 0, config.noise.sprint, &mission);
+    renderer.present();
+    auto image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    // The right vault frame must survive drawing the floor tiles to its right.
+    EXPECT_GT(GetImageColor(image, 707, 504).g, 90);
+    EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day20-vault-loot.png"));
+    UnloadImage(image);
+
+    Input input;
+    Config lethal = config;
+    lethal.player.hp = 1;
+    lethal.player.armor = 0;
+    lethal.enemyCombat.reactionTime = 0;
+    Level test;
+    std::istringstream source("........\n........\n........\n........");
+    test.map = TileMap::parse(source, 48);
+    test.playerSpawn = {1, 1};
+    GuardSpawn guard;
+    guard.id = "G01";
+    guard.mode = PatrolMode::Stationary;
+    guard.waypoints = {{3, 1}};
+    test.guards.push_back(guard);
+    EnemySpec spec;
+    spec.id = "patrol_guard";
+    spec.hp = 100;
+    spec.engage = 400;
+    spec.damage = 10;
+    spec.accuracy = 1;
+    spec.rate = 10;
+    spec.radius = 14;
+    int retryStage = 0;
+    bool retryLoud = false;
+    const auto loadedWeapons = loadWeapons("assets/config/weapons.json", logger);
+    ASSERT_TRUE(loadedWeapons);
+    PlayState play(std::move(test), input, lethal, 7, renderer, logger, *loadedWeapons, {spec}, {},
+                   {}, 2, true, [&](int stage, bool loud) {
+                       retryStage = stage;
+                       retryLoud = loud;
+                   });
+    EXPECT_EQ(play.world().guards.front().state(), GuardState::Combat);
+    EXPECT_TRUE(play.world().alarmLoud);
+    for (int tick = 0; tick < 600 && !play.world().player.dead(); ++tick) play.update(1.f / 60);
+    ASSERT_TRUE(play.world().player.dead());
+    renderer.beginFrame();
+    play.render(1);
+    renderer.present();
+    image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day20-busted.png"));
+    UnloadImage(image);
+    input.confirmPressed = true;
+    play.update(1.f / 60);
+    EXPECT_EQ(retryStage, 2);
+    EXPECT_TRUE(retryLoud);
+}
+
+TEST_F(Render, ThermiteDeviceTimerAndSparksRenderAtTheInteractionDoor) {
+    std::ostringstream console;
+    Logger logger(console, "");
+    Renderer renderer(logger);
+    Config config;
+    auto level = LevelLoader::load("assets/levels/gotham_central.json", logger);
+    ASSERT_TRUE(level);
+    World world(std::move(*level), config.player);
+    ObjectiveSystem::applyPreset(world, config.mission, 4);
+    world.player.pos = world.player.prevPos = world.level.map.tileCenter({52, 8});
+    EventBus events;
+    InteractionSystem interaction(events);
+    interaction.loadBank(world, config);
+    AlarmDirector alarm(events, logger, world);
+    ObjectiveSystem mission(events, world, interaction, alarm, config, 4);
+    interaction.update(config.mission.thermitePlace, true, world, true);
+    mission.update(config.mission.thermitePlace);
+    events.dispatch();
+    ASSERT_FLOAT_EQ(mission.thermiteRemaining(), 75);
+    EXPECT_FLOAT_EQ(mission.vaultPosition().x, world.level.map.tileCenter({52, 7}).x);
+    RippleSystem ripple(config.ping, world.level.map);
+    renderer.beginFrame();
+    renderer.drawLevel(world.level, world.player, ripple, world.player.pos, 0, 1, false, 7, {}, {},
+                       {}, false, nullptr, {}, true, {}, nullptr, nullptr, &mission);
+    renderer.drawInteractionHud(world, interaction, 0, config.noise.sprint, &mission);
+    renderer.present();
+    auto image = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day20-thermite.png"));
+    EXPECT_GT(GetImageColor(image, 640, 312).r, 100);
+    EXPECT_GT(GetImageColor(image, 707, 300).g, 150);
+    bool timerAboveDoor = false;
+    for (int y = 272; y < 288; ++y)
+        for (int x = 576; x < 704; ++x) {
+            const auto pixel = GetImageColor(image, x, y);
+            timerAboveDoor = timerAboveDoor || (pixel.r > 180 && pixel.g > 100 && pixel.b < 80);
+        }
+    EXPECT_TRUE(timerAboveDoor);
+    UnloadImage(image);
+}
 
 TEST_F(Render, ShaderCompilesDarknessIsPreservedAndHudRemainsUnprocessed) {
     std::ostringstream console;
@@ -713,7 +834,8 @@ TEST_F(Render, AlarmPaletteBarsAndBannerRespectRealTimeAndStableHud) {
     EXPECT_EQ(floor.r, 76);
     EXPECT_EQ(floor.g, 50);
     EXPECT_EQ(floor.b, 58);
-    EXPECT_EQ(GetImageColor(image, 100, 20).r, 255);
+    // Avoid the variable-width FPS text when probing the stable HUD background.
+    EXPECT_EQ(GetImageColor(image, 200, 20).r, 255);
     EXPECT_EQ(GetImageColor(image, 100, 4).r, 10);
     EXPECT_EQ(GetImageColor(image, 30, 100).r, 20);
     ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day19-alarm-midpoint.png");
@@ -721,7 +843,7 @@ TEST_F(Render, AlarmPaletteBarsAndBannerRespectRealTimeAndStableHud) {
     sequence.advance(2.4f);
     image = draw();
     EXPECT_EQ(GetImageColor(image, 300, 360).r, 122);
-    EXPECT_EQ(GetImageColor(image, 100, 20).r, 20);
+    EXPECT_EQ(GetImageColor(image, 200, 20).r, 20);
     EXPECT_EQ(GetImageColor(image, 100, 4).r, 20);
     ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day19-alarm-settled.png");
     UnloadImage(image);

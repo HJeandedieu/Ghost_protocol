@@ -26,6 +26,7 @@ class Enemy;
 class WaveSpawner;
 class AlarmSequence;
 class PagerSystem;
+class ObjectiveSystem;
 struct World;
 
 class Renderer {
@@ -40,7 +41,9 @@ class Renderer {
     Texture2D frameTexture() const { return surface_.texture; }
     void prepareLevel(const Level& level);
     void drawInteractionHud(const World& world, const InteractionSystem& interaction,
-                            float noiseRadius, float maximumNoise) const;
+                            float noiseRadius, float maximumNoise,
+                            const ObjectiveSystem* objectives = nullptr) const;
+    void drawBusted(int stage) const;
     static void drawPlaceholder(const char* title, const char* subtitle);
     static void drawError(const char* message);
     void resetHealthHud(const Player& player) {
@@ -64,7 +67,8 @@ class Renderer {
                    const std::vector<std::unique_ptr<RecoveryPickup>>& pickups = {},
                    bool pickupsLit = false, const std::vector<std::unique_ptr<Enemy>>& enemies = {},
                    const EnemyCombatSystem* enemyCombat = nullptr,
-                   const AlarmSequence* alarmSequence = nullptr);
+                   const AlarmSequence* alarmSequence = nullptr,
+                   const ObjectiveSystem* objectives = nullptr);
 
    private:
     RenderTexture2D surface_;

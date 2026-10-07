@@ -47,7 +47,8 @@ class TileMap {
     void fillLight(LightLevel level);
     void setLight(int x, int y, LightLevel level);
     Vec2 tileCenter(TileCoord position) const;
-    Vec2 moveCircle(Vec2 position, Vec2 displacement, float radius) const;
+    Vec2 moveCircle(Vec2 position, Vec2 displacement, float radius,
+                    bool frontExitAllowed = true) const;
     bool isOpen(int x, int y) const;
     void setOpen(int x, int y, bool open);
     void removeKeycard(int x, int y);

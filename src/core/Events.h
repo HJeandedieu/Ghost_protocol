@@ -86,3 +86,22 @@ struct PlayerDowned {};
 struct WaveSpawned {
     int waveIndex = 0;
 };
+struct ObjectiveCompleted {
+    std::string stageId;
+};
+struct BagPicked {
+    std::string bagId;
+    float value = 0;
+};
+struct BagDropped {
+    std::string bagId;
+    float value = 0;
+};
+struct BagDelivered {
+    std::string bagId;
+    float value = 0;
+};
+struct DyePackBurst {
+    std::string stackId;
+};
+struct MissionComplete {};

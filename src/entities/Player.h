@@ -22,6 +22,9 @@ class Player : public Entity {
     Vec2 interpolatedPosition(float alpha) const;
     bool hasKeycard() const { return hasKeycard_; }
     void collectKeycard() { hasKeycard_ = true; }
+    bool carryingBag() const { return carryingBag_; }
+    void setCarryingBag(bool carrying) { carryingBag_ = carrying; }
+    void unlockFrontExit() { frontExitUnlocked_ = true; }
 
    private:
     const PlayerConfig config_;
@@ -29,4 +32,6 @@ class Player : public Entity {
     bool crouched_ = false;
     bool sprinting_ = false;
     bool hasKeycard_ = false;
+    bool carryingBag_ = false;
+    bool frontExitUnlocked_ = false;
 };

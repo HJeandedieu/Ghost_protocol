@@ -47,11 +47,13 @@ class EventBus {
     }
 
    private:
-    using Event = std::variant<NoiseEmitted, GuardSuspicious, GuardSpotted, CallInStarted,
-                               CallInCancelled, GuardTakenDown, BodyFound, InteractionProgress,
-                               InteractionDone, SecurityLooped, PagerRang, PagerAnswered,
-                               PagerMissed, LaserTouched, AlarmTriggered, SecurityLoopEnded,
-                               ShotFired, EntityDamaged, EntityDied, PlayerDowned, WaveSpawned>;
+    using Event =
+        std::variant<NoiseEmitted, GuardSuspicious, GuardSpotted, CallInStarted, CallInCancelled,
+                     GuardTakenDown, BodyFound, InteractionProgress, InteractionDone,
+                     SecurityLooped, PagerRang, PagerAnswered, PagerMissed, LaserTouched,
+                     AlarmTriggered, SecurityLoopEnded, ShotFired, EntityDamaged, EntityDied,
+                     PlayerDowned, WaveSpawned, ObjectiveCompleted, BagPicked, BagDropped,
+                     BagDelivered, DyePackBurst, MissionComplete>;
     std::vector<Event> pending_, delivering_;
     std::tuple<std::vector<std::function<void(const NoiseEmitted&)>>,
                std::vector<std::function<void(const GuardSuspicious&)>>,
@@ -73,7 +75,13 @@ class EventBus {
                std::vector<std::function<void(const EntityDamaged&)>>,
                std::vector<std::function<void(const EntityDied&)>>,
                std::vector<std::function<void(const PlayerDowned&)>>,
-               std::vector<std::function<void(const WaveSpawned&)>>>
+               std::vector<std::function<void(const WaveSpawned&)>>,
+               std::vector<std::function<void(const ObjectiveCompleted&)>>,
+               std::vector<std::function<void(const BagPicked&)>>,
+               std::vector<std::function<void(const BagDropped&)>>,
+               std::vector<std::function<void(const BagDelivered&)>>,
+               std::vector<std::function<void(const DyePackBurst&)>>,
+               std::vector<std::function<void(const MissionComplete&)>>>
         listeners_;
     bool dispatching_ = false;
 };

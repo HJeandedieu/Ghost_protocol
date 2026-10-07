@@ -75,6 +75,7 @@ void Game::tick() {
         if (key == KEY_ONE) input_.weaponSlot = 0;
         if (key == KEY_TWO) input_.weaponSlot = 1;
         if (key == KEY_E) input_.interactPressed = true;
+        if (key == KEY_G) input_.throwPressed = true;
 #ifndef NDEBUG
         if (key == KEY_F6) input_.debugDamagePressed = true;
         if (key == KEY_F7) input_.debugMedkitPressed = true;
@@ -93,7 +94,7 @@ void Game::tick() {
                                       (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))),
                    static_cast<float>((IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) -
                                       (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)))};
-    input_.sprintHeld = IsKeyDown(KEY_LEFT_SHIFT);
+    input_.sprintHeld = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
     input_.pingHeld = IsKeyDown(KEY_SPACE);
     input_.interactHeld = IsKeyDown(KEY_E);
     const auto viewport = Letterbox::fit(GetScreenWidth(), GetScreenHeight());
@@ -121,36 +122,36 @@ void Game::update(float dt) {
 
 void Game::showMenu(const std::string& error) {
     logger_.log(LogLevel::Info, "State: Menu");
-    states_.replace(std::make_unique<MenuState>(
-        input_,
-        [this] {
-            auto level = LevelLoader::load("assets/levels/gotham_central.json", logger_);
-            if (!level) {
-                showMenu("Unable to load the bank. Check the level files and try again.");
-                return;
-            }
-            const auto weapons = loadWeapons("assets/config/weapons.json", logger_);
-            if (!weapons) {
-                showMenu("Unable to load weapons. Check the weapons file and try again.");
-                return;
-            }
-            const auto enemies = loadEnemies("assets/config/enemies.json", logger_);
-            if (!enemies) {
-                showMenu("Unable to load enemies. Check the enemy file and try again.");
-                return;
-            }
-            const auto waves = loadWaves("assets/config/enemies.json", logger_);
-            const auto entries = loadSpawnPoints("assets/config/enemies.json", level->map, logger_);
-            if (!waves || !entries) {
-                showMenu("Unable to load police waves. Check the enemy file and try again.");
-                return;
-            }
-            logger_.log(LogLevel::Info, "State: Play");
-            states_.replace(std::make_unique<PlayState>(std::move(*level), input_, config_,
-                                                        rng_.seed(), *renderer_, logger_, *weapons,
-                                                        *enemies, *waves, *entries));
-        },
-        error));
+    states_.replace(std::make_unique<MenuState>(input_, [this] { startMission(); }, error));
+}
+
+void Game::startMission(int stage, bool loud) {
+    auto level = LevelLoader::load("assets/levels/gotham_central.json", logger_);
+    if (!level) {
+        showMenu("Unable to load the bank. Check the level files and try again.");
+        return;
+    }
+    const auto weapons = loadWeapons("assets/config/weapons.json", logger_);
+    if (!weapons) {
+        showMenu("Unable to load weapons. Check the weapons file and try again.");
+        return;
+    }
+    const auto enemies = loadEnemies("assets/config/enemies.json", logger_);
+    if (!enemies) {
+        showMenu("Unable to load enemies. Check the enemy file and try again.");
+        return;
+    }
+    const auto waves = loadWaves("assets/config/enemies.json", logger_);
+    const auto entries = loadSpawnPoints("assets/config/enemies.json", level->map, logger_);
+    if (!waves || !entries) {
+        showMenu("Unable to load police waves. Check the enemy file and try again.");
+        return;
+    }
+    logger_.log(LogLevel::Info, "State: Play");
+    states_.replace(std::make_unique<PlayState>(
+        std::move(*level), input_, config_, rng_.seed(), *renderer_, logger_, *weapons, *enemies,
+        *waves, *entries, stage, loud,
+        [this](int retryStage, bool wasLoud) { startMission(retryStage, wasLoud); }));
 }
 
 void Game::toggleFullscreen() {

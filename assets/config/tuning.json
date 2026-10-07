@@ -127,7 +127,8 @@
     "dye_burst": 45,
     "bollard_hold": 4,
     "van_delay": 10,
-    "throw_distance": 300
+    "throw_distance": 300,
+    "retry_positions": { "s3": [21,32], "s4": [52,16], "s5": [52,8], "s6": [52,8] }
   },
   "payout": {
     "bag": 20000,
