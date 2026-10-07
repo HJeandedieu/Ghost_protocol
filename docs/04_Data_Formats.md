@@ -35,6 +35,7 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
               "medkit_amount": 50, "armor_amount": 50, "collect_radius": 50 },
   "view": { "lead_px": 60, "follow_rate": 8 },
   "render": { "ambient_floor_alpha": 0.18, "ambient_wall_alpha": 0.45 },
+  "ui": { "hover_time": 0.15, "transition_time": 0.25 },
   "ping": { "small_radius": 260, "big_radius": 520, "tap_max": 0.25, "charge_max": 0.8,
             "speed": 800, "fade": 2.5, "cooldown": 3.0, "noise_mult": 0.6, "halo": 96,
             "hazard_reveal_radius": 120 },
@@ -86,6 +87,8 @@ Reference-first visibility (author confirmed 6 October 2026): `render.ambient_fl
 Recovery pickup tuning (author approved 6 October 2026): `pickup.medkit_chance` and `pickup.armor_chance` are probabilities in [0, 1], with a sum at most 1. Missing or invalid individual values use the documented default; if the resulting sum exceeds 1, reset both probabilities to their defaults and log a WARN. Amounts and collection radius must be finite and non-negative; missing or invalid values use the defaults above and log a WARN. The remaining probability is no drop (0.70 by default). All three police types use these values; guards do not drop recovery items. Selection, collection, overflow, and lifetime rules are in Systems Contract ยง3.7. Pickups are created at runtime and add no level or save format.
 
 Day 19 alarm presentation tuning (author approved 6 October 2026): `alarm.trauma_decay` is the trauma reduction per unscaled second (1.5); `alarm.banner_time` is the unscaled banner duration from the alarm (2.5 s); `alarm.shake_pixels` is the maximum world translation amplitude at trauma 1 (12 px). These values must be finite and nonnegative; missing or invalid values fall back to those defaults and log a WARN. Shake amplitude is `shake_pixels * trauma * trauma`, halved by Reduce Effects. Shake affects world presentation only; HUD and gameplay coordinates remain stable. Timing and start-once behavior follow Systems Contract ง3.3.1.
+
+Day 22 UI timing tuning (author approved 7 October 2026): `ui.hover_time` is the duration of button hover/focus easing (0.15 s), and `ui.transition_time` is the duration of screen entrances/exits (0.25 s), preserving Design Docs section 1.6. Both must be finite and strictly positive. Missing or invalid values fall back to those defaults with a WARN. Presentation uses cubic ease-out; input remains usable throughout animation. Reduce Effects uses a simple fade instead of moving wipes/parallax.
 
 ## 3. weapons.json and enemies.json
 ```json
