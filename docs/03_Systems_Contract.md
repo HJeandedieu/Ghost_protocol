@@ -166,6 +166,13 @@ Author-approved tuning, 6 October 2026:
 - Rendering only reads pickups. In Stealth, pickup markers use their normal entity reveal; only `RippleSystem` writes that reveal. In Loud, pickups are visible like other entities. Show an E prompt only for the selected eligible pickup when no higher-priority interaction is available.
 - Day 16 provides the pickup logic, rendering, and debug fixtures. Day 17 connects police deaths to the drop roll; Day 18 uses the same rule for shield cops and heavies.
 
+### 3.8 Escape payout and retry accounting (Day 21; FR-18, FR-19)
+
+- ScoreSystem credits only delivered bags, using the BagDelivered value; picking up, throwing or spoiling cash does not credit money. The existing retry preset resets all delivered cash.
+- One mission run retains elapsed real time, the number of PlayerDowned events, and whether an alarm has ever fired across stage retries. Time advances during active gameplay, including the alarm cinematic, but stops on Busted and Payout screens. A new mission from loadout resets these statistics. Each downing counts once.
+- Payout order is delivered subtotal, ghost bonus (only if no alarm ever fired), time bonus (strictly below payout.time_bonus_limit), Handler cut on subtotal plus bonuses, comedic deductions, then death penalty. Clamp the final result to zero; rank uses this final amount. Keep cents internally and round only for display.
+- Finalize samples an inclusive uniform integer deduction count from zero to payout.deduction_max_count (3), then an independent inclusive uniform whole-dollar amount from zero to payout.deduction_max_amount (500) for each line using the supplied seeded Rng. Finalize once on mission completion and retain that result for display, so rendering never rerolls deductions.
+
 ## 4. Interfaces (C++ signatures, abbreviated)
 ```cpp
 struct Vec2 { float x, y; };
