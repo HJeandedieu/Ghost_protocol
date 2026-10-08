@@ -1289,6 +1289,10 @@ TEST_F(Render, HandlerSubtitleWrapsInsidePanelAndReducedEffectsFreezesPanicAppea
     renderer.setReduceEffects(true);
     auto script = loadVoiceLines("assets/config/voice_lines.json", logger);
     ASSERT_TRUE(script);
+    for (auto& line : *script)
+        if (line.id == "V08")
+            line.text +=
+                " Keep moving through the hall, find the vault, and use the doorway for cover.";
     VoiceDirector voice(std::move(*script), .25f);
     voice.request("V08");
     renderer.beginFrame();
@@ -1298,6 +1302,13 @@ TEST_F(Render, HandlerSubtitleWrapsInsidePanelAndReducedEffectsFreezesPanicAppea
     ImageFlipVertical(&first);
     const auto border = GetImageColor(first, 312, 602);
     EXPECT_GT(border.r, 180);
+    bool secondRow = false;
+    for (int y = 644; y < 670; ++y)
+        for (int x = 432; x < 1096; ++x)
+            secondRow = secondRow || GetImageColor(first, x, y).r > 200;
+    EXPECT_TRUE(secondRow);
+    for (int y = 600; y < 696; ++y) EXPECT_LT(GetImageColor(first, 1160, y).r, 200);
+
     EXPECT_TRUE(ExportImage(first, GP_RENDER_OUTPUT_DIRECTORY "/day26-handler-subtitles.png"));
     voice.update(.15f);
     renderer.beginFrame();
