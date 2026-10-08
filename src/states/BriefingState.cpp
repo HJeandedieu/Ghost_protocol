@@ -47,8 +47,6 @@ void BriefingState::render(float alpha) {
     const float x = 640 + (1 - p) * 96;
     const char* titles[] = {"GOTHAM CENTRAL BANK", "TEN BAGS. ONE NIGHT.", "YOUR WAY OUT",
                             "ARE YOU IN OR OUT?"};
-    const char* captions[] = {"Gotham Central Bank.", "Ten bags, one night, zero witnesses.",
-                              "Choose fast, I bill by the hour.", "Are you in or out?"};
     art.text("MISSION BRIEFING", {96, 72}, 20, Palette::Teal, false, true);
     art.text(TextFormat("%02i / 04", slide_ + 1), {1100, 72}, 20, Palette::Bone);
     art.text(titles[slide_], {96, 184}, 28, Palette::Bone, false, true);
@@ -93,8 +91,5 @@ void BriefingState::render(float alpha) {
     }
     drawScreenButton(renderer_, navigation_, 0, 440, slide_ == 3 ? "START HEIST" : "NEXT");
     drawScreenButton(renderer_, navigation_, 1, 440, "BACK");
-    DrawRectangle(72, 608, 1136, 80, {20, 22, 27, 255});
-    art.text("HANDLER", {96, 618}, 14, Palette::Teal, true);
-    art.text(captions[slide_], {96, 642}, 22, Palette::Bone, true);
     art.text("SPACE skip briefing   ESC back", {96, 572}, 14, Palette::Teal, true);
 }

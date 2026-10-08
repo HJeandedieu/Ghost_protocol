@@ -83,6 +83,36 @@ TEST_F(Render, BriefingSupportsEverySlideBackAndSkipDuringTransitions) {
     renderer.present();
 }
 
+TEST_F(Render, BriefingUsesSharedHandlerSubtitleWithoutDuplicateCaptionPanel) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    Input input;
+    BriefingState briefing(input, renderer, {}, [] {}, [] {});
+    auto script = loadVoiceLines("assets/config/voice_lines.json", logger);
+    ASSERT_TRUE(script);
+    VoiceDirector voice(std::move(*script), .25f);
+    ASSERT_TRUE(voice.request("V01"));
+    for (int slide = 0; slide < 4; ++slide) {
+        renderer.beginFrame();
+        briefing.render(0);
+        renderer.drawVoice(voice, {});
+        renderer.present();
+        auto image = LoadImageFromTexture(renderer.frameTexture());
+        ImageFlipVertical(&image);
+        const auto outside = GetImageColor(image, 80, 612);
+        EXPECT_EQ(outside.r, 10) << "Duplicate caption panel on slide " << slide;
+        EXPECT_EQ(outside.g, 10);
+        EXPECT_EQ(outside.b, 12);
+        EXPECT_GT(GetImageColor(image, 312, 602).r, 180);
+        UnloadImage(image);
+        input.confirmPressed = true;
+        briefing.update(.016f);
+        input.clearEdges();
+    }
+}
+
 TEST_F(Render, PauseSettingsReturnToFrozenPauseAndResumeWithoutReplacingPlay) {
     std::ostringstream output;
     Logger logger(output, "");
