@@ -36,7 +36,7 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
   "audio": { "crossfade_time": 1.0, "voice_duck": 0.4 },
   "voice": { "low_health_fraction": 0.25, "subtitle_words_per_second": 3 },
   "view": { "lead_px": 60, "follow_rate": 8 },
-  "render": { "ambient_floor_alpha": 0.18, "ambient_wall_alpha": 0.45, "grain_intensity": 0.04, "vignette_strength": 0.35 },
+  "render": { "ambient_floor_alpha": 0.18, "ambient_wall_alpha": 0.45, "grain_intensity": 0.01, "vignette_strength": 0.35, "ssaa_scale": 2 },
   "ui": { "hover_time": 0.15, "transition_time": 0.25, "payout_line_time": 0.18, "payout_count_time": 1.2, "payout_stamp_time": 0.25, "hint_time": 3, "panic_flicker_hz": 2 },
   "ping": { "small_radius": 260, "big_radius": 520, "tap_max": 0.25, "charge_max": 0.8,
             "speed": 800, "fade": 2.5, "cooldown": 3.0, "noise_mult": 0.6, "halo": 96,
@@ -98,7 +98,9 @@ Day 24 payout presentation tuning (author approved 7 October 2026): `ui.payout_l
 
 Day 25 audio tuning (author approved 8 October 2026): `audio.crossfade_time` (1.0 s) is the Stealth-to-Loud music crossfade duration after AlarmTriggered. It must be finite and strictly positive. `audio.voice_duck` (0.4) multiplies the selected music slider volume while voice plays; it must be finite and in [0, 1]. Missing or invalid values fall back to these defaults with a WARN. Master volume applies once to all channels; music, SFX and voice sliders apply to their own channels. Ducking preserves mute and never raises a chosen music volume.
 
-Day 26 tutorial/presentation tuning (author approved 8 October 2026): `voice.subtitle_words_per_second` (3) and `ui.hint_time` (3 s) must be finite and strictly positive. `ui.panic_flicker_hz` (2 Hz) must be finite and in (0, 3]. `render.grain_intensity` (0.04) and `render.vignette_strength` (0.35) must be finite and in [0, 1]. Missing or invalid values WARN and use these defaults. Systems Contract section 3.11 defines their behavior.
+Day 26 tutorial/presentation tuning (author approved 8 October 2026): `voice.subtitle_words_per_second` (3) and `ui.hint_time` (3 s) must be finite and strictly positive. `ui.panic_flicker_hz` (2 Hz) must be finite and in (0, 3]. `render.grain_intensity` (0.01) and `render.vignette_strength` (0.35) must be finite and in [0, 1]. Missing or invalid values WARN and use these defaults. Systems Contract section 3.11 defines their behavior.
+
+Author visual-quality correction, 8 October 2026: `render.ssaa_scale` is an integer in [1, 4], default 2. Missing, fractional, out-of-range or nonnumeric values WARN and use 2. It multiplies physical render-target dimensions, not world/HUD/input coordinates; Architecture section 8 defines sizing and GPU-limit fallback. `render.grain_intensity` now defaults to 0.01 (was 0.04), remains finite in [0, 1], and WARN/default fallback uses 0.01. Preserve the existing vignette and environmental baseline defaults. These are presentation controls, not gameplay tuning.
 
 ## 3. weapons.json and enemies.json
 ```json

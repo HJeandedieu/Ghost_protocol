@@ -294,6 +294,14 @@ Every day lists: **Goal**, **Tasks** (do them in order), and **Done when** (the 
 ### Day 28: Sun 1 Nov (buffer only)
 Official deadline. Use it **only** if something broke at submission. Otherwise rest. No new features.
 
+### Author-requested visual overhaul (8 October 2026)
+The author rejected the Day 27 build's pixelated/blocky appearance and prioritized high graphics quality over processing cost. This authorized presentation work follows the merged graphics contract rather than the submission buffer restriction; local playability is the delivery and external submission is unnecessary.
+1. Separate logical coordinates from physical targets; implement `render.ssaa_scale`, bilinear resolves, detailed font atlases and coherent resize/frozen-frame/transition behavior.
+2. Rebuild wall faces, floors, bank furnishing, vault and character silhouettes to match Visual Reference section 5. Preserve map-defined collision and gameplay positions.
+3. Rebalance decorative grain to the documented subdued default; keep HUD text sharp and threat/reveal rules unchanged.
+4. Add rendering regressions for antialiasing, larger-window output, state snapshots and hidden entities; build and run the full suite.
+5. Inspect desktop Stealth/Loud scenes at 1920x1080, compare against the references, test local play, then refresh packages. Performance measurements guide optimization, not a reduction in the visual target.
+
 ---
 
 ## If you fall behind
