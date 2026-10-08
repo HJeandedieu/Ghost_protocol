@@ -17,7 +17,7 @@ this register does not grant redistribution rights or claim ownership.
 | `assets/shaders/glsl330/post.fs` | Original project code | Ghost Protocol project | Project-owned | None | Desktop vignette and grain |
 | `assets/shaders/glsl100/post.fs` | Original project code | Ghost Protocol project | Project-owned | None | Web variant of vignette and grain |
 | `assets/config/enemies.json` | Enemy and wave catalog from Data Formats §3 | Ghost Protocol project | Project-owned | None | Enemy tuning and planned assault composition |
-| `assets/fonts/Orbitron-Bold.ttf`, `Orbitron-Medium.ttf` | [Official Orbitron upstream](https://github.com/googlefonts/orbitron-vf/tree/master/fonts/ttf), unmodified static exports | The Orbitron Project Authors | SIL OFL 1.1 | Copyright and licence retained in `assets/fonts/Orbitron-OFL.txt` | Titles, HUD numbers, menu buttons |
+| `assets/fonts/Orbitron-Bold.ttf`, `assets/fonts/Orbitron-Medium.ttf` | [Official Orbitron upstream](https://github.com/googlefonts/orbitron-vf/tree/master/fonts/ttf), unmodified static exports | The Orbitron Project Authors | SIL OFL 1.1 | Copyright and licence retained in `assets/fonts/Orbitron-OFL.txt` | Titles, HUD numbers, menu buttons |
 | `assets/fonts/Inter-Medium.ttf` | [Official Inter 4.1 release](https://github.com/rsms/inter/releases/tag/v4.1), unmodified static export | The Inter Project Authors | SIL OFL 1.1 | Copyright and licence retained in `assets/fonts/Inter-OFL.txt` | Body text and subtitles |
 
 | `assets/audio/music/loud_loop.ogg` | Original procedural composition; `tools/generate_music.py` | Ghost Protocol project | Project-owned original composition | None | loud loop |
@@ -90,3 +90,12 @@ Log each future runtime font, texture, sound, and music file with its source,
 author, licence, and attribution requirements before adding it to a release.
 
 | `assets/ui/handler_portrait.png` | Original portrait generated with OpenAI imagegen on 8 October 2026, using the project gameplay reference for style | Ghost Protocol project / OpenAI imagegen | AI-generated original project asset; no third-party asset incorporated | No additional attribution required | Day 26 Handler subtitle HUD portrait |
+
+## Packaged software notices
+
+Release archives include `licenses/` from `tools/release_licenses/`: raylib 5.5
+(zlib/libpng) and nlohmann_json 3.11.3 (MIT). MinGW Windows archives additionally
+ship the compiler's `libgcc_s_seh-1.dll` and `libstdc++-6.dll` (GPLv3 with GCC
+Runtime Library Exception 3.1), and `libwinpthread-1.dll` (mingw-w64 MIT/BSD
+notices). Original copyright and licence texts are retained. These are existing
+build dependencies; no TTS engine, model weights or reference media are shipped.
