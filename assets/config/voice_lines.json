@@ -1,0 +1,177 @@
+[
+  {
+    "id": "V01",
+    "file": "audio/voice/V01.ogg",
+    "text": "Gotham Central Bank. Ten bags, one night, zero witnesses. Are you in or out? Choose fast, I bill by the hour.",
+    "priority": 2,
+    "trigger": "Briefing"
+  },
+  {
+    "id": "V02",
+    "file": "audio/voice/V02.ogg",
+    "text": "Alley's clear. Well, clear of people. The rats have formed a union.",
+    "priority": 1,
+    "trigger": "Play starts"
+  },
+  {
+    "id": "V03",
+    "file": "audio/voice/V03.ogg",
+    "text": "Tap Space to ping. Hold it for a bigger one. Bigger pings feel great and get you arrested. Your call.",
+    "priority": 2,
+    "trigger": "First ping hint"
+  },
+  {
+    "id": "V04",
+    "file": "audio/voice/V04.ogg",
+    "text": "Sneak with Ctrl. Quiet feet, quiet life.",
+    "priority": 1,
+    "trigger": "Crouch hint"
+  },
+  {
+    "id": "V05",
+    "file": "audio/voice/V05.ogg",
+    "text": "Guard ahead. Don't wave.",
+    "priority": 1,
+    "trigger": "First guard seen"
+  },
+  {
+    "id": "V06",
+    "file": "audio/voice/V06.ogg",
+    "text": "Nap time. Very professional.",
+    "priority": 1,
+    "trigger": "First takedown"
+  },
+  {
+    "id": "V07",
+    "file": "audio/voice/V07.ogg",
+    "text": "His pager's going off. Answer it, or he's about to get very popular.",
+    "priority": 2,
+    "trigger": "Pager rings"
+  },
+  {
+    "id": "V08",
+    "file": "audio/voice/V08.ogg",
+    "text": "Well. That's the sound of someone noticing.",
+    "priority": 3,
+    "trigger": "Pager missed"
+  },
+  {
+    "id": "V09",
+    "file": "audio/voice/V09.ogg",
+    "text": "Red keycard. Finally, something in this city that works.",
+    "priority": 1,
+    "trigger": "Keycard picked"
+  },
+  {
+    "id": "V10",
+    "file": "audio/voice/V10.ogg",
+    "text": "Cameras are looping. Two minutes. I know their blind spots like, well, never mind.",
+    "priority": 2,
+    "trigger": "Security looped"
+  },
+  {
+    "id": "V11",
+    "file": "audio/voice/V11.ogg",
+    "text": "Power's off at the vault gate. Which means it opens. Which means you should.",
+    "priority": 1,
+    "trigger": "Power cut"
+  },
+  {
+    "id": "V12",
+    "file": "audio/voice/V12.ogg",
+    "text": "Lasers. Of course. Why would a bank have a normal door? Ping before you step.",
+    "priority": 1,
+    "trigger": "Enter laser corridor"
+  },
+  {
+    "id": "V13",
+    "file": "audio/voice/V13.ogg",
+    "text": "That's the alarm. That's... okay, that's loud. Okay! Plan B! I love Plan B! Thermite, now!",
+    "priority": 3,
+    "trigger": "Alarm"
+  },
+  {
+    "id": "V14",
+    "file": "audio/voice/V14.ogg",
+    "text": "Police in thirty seconds. Okay, twenty. They're early. Rude.",
+    "priority": 2,
+    "trigger": "Wave 1"
+  },
+  {
+    "id": "V15",
+    "file": "audio/voice/V15.ogg",
+    "text": "Thermite's burning. Hold the door. Or the hall. Or anything.",
+    "priority": 2,
+    "trigger": "Thermite placed"
+  },
+  {
+    "id": "V16",
+    "file": "audio/voice/V16.ogg",
+    "text": "Vault's open. Beautiful. Grab the bags before the dye packs get ideas.",
+    "priority": 2,
+    "trigger": "Vault open (loud)"
+  },
+  {
+    "id": "V17",
+    "file": "audio/voice/V17.ogg",
+    "text": "Vault's open and nobody noticed. I'd clap, but I'm busy being impressed.",
+    "priority": 2,
+    "trigger": "Vault open (quiet)"
+  },
+  {
+    "id": "V18",
+    "file": "audio/voice/V18.ogg",
+    "text": "Dye packs are armed. Disarm them or enjoy pink money.",
+    "priority": 1,
+    "trigger": "Dye packs armed"
+  },
+  {
+    "id": "V19",
+    "file": "audio/voice/V19.ogg",
+    "text": "Heavy, isn't it? Money usually is. Keep moving.",
+    "priority": 1,
+    "trigger": "First bag"
+  },
+  {
+    "id": "V20",
+    "file": "audio/voice/V20.ogg",
+    "text": "Bollards are down. Van's on its way. Try to look like a delivery.",
+    "priority": 2,
+    "trigger": "Bollards lowered"
+  },
+  {
+    "id": "V21",
+    "file": "audio/voice/V21.ogg",
+    "text": "Van's here. Bags in, you in, everyone out.",
+    "priority": 2,
+    "trigger": "Van arrives"
+  },
+  {
+    "id": "V22",
+    "file": "audio/voice/V22.ogg",
+    "text": "Fun fact: I'm the bank's night dispatcher. Eleven years, same cameras, same salary. Consider this my resignation. I quit.",
+    "priority": 2,
+    "trigger": "Mission complete (twist)"
+  },
+  {
+    "id": "V23",
+    "file": "audio/voice/V23.ogg",
+    "text": "That went poorly. Rewinding. Please don't do that again.",
+    "priority": 2,
+    "trigger": "Busted"
+  },
+  {
+    "id": "V24",
+    "file": "audio/voice/V24.ogg",
+    "text": "You're leaking. Heal, or become a cautionary tale.",
+    "priority": 2,
+    "trigger": "Low health"
+  },
+  {
+    "id": "V25",
+    "file": "audio/voice/V25.ogg",
+    "text": "No alarm. No witnesses. I'm genuinely moved.",
+    "priority": 2,
+    "trigger": "Ghost run result"
+  }
+]
