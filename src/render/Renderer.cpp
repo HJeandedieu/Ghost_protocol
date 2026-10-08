@@ -194,6 +194,21 @@ void drawBankFurniture(int x, int y, float size, float visibility, Color wall, C
     }
 }
 
+void drawKeycard(Vec2 center, float size, float reveal) {
+    constexpr Color kAlarm = Palette::Alarm, kBone = Palette::Bone;
+    constexpr Color kGold{242, 183, 5, 255};
+    const Rectangle card{center.x - size * .22f, center.y - size * .13f, size * .44f, size * .26f};
+    DrawRectangleRounded({card.x + 2, card.y + 3, card.width, card.height}, .2f, 12,
+                         Fade(BLACK, reveal * .5f));
+    DrawRectangleRounded(card, .2f, 12, Fade(kAlarm, reveal));
+    DrawRectangleRec({card.x + 2, card.y + 2, card.width - 4, size * .04f},
+                     Fade(Palette::Ink, reveal));
+    DrawRectangleRec({card.x + size * .06f, card.y + size * .12f, size * .07f, size * .065f},
+                     Fade(kGold, reveal));
+    DrawLineEx({card.x + size * .19f, card.y + size * .15f},
+               {card.x + size * .35f, card.y + size * .15f}, 1, Fade(kBone, reveal));
+}
+
 bool isDoor(TileType tile) {
     return tile == TileType::Door || tile == TileType::ServiceDoor || tile == TileType::CardDoor ||
            tile == TileType::FrontDoor || tile == TileType::Gate;
@@ -812,27 +827,13 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
             }
             if (reveal > 0 && !isDoor(tile) && tile != TileType::Bollard &&
                 tile != TileType::Wall && tile != TileType::Floor && !map.isOpen(x, y) &&
-                tile != TileType::PlayerSpawn &&
+                tile != TileType::PlayerSpawn && tile != TileType::Keycard &&
                 !(objectives && (tile == TileType::Money || tile == TileType::VaultDoor ||
                                  tile == TileType::VanSpawn))) {
                 const auto center = map.tileCenter({x, y});
                 const auto color = map.isPassable(x, y) ? kGold : kBone;
-                if (tile == TileType::Keycard) {
-                    const Rectangle card{center.x - size * .22f, center.y - size * .13f,
-                                         size * .44f, size * .26f};
-                    DrawRectangleRounded({card.x + 2, card.y + 3, card.width, card.height}, .2f, 12,
-                                         Fade(BLACK, reveal * .5f));
-                    DrawRectangleRounded(card, .2f, 12, Fade(kAlarm, reveal));
-                    DrawRectangleRec({card.x + 2, card.y + 2, card.width - 4, size * .04f},
-                                     Fade(Palette::Ink, reveal));
-                    DrawRectangleRec(
-                        {card.x + size * .06f, card.y + size * .12f, size * .07f, size * .065f},
-                        Fade(kGold, reveal));
-                    DrawLineEx({card.x + size * .19f, card.y + size * .15f},
-                               {card.x + size * .35f, card.y + size * .15f}, 1,
-                               Fade(kBone, reveal));
-                } else if (tile == TileType::SecurityPanel || tile == TileType::Breaker ||
-                           tile == TileType::BollardPanel) {
+                if (tile == TileType::SecurityPanel || tile == TileType::Breaker ||
+                    tile == TileType::BollardPanel) {
                     const Rectangle cabinet{center.x - size * .23f, center.y - size * .32f,
                                             size * .46f, size * .64f};
                     DrawRectangleRounded(cabinet, .08f, 12, Fade(Palette::Ink, reveal));
@@ -858,7 +859,7 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                     uiAssets_.text(symbol,
                                    {static_cast<float>(static_cast<int>(x * size + size * 0.25f)),
                                     static_cast<float>(static_cast<int>(y * size + size * 0.25f))},
-                                   static_cast<int>(size * 0.5f), {10, 10, 12, 255}, true);
+                                   size * 0.5f, {10, 10, 12, 255}, true);
                 }
             }
             if (!overview && !pickupsLit) {
@@ -990,7 +991,8 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
     if (level.name == "Gotham Central Bank") {
         for (int y = 0; y < map.height(); ++y)
             for (int x = 0; x < map.width(); ++x) {
-                if (map.tile(x, y) != TileType::Floor) continue;
+                if (map.tile(x, y) != TileType::Floor && map.tile(x, y) != TileType::Keycard)
+                    continue;
                 const auto screen = GetWorldToScreen2D({x * size, y * size}, camera);
                 if (screen.x + size * 2 < 0 || screen.y + size * 2 < 0 || screen.x - size >= 1280 ||
                     screen.y - size >= 720)
@@ -1003,14 +1005,22 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
     }
     for (int y = 0; y < map.height(); ++y)
         for (int x = 0; x < map.width(); ++x) {
-            if (!isDoor(map.tile(x, y))) continue;
+            if (!isDoor(map.tile(x, y)) && map.tile(x, y) != TileType::Keycard) continue;
             const auto screen = GetWorldToScreen2D({x * size, y * size}, camera);
             if (screen.x + size * 2 < 0 || screen.y + size * 2 < 0 || screen.x - size >= 1280 ||
                 screen.y - size >= 720)
                 continue;
             const float reveal =
                 overview || pickupsLit ? 1.f : ripple.visibility(x, y, player.pos, map);
-            if (reveal > 0) drawBankDoor(x, y, size, reveal, map, wallColor);
+            if (reveal <= 0) continue;
+            if (map.tile(x, y) == TileType::Keycard) {
+                const auto center = map.tileCenter({x, y});
+                drawKeycard(center, size, reveal);
+                if (overview)
+                    uiAssets_.text("k", {center.x - size * .25f, center.y - size * .25f},
+                                   size * .5f, Palette::Ink, true);
+            } else
+                drawBankDoor(x, y, size, reveal, map, wallColor);
         }
     if (objectives)
         for (int y = 0; y < map.height(); ++y) {

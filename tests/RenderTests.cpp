@@ -1581,3 +1581,33 @@ TEST_F(Render, ResizingRetainsOutgoingTransitionAcrossAllPhysicalScissorRows) {
     }
     UnloadImage(image);
 }
+
+TEST_F(Render, CollectingTheKeycardDoesNotMakeItsDeskAppear) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    const auto config = Config::load("assets/config/tuning.json", logger);
+    auto level = LevelLoader::load("assets/levels/gotham_central.json", logger);
+    ASSERT_TRUE(level);
+    ASSERT_EQ(level->map.tile(27, 22), TileType::Keycard);
+    Player player(level->map.tileCenter({29, 23}), config.player);
+    RippleSystem ripple(config.ping, level->map);
+    Renderer renderer(logger, config.render);
+    renderer.setReduceEffects(true);
+    const auto desk = [&] {
+        renderer.beginFrame();
+        renderer.drawLevel(*level, player, ripple, player.pos, 0, 1, false, 7, {}, {}, {}, false,
+                           nullptr, {}, true);
+        renderer.present();
+        auto image = logicalImage(renderer.frameTexture());
+        ImageFlipVertical(&image);
+        const auto surface = GetImageColor(image, 569, 293);
+        UnloadImage(image);
+        return surface;
+    };
+    const auto before = desk();
+    level->map.removeKeycard(27, 22);
+    const auto after = desk();
+    EXPECT_EQ(before.r, after.r);
+    EXPECT_EQ(before.g, after.g);
+    EXPECT_EQ(before.b, after.b);
+}
