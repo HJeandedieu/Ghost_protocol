@@ -154,3 +154,5 @@ Three sessions with classmates: end of week 2 (Sun 18 Oct), end of week 3 (Sun 2
 
 ## 10. Code review etiquette (self-review)
 Before merging, read your own diff once as if someone else wrote it. If a function needs a comment to be understood, consider renaming or splitting it first.
+
+Day 26 logic coverage: VoiceDirector tests cover priority 2/3 interruptions, FIFO, discarded interrupted lines, recording/fallback duration, paused subtitles, manifest validation, once-per-run/per-body occurrence and the low-health threshold. Tutorial tests cover each documented stage 1-2 trigger and Hints off; rendering checks cover wrapped subtitles, portrait fallback and Reduce Effects.
