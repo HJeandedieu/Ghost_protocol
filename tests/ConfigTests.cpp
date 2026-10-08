@@ -370,8 +370,37 @@ TEST(Config, Day26PresentationKeysLoadAndInvalidValuesWarnWithDefaults) {
     EXPECT_FLOAT_EQ(config.voice.subtitleWordsPerSecond, 3);
     EXPECT_FLOAT_EQ(config.ui.hintTime, 3);
     EXPECT_FLOAT_EQ(config.ui.panicFlickerHz, 2);
-    EXPECT_FLOAT_EQ(config.render.grainIntensity, .04f);
+    EXPECT_FLOAT_EQ(config.render.grainIntensity, .01f);
     EXPECT_FLOAT_EQ(config.render.vignetteStrength, .35f);
     EXPECT_NE(out.str().find("panic_flicker_hz"), std::string::npos);
     EXPECT_NE(out.str().find("subtitle_words_per_second"), std::string::npos);
+}
+
+TEST(Config, SupersamplingAcceptsEachDocumentedQualityLevel) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    for (int quality = 1; quality <= 4; ++quality) {
+        data["render"]["ssaa_scale"] = quality;
+        std::ostringstream out;
+        Logger logger(out, "");
+        EXPECT_EQ(Config::load(files.write("quality.json", data.dump()), logger).render.ssaaScale,
+                  quality);
+        EXPECT_EQ(out.str().find("[WARN]"), std::string::npos);
+    }
+}
+TEST(Config, InvalidOrMissingSupersamplingWarnsAndUsesDefault) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    for (const auto& invalid : std::vector<nlohmann::json>{0, 5, -1, 1.5, "bad", true, nullptr}) {
+        data["render"]["ssaa_scale"] = invalid;
+        if (invalid.is_null()) data["render"].erase("ssaa_scale");
+        std::ostringstream out;
+        Logger logger(out, "");
+        EXPECT_EQ(
+            Config::load(files.write("invalid-quality.json", data.dump()), logger).render.ssaaScale,
+            2);
+        EXPECT_NE(out.str().find("ssaa_scale"), std::string::npos);
+    }
 }

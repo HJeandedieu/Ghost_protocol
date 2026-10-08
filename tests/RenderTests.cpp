@@ -7,6 +7,7 @@
 #include "entities/Guard.h"
 #include "entities/Player.h"
 #include "render/AlarmSequence.h"
+#include "render/Letterbox.h"
 #include "render/Renderer.h"
 #include "states/BriefingState.h"
 #include "states/GameOverState.h"
@@ -25,6 +26,14 @@
 #include "systems/WaveSpawner.h"
 #include "world/LevelLoader.h"
 #include "world/World.h"
+
+namespace {
+Image logicalImage(Texture2D texture) {
+    auto image = LoadImageFromTexture(texture);
+    ImageResize(&image, 1280, 720);
+    return image;
+}
+}  // namespace
 
 class Render : public testing::Test {
    protected:
@@ -54,7 +63,7 @@ TEST_F(Render, BriefingSupportsEverySlideBackAndSkipDuringTransitions) {
         renderer.beginFrame();
         briefing.render(0);
         renderer.present();
-        auto image = LoadImageFromTexture(renderer.frameTexture());
+        auto image = logicalImage(renderer.frameTexture());
         ImageFlipVertical(&image);
         EXPECT_TRUE(ExportImage(
             image, TextFormat(GP_RENDER_OUTPUT_DIRECTORY "/day23-briefing-%s.png", names[i])));
@@ -83,6 +92,40 @@ TEST_F(Render, BriefingSupportsEverySlideBackAndSkipDuringTransitions) {
     renderer.present();
 }
 
+TEST_F(Render, EnlargedOutputInterpolatesSurfaceEdgesInsteadOfNearestNeighborSteps) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.beginFrame();
+    ClearBackground(BLACK);
+    DrawRectangleRec({600.3f, 0, 679.7f, 720}, WHITE);
+    renderer.present();
+    // Exercise the same scaled texture blit as present(), using a readable GPU
+    // target instead of the platform-dependent window swap buffer.
+    auto enlarged = LoadRenderTexture(1920, 1080);
+    ASSERT_TRUE(IsRenderTextureValid(enlarged));
+    BeginTextureMode(enlarged);
+    ClearBackground(BLACK);
+    DrawTexturePro(renderer.frameTexture(),
+                   {0, 0, static_cast<float>(renderer.frameTexture().width),
+                    -static_cast<float>(renderer.frameTexture().height)},
+                   {0, 0, 1920, 1080}, {0, 0}, 0, WHITE);
+    EndTextureMode();
+    auto image = LoadImageFromTexture(enlarged.texture);
+    ImageFlipVertical(&image);
+    EXPECT_EQ(GetImageColor(image, 897, 100).r, 0);
+    EXPECT_EQ(GetImageColor(image, 903, 100).r, 255);
+    const int edge = 900;
+    bool interpolated = false;
+    for (int x = edge - 2; x <= edge + 2; ++x) {
+        const auto pixel = GetImageColor(image, x, 100);
+        interpolated = interpolated || (pixel.r > 4 && pixel.r < 251);
+    }
+    EXPECT_TRUE(interpolated) << "Enlarged render targets must interpolate edge pixels";
+    UnloadImage(image);
+    UnloadRenderTexture(enlarged);
+}
+
 TEST_F(Render, BriefingUsesSharedHandlerSubtitleWithoutDuplicateCaptionPanel) {
     std::ostringstream output;
     Logger logger(output, "");
@@ -99,7 +142,7 @@ TEST_F(Render, BriefingUsesSharedHandlerSubtitleWithoutDuplicateCaptionPanel) {
         briefing.render(0);
         renderer.drawVoice(voice, {});
         renderer.present();
-        auto image = LoadImageFromTexture(renderer.frameTexture());
+        auto image = logicalImage(renderer.frameTexture());
         ImageFlipVertical(&image);
         const auto outside = GetImageColor(image, 80, 612);
         EXPECT_EQ(outside.r, 10) << "Duplicate caption panel on slide " << slide;
@@ -143,7 +186,7 @@ TEST_F(Render, PauseSettingsReturnToFrozenPauseAndResumeWithoutReplacingPlay) {
     renderer.beginFrame();
     states.render(0);
     renderer.present();
-    auto image = LoadImageFromTexture(renderer.frameTexture());
+    auto image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day23-pause.png"));
     UnloadImage(image);
@@ -192,7 +235,7 @@ TEST_F(Render, BustedQuipIsStableAndRetryMenuAndEscapeRemainAvailable) {
     renderer.beginFrame();
     busted.render(0);
     renderer.present();
-    auto image = LoadImageFromTexture(renderer.frameTexture());
+    auto image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day23-busted.png"));
     UnloadImage(image);
@@ -259,7 +302,7 @@ TEST_F(Render, PrescribedFontsLoadAndMissingAssetsRetainUsableFallback) {
     assets.text("START HEIST", {64, 144}, 24, {233, 228, 208, 255});
     assets.text("Are you in or out?", {64, 216}, 22, {233, 228, 208, 255}, true);
     renderer.present();
-    auto image = LoadImageFromTexture(renderer.frameTexture());
+    auto image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day22-fonts.png"));
     UnloadImage(image);
@@ -299,7 +342,7 @@ TEST_F(Render, MissionLootUsesRuntimeStateAndBustedRetriesCurrentStage) {
                        {}, false, nullptr, {}, false, {}, nullptr, nullptr, &mission);
     renderer.drawInteractionHud(world, interaction, 0, config.noise.sprint, &mission);
     renderer.present();
-    auto image = LoadImageFromTexture(renderer.frameTexture());
+    auto image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     // The right vault frame must survive drawing the floor tiles to its right.
     EXPECT_GT(GetImageColor(image, 707, 504).g, 90);
@@ -357,7 +400,7 @@ TEST_F(Render, MissionLootUsesRuntimeStateAndBustedRetriesCurrentStage) {
     renderer.beginFrame();
     play.render(1);
     renderer.present();
-    image = LoadImageFromTexture(renderer.frameTexture());
+    image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day20-busted.png"));
     UnloadImage(image);
@@ -393,7 +436,7 @@ TEST_F(Render, ThermiteDeviceTimerAndSparksRenderAtTheInteractionDoor) {
                        {}, false, nullptr, {}, true, {}, nullptr, nullptr, &mission);
     renderer.drawInteractionHud(world, interaction, 0, config.noise.sprint, &mission);
     renderer.present();
-    auto image = LoadImageFromTexture(renderer.frameTexture());
+    auto image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     EXPECT_TRUE(ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day20-thermite.png"));
     EXPECT_GT(GetImageColor(image, 640, 312).r, 100);
@@ -430,7 +473,7 @@ TEST_F(Render, ShaderCompilesDarknessIsPreservedAndHudRemainsUnprocessed) {
     renderer.drawLevel(level, player, ripple, player.pos, 0, 1, false, 1234);
     renderer.drawInteractionHud(world, interaction, 0, 280);
     renderer.present();
-    auto image = LoadImageFromTexture(renderer.frameTexture());
+    auto image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     const auto dark = GetImageColor(image, 200, 360);
     const auto lit = GetImageColor(image, 120, 312);
@@ -447,7 +490,7 @@ TEST_F(Render, ShaderCompilesDarknessIsPreservedAndHudRemainsUnprocessed) {
     renderer.beginFrame();
     renderer.drawLevel(level, player, ripple, player.pos, 0, 1, false, 1234);
     renderer.present();
-    image = LoadImageFromTexture(renderer.frameTexture());
+    image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     const auto plain = GetImageColor(image, 120, 312);
     EXPECT_EQ(plain.r, 30);
@@ -475,7 +518,7 @@ TEST_F(Render, InteractionPromptAndSixSegmentNoiseMeterRemainReadable) {
     renderer.drawLevel(world.level, world.player, ripple, world.player.pos, 0, 1, false, 1234);
     renderer.drawInteractionHud(world, interaction, config.noise.walk, config.noise.sprint);
     renderer.present();
-    auto image = LoadImageFromTexture(renderer.frameTexture());
+    auto image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     bool segmentsFound = false;
     for (int y = 160; y < 240; ++y) {
@@ -521,7 +564,7 @@ TEST_F(Render, GuardsRespectDarknessAndAreVisibleInLitRoomsAndOverview) {
     renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, false, 1234,
                        world.guards);
     renderer.present();
-    auto image = LoadImageFromTexture(renderer.frameTexture());
+    auto image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     EXPECT_GT(GetImageColor(image, 120, 312).r, 200);
     // A visible neighbor's faint cone may cover the floor, but must not expose this guard.
@@ -531,7 +574,7 @@ TEST_F(Render, GuardsRespectDarknessAndAreVisibleInLitRoomsAndOverview) {
     renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, true, 1234,
                        world.guards);
     renderer.present();
-    image = LoadImageFromTexture(renderer.frameTexture());
+    image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     // The overview scales this map to 1232 px wide, centering it in the logical frame.
     EXPECT_GT(GetImageColor(image, 163, 329).r, 200);
@@ -553,7 +596,7 @@ TEST_F(Render, ShippedBankPingRendersAndExportsDevelopmentPreview) {
     renderer.beginFrame();
     renderer.drawLevel(*level, player, ripple, player.pos, 0, 1, false, 1234);
     renderer.present();
-    auto image = LoadImageFromTexture(renderer.frameTexture());
+    auto image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     EXPECT_EQ(image.width, 1280);
     EXPECT_EQ(image.height, 720);
@@ -590,7 +633,7 @@ TEST_F(Render, RevealedVisionConeStopsAtClosedDoorsAndUsesTargetLighting) {
         renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, false, 1234,
                            world.guards);
         renderer.present();
-        auto image = LoadImageFromTexture(renderer.frameTexture());
+        auto image = logicalImage(renderer.frameTexture());
         ImageFlipVertical(&image);
         return image;
     };
@@ -657,7 +700,7 @@ TEST_F(Render, DetectionPieFillsClockwiseAndStaysHiddenWithItsGuard) {
         renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, false, 1234,
                            world.guards);
         renderer.present();
-        auto image = LoadImageFromTexture(renderer.frameTexture());
+        auto image = logicalImage(renderer.frameTexture());
         ImageFlipVertical(&image);
         return image;
     };
@@ -718,7 +761,7 @@ TEST_F(Render, HazardsStayHiddenInLitRoomsUntilRevealedAndCameraConeStopsAtDoor)
         renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, false, 1234,
                            world.guards, world.cameras, world.lasers);
         renderer.present();
-        auto image = LoadImageFromTexture(renderer.frameTexture());
+        auto image = logicalImage(renderer.frameTexture());
         ImageFlipVertical(&image);
         return image;
     };
@@ -755,7 +798,7 @@ TEST_F(Render, AmbientArchitecturePreservesHiddenMarkersAndGameplayVisibility) {
     renderer.beginFrame();
     renderer.drawLevel(level, player, ripple, player.pos, 0, 1, false, 1234);
     renderer.present();
-    auto image = LoadImageFromTexture(renderer.frameTexture());
+    auto image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     const auto floor = GetImageColor(image, 312, 360);
     const auto wallMass = GetImageColor(image, 216, 360);
@@ -798,7 +841,7 @@ TEST_F(Render, WeaponTracerStopsAtWallAndAmmoPanelReflectsShotAndReload) {
                            {}, false, &combat);
         renderer.drawWeaponHud(combat);
         renderer.present();
-        auto image = LoadImageFromTexture(renderer.frameTexture());
+        auto image = logicalImage(renderer.frameTexture());
         ImageFlipVertical(&image);
         return image;
     };
@@ -853,7 +896,7 @@ TEST_F(Render, HealthAndArmorBarsDrainWithWorldHitFlashAndRemainStableWithGuards
     RecoveryPickup pickup("fixture", PickupType::Medkit, world.player.pos);
     renderer.drawPickupHud(&pickup);
     renderer.present();
-    auto image = LoadImageFromTexture(renderer.frameTexture());
+    auto image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     const auto health = GetImageColor(image, 80, 652);
     EXPECT_EQ(health.r, 255);
@@ -888,7 +931,7 @@ TEST_F(Render, RecoveryMarkersRemainHiddenInStealthAndShowDistinctShapesInLoud) 
         renderer.drawLevel(world.level, world.player, ripple, {640, 360}, 0, 1, false, 1234, {}, {},
                            {}, false, nullptr, world.pickups, loud);
         renderer.present();
-        auto image = LoadImageFromTexture(renderer.frameTexture());
+        auto image = logicalImage(renderer.frameTexture());
         ImageFlipVertical(&image);
         return image;
     };
@@ -936,7 +979,7 @@ TEST_F(Render, PoliceSilhouettesAndWaveHudReadStateWithoutRevealingEnemies) {
                        false, nullptr, {}, true, world.enemies);
     renderer.drawWaveHud(waves);
     renderer.present();
-    auto image = LoadImageFromTexture(renderer.frameTexture());
+    auto image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     EXPECT_GT(GetImageColor(image, 920, 360).r, 150);  // Bone shield arc faces right.
     EXPECT_GT(GetImageColor(image, 980, 360).r, 150);  // Gold armored vest stripe.
@@ -969,7 +1012,7 @@ TEST_F(Render, PlayStateStartsAssaultClockAfterAlarmAndDisplaysWaveHud) {
     renderer.beginFrame();
     play.render(1);
     renderer.present();
-    auto image = LoadImageFromTexture(renderer.frameTexture());
+    auto image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     const auto quiet = GetImageColor(image, 1100, 244);
     UnloadImage(image);
@@ -985,7 +1028,7 @@ TEST_F(Render, PlayStateStartsAssaultClockAfterAlarmAndDisplaysWaveHud) {
     renderer.beginFrame();
     play.render(1);
     renderer.present();
-    image = LoadImageFromTexture(renderer.frameTexture());
+    image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     const auto assault = GetImageColor(image, 1100, 244);
     EXPECT_EQ(assault.r, 20);
@@ -994,25 +1037,24 @@ TEST_F(Render, PlayStateStartsAssaultClockAfterAlarmAndDisplaysWaveHud) {
     EXPECT_TRUE(quiet.r != assault.r || quiet.g != assault.g || quiet.b != assault.b);
     ExportImage(image, GP_RENDER_OUTPUT_DIRECTORY "/day18-runtime-preview.png");
     renderer.beginFrame();
+    DrawRectangle(1010, 160, 246, 88, {20, 22, 27, 255});
     renderer.uiAssets().text("ASSAULT  1", {1026, 176}, 20, {242, 183, 5, 255}, false, true);
     renderer.present();
-    auto expected = LoadImageFromTexture(renderer.frameTexture());
+    auto expected = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&expected);
     for (int y = 176; y < 200; ++y)
         for (int x = 1026; x < 1220; ++x) {
             const auto actualPixel = GetImageColor(image, x, y);
             const auto expectedPixel = GetImageColor(expected, x, y);
-            const bool actualGold =
-                actualPixel.r == 242 && actualPixel.g == 183 && actualPixel.b == 5;
-            const bool expectedGold =
-                expectedPixel.r == 242 && expectedPixel.g == 183 && expectedPixel.b == 5;
-            ASSERT_EQ(actualGold, expectedGold) << "Assault label at " << x << "," << y;
+            ASSERT_NEAR(actualPixel.r, expectedPixel.r, 24) << "Assault label at " << x << "," << y;
+            ASSERT_NEAR(actualPixel.g, expectedPixel.g, 24) << "Assault label at " << x << "," << y;
+            ASSERT_NEAR(actualPixel.b, expectedPixel.b, 24) << "Assault label at " << x << "," << y;
         }
     UnloadImage(expected);
     UnloadImage(image);
 }
 
-TEST_F(Render, LoudUsesFullRedVisibilityBoneRimAndHidesNoiseAndPingEffects) {
+TEST_F(Render, LoudIlluminatesWallFacesKeepsMassDarkAndHidesNoiseAndPingEffects) {
     std::ostringstream output;
     Logger logger(output, "");
     Renderer renderer(logger);
@@ -1039,12 +1081,14 @@ TEST_F(Render, LoudUsesFullRedVisibilityBoneRimAndHidesNoiseAndPingEffects) {
                        {}, false, nullptr, {}, true);
     renderer.drawInteractionHud(world, interaction, 1000, 500);
     renderer.present();
-    auto image = LoadImageFromTexture(renderer.frameTexture());
+    auto image = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&image);
     const auto wall = GetImageColor(image, 200, 360);
-    EXPECT_EQ(wall.r, 255);
-    EXPECT_EQ(wall.g, 59);
-    EXPECT_EQ(wall.b, 92);
+    EXPECT_GT(wall.r, 180);
+    EXPECT_GT(wall.r, wall.g * 3);
+    const auto mass = GetImageColor(image, 216, 360);
+    EXPECT_LT(mass.r, wall.r * .6f);
+    EXPECT_LT(mass.g, 40);
     for (const int x : {300, 680}) {
         const auto floor = GetImageColor(image, x, 360);
         EXPECT_EQ(floor.r, 122);
@@ -1052,8 +1096,8 @@ TEST_F(Render, LoudUsesFullRedVisibilityBoneRimAndHidesNoiseAndPingEffects) {
         EXPECT_EQ(floor.b, 43);
     }
     const auto rim = GetImageColor(image, 655, 360);
-    EXPECT_EQ(rim.r, 233);
-    EXPECT_EQ(rim.g, 228);
+    EXPECT_NEAR(rim.r, 233, 5);
+    EXPECT_NEAR(rim.g, 228, 5);
     const auto noise = GetImageColor(image, 108, 168);
     EXPECT_EQ(noise.r, 20);
     EXPECT_EQ(noise.g, 22);
@@ -1090,7 +1134,7 @@ TEST_F(Render, AlarmPaletteBarsAndBannerRespectRealTimeAndStableHud) {
         renderer.drawInteractionHud(world, interaction, 1000, 500);
         renderer.drawAlarmSequence(sequence);
         renderer.present();
-        auto image = LoadImageFromTexture(renderer.frameTexture());
+        auto image = logicalImage(renderer.frameTexture());
         ImageFlipVertical(&image);
         return image;
     };
@@ -1139,7 +1183,7 @@ TEST_F(Render, AlarmSequenceRendersShippedBankWithoutWritingReveal) {
                            nullptr, &sequence);
         renderer.drawAlarmSequence(sequence);
         renderer.present();
-        auto image = LoadImageFromTexture(renderer.frameTexture());
+        auto image = logicalImage(renderer.frameTexture());
         ImageFlipVertical(&image);
         const std::string path = std::string(GP_RENDER_OUTPUT_DIRECTORY) + "/" + stage.second;
         EXPECT_TRUE(ExportImage(image, path.c_str()));
@@ -1170,7 +1214,7 @@ TEST_F(Render, LoadoutChoicesAndPayoutReturnRemainResponsive) {
     renderer.beginFrame();
     loadout.render(0);
     renderer.present();
-    auto screenshot = LoadImageFromTexture(renderer.frameTexture());
+    auto screenshot = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&screenshot);
     ExportImage(screenshot, GP_RENDER_OUTPUT_DIRECTORY "/day21-loadout.png");
     UnloadImage(screenshot);
@@ -1192,7 +1236,7 @@ TEST_F(Render, LoadoutChoicesAndPayoutReturnRemainResponsive) {
     renderer.beginFrame();
     result.render(0);
     renderer.present();
-    screenshot = LoadImageFromTexture(renderer.frameTexture());
+    screenshot = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&screenshot);
     ExportImage(screenshot, GP_RENDER_OUTPUT_DIRECTORY "/day21-payout.png");
     UnloadImage(screenshot);
@@ -1226,7 +1270,7 @@ TEST_F(Render, EscapeVanAppearsAfterArrivalAndLoweredBollardsBecomeRecessedDots)
         renderer.drawLevel(world.level, world.player, ripple, van, 0, 1, false, 7, {}, {}, {},
                            false, nullptr, {}, false, {}, nullptr, nullptr, &mission);
         renderer.present();
-        auto image = LoadImageFromTexture(renderer.frameTexture());
+        auto image = logicalImage(renderer.frameTexture());
         ImageFlipVertical(&image);
         return image;
     };
@@ -1265,7 +1309,7 @@ TEST_F(Render, MenuControlsSaveSettingsAndRemainResponsiveDuringTransitions) {
         renderer.beginFrame();
         menu.render(1);
         renderer.present();
-        auto image = LoadImageFromTexture(renderer.frameTexture());
+        auto image = logicalImage(renderer.frameTexture());
         ImageFlipVertical(&image);
         EXPECT_TRUE(ExportImage(image, name));
         UnloadImage(image);
@@ -1328,7 +1372,7 @@ TEST_F(Render, HandlerSubtitleWrapsInsidePanelAndReducedEffectsFreezesPanicAppea
     renderer.beginFrame();
     renderer.drawVoice(voice, {});
     renderer.present();
-    auto first = LoadImageFromTexture(renderer.frameTexture());
+    auto first = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&first);
     const auto border = GetImageColor(first, 312, 602);
     EXPECT_GT(border.r, 180);
@@ -1344,7 +1388,7 @@ TEST_F(Render, HandlerSubtitleWrapsInsidePanelAndReducedEffectsFreezesPanicAppea
     renderer.beginFrame();
     renderer.drawVoice(voice, {});
     renderer.present();
-    auto second = LoadImageFromTexture(renderer.frameTexture());
+    auto second = logicalImage(renderer.frameTexture());
     ImageFlipVertical(&second);
     const auto next = GetImageColor(second, 312, 602);
     EXPECT_EQ(border.r, next.r);
@@ -1385,7 +1429,7 @@ TEST_F(Render, Day26BankAndHandlerRemainReadableInStealthAndLoud) {
         renderer.drawInteractionHud(world, interaction, config.noise.walk, config.noise.sprint);
         renderer.drawVoice(voice, config.ui);
         renderer.present();
-        auto image = LoadImageFromTexture(renderer.frameTexture());
+        auto image = logicalImage(renderer.frameTexture());
         ImageFlipVertical(&image);
         EXPECT_GT(GetImageColor(image, 312, 602).r, 180);
         EXPECT_TRUE(ExportImage(image, loud ? GP_RENDER_OUTPUT_DIRECTORY "/day26-loud.png"
@@ -1393,4 +1437,147 @@ TEST_F(Render, Day26BankAndHandlerRemainReadableInStealthAndLoud) {
         UnloadImage(image);
     }
     for (const auto& guard : world.guards) EXPECT_GE(guard.reveal, 0);
+}
+
+TEST_F(Render, SupersamplingSurvivesResizeAndPreservesFrozenComposition) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.beginFrame();
+    ClearBackground(BLUE);
+    DrawRectangle(600, 320, 80, 80, WHITE);
+    renderer.present();
+    EXPECT_GE(renderer.frameTexture().width, 2560);
+    renderer.freezeFrame();
+    renderer.startTransition(.25f);
+    SetWindowSize(1920, 1080);
+    PollInputEvents();
+    renderer.updateTransition(1);
+    renderer.beginFrame();
+    renderer.drawFrozenFrame();
+    renderer.present();
+    EXPECT_EQ(renderer.frameTexture().width,
+              Letterbox::renderSize(GetRenderWidth(), GetRenderHeight(), 2, 16384).width);
+    EXPECT_EQ(renderer.frameTexture().width * 9, renderer.frameTexture().height * 16);
+    auto frame = logicalImage(renderer.frameTexture());
+    ImageFlipVertical(&frame);
+    EXPECT_EQ(GetImageColor(frame, 100, 300).b, 241);
+    EXPECT_GT(GetImageColor(frame, 640, 360).r, 250);
+    UnloadImage(frame);
+    renderer.setReduceEffects(true);
+    renderer.beginFrame();
+    renderer.drawFrozenFrame();
+    renderer.present();
+    EXPECT_EQ(renderer.frameTexture().width,
+              Letterbox::renderSize(GetRenderWidth(), GetRenderHeight(), 2, 16384).width);
+}
+
+TEST_F(Render, HaloHasSmoothCircularFalloffInsteadOfRevealingWholeSquareTiles) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    std::string rows;
+    for (int y = 0; y < 15; ++y) rows += std::string(40, '.') + '\n';
+    std::istringstream source(rows);
+    Level level;
+    level.map = TileMap::parse(source, 48);
+    Player player({640, 360}, PlayerConfig{});
+    RippleSystem ripple(PingConfig{}, level.map);
+    renderer.beginFrame();
+    renderer.drawLevel(level, player, ripple, player.pos, 0, 1, false, 7);
+    renderer.present();
+    auto image = logicalImage(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    const auto ambient = GetImageColor(image, 1000, 429);
+    const auto tileCorner = GetImageColor(image, 717, 429);
+    EXPECT_NEAR(tileCorner.g, ambient.g, 2);
+    EXPECT_GT(GetImageColor(image, 678, 398).g, ambient.g + 15);
+    EXPECT_FLOAT_EQ(ripple.tileReveal(14, 8), 0);
+    UnloadImage(image);
+}
+TEST_F(Render, SmoothHaloCannotIlluminateTheFloorThroughAWall) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    std::string rows;
+    for (int y = 0; y < 15; ++y) {
+        std::string row(40, '.');
+        row[14] = '#';
+        rows += row + '\n';
+    }
+    std::istringstream source(rows);
+    Level level;
+    level.map = TileMap::parse(source, 48);
+    Player player({640, 360}, PlayerConfig{});
+    RippleSystem ripple(PingConfig{}, level.map);
+    renderer.beginFrame();
+    renderer.drawLevel(level, player, ripple, player.pos, 0, 1, false, 7);
+    renderer.present();
+    auto image = logicalImage(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    EXPECT_NEAR(GetImageColor(image, 730, 375).g, GetImageColor(image, 1000, 375).g, 2);
+    EXPECT_GT(GetImageColor(image, 640, 397).g, GetImageColor(image, 730, 375).g + 15);
+    UnloadImage(image);
+}
+
+TEST_F(Render, PingLightingClipsTheCircleAndPartiallyVisibleTilesAtSubTileEdges) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    std::string rows;
+    for (int y = 0; y < 15; ++y) rows += std::string(40, '.') + '\n';
+    std::istringstream source(rows);
+    Level level;
+    level.map = TileMap::parse(source, 48);
+    Player player({640, 360}, PlayerConfig{});
+    RippleSystem ripple(PingConfig{}, level.map);
+    ripple.startPing(player.pos, 0);
+    std::vector<Entity*> entities;
+    ripple.update(.2f, level.map, entities);
+    const float untouchedTile = ripple.tileReveal(16, 9);
+    EXPECT_FLOAT_EQ(untouchedTile, 0);
+    renderer.beginFrame();
+    renderer.drawLevel(level, player, ripple, player.pos, 0, 1, false, 7);
+    renderer.present();
+    auto image = logicalImage(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    EXPECT_NEAR(GetImageColor(image, 807, 361).g, GetImageColor(image, 1000, 361).g, 2);
+    EXPECT_GT(GetImageColor(image, 770, 434).g, 60);
+    EXPECT_FLOAT_EQ(ripple.tileReveal(16, 9), untouchedTile);
+    UnloadImage(image);
+}
+TEST_F(Render, ResizingRetainsOutgoingTransitionAcrossAllPhysicalScissorRows) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.beginFrame();
+    ClearBackground(Color{210, 20, 30, 255});
+    renderer.present();
+    renderer.startTransition(1);
+    SetWindowSize(1500, 900);
+    PollInputEvents();
+    renderer.beginFrame();
+    ClearBackground(BLUE);
+    renderer.present();
+    auto image = logicalImage(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    for (int y : {100, 350, 600}) {
+        EXPECT_EQ(GetImageColor(image, 640, y).r, 210);
+        EXPECT_EQ(GetImageColor(image, 640, y).g, 20);
+    }
+    UnloadImage(image);
+    renderer.updateTransition(.25f);
+    renderer.beginFrame();
+    ClearBackground(BLUE);
+    renderer.present();
+    image = logicalImage(renderer.frameTexture());
+    ImageFlipVertical(&image);
+    for (int y : {100, 350, 600}) {
+        EXPECT_EQ(GetImageColor(image, 1100, y).r, 210);
+        EXPECT_EQ(GetImageColor(image, 100, y).b, 241);
+    }
+    UnloadImage(image);
 }

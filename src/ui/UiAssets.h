@@ -20,10 +20,14 @@ class UiAssets {
     Texture2D wordmark() const { return wordmark_; }
     Texture2D handlerPortrait() const { return handlerPortrait_; }
     bool fontsLoaded() const;
+    void ensureFontResolution(int pixelHeight);
     void text(const char* value, Vector2 position, float size, Color color, bool body = false,
               bool bold = false) const;
 
    private:
+    Logger& logger_;
+    std::string root_;
+    int fontPixelHeight_ = 64;
     Font title_{};
     Font button_{};
     Font body_{};

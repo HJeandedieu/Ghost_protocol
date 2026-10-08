@@ -31,8 +31,9 @@
   "audio": { "crossfade_time": 1.0, "voice_duck": 0.4 },
   "ui": {"hover_time": 0.15, "transition_time": 0.25, "payout_line_time": 0.18, "payout_count_time": 1.2, "payout_stamp_time": 0.25, "hint_time": 3, "panic_flicker_hz": 2},
   "render": {
+    "ssaa_scale": 2,
     "ambient_floor_alpha": 0.18,
-    "ambient_wall_alpha": 0.45, "grain_intensity": 0.04, "vignette_strength": 0.35
+    "ambient_wall_alpha": 0.45, "grain_intensity": 0.01, "vignette_strength": 0.35
   },
   "ping": {
     "small_radius": 260,
