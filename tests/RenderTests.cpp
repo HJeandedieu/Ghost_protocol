@@ -222,6 +222,7 @@ TEST_F(Render, PrescribedFontsLoadAndMissingAssetsRetainUsableFallback) {
     const auto& assets = renderer.uiAssets();
     ASSERT_TRUE(assets.fontsLoaded());
     ASSERT_NE(assets.logo().id, 0u);
+    ASSERT_NE(assets.handlerPortrait().id, 0u);
     renderer.beginFrame();
     assets.text("GHOST PROTOCOL", {64, 64}, 44, {233, 228, 208, 255}, false, true);
     assets.text("START HEIST", {64, 144}, 24, {233, 228, 208, 255});
@@ -236,9 +237,11 @@ TEST_F(Render, PrescribedFontsLoadAndMissingAssetsRetainUsableFallback) {
         EXPECT_FALSE(missing.fontsLoaded());
         EXPECT_EQ(missing.body().texture.id, GetFontDefault().texture.id);
         EXPECT_EQ(missing.logo().id, 0u);
+        EXPECT_EQ(missing.handlerPortrait().id, 0u);
     }
     EXPECT_NE(GetFontDefault().texture.id, 0u);
     EXPECT_NE(output.str().find("[ERROR] Font unavailable"), std::string::npos);
+    EXPECT_NE(output.str().find("Handler portrait unavailable"), std::string::npos);
 }
 
 TEST_F(Render, MissionLootUsesRuntimeStateAndBustedRetriesCurrentStage) {
