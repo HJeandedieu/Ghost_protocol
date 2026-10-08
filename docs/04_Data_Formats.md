@@ -33,6 +33,7 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
               "bag_speed_mult": 0.75, "hp": 100, "armor": 50, "armor_regen": 8, "armor_regen_delay": 5 },
   "pickup": { "medkit_chance": 0.20, "armor_chance": 0.10,
               "medkit_amount": 50, "armor_amount": 50, "collect_radius": 50 },
+  "audio": { "crossfade_time": 1.0, "voice_duck": 0.4 },
   "view": { "lead_px": 60, "follow_rate": 8 },
   "render": { "ambient_floor_alpha": 0.18, "ambient_wall_alpha": 0.45 },
   "ui": { "hover_time": 0.15, "transition_time": 0.25, "payout_line_time": 0.18, "payout_count_time": 1.2, "payout_stamp_time": 0.25 },
@@ -92,6 +93,9 @@ Day 22 UI timing tuning (author approved 7 October 2026): `ui.hover_time` is the
 
 
 Day 24 payout presentation tuning (author approved 7 October 2026): `ui.payout_line_time` (0.18 s) is the interval between receipt lines, `ui.payout_count_time` (1.2 s) is the final amount count-up duration after the last line, and `ui.payout_stamp_time` (0.25 s) is the rank stamp entrance duration after counting finishes. Each must be finite and strictly positive; missing or invalid values use its default with a WARN. Reduce Effects shows the receipt and final amount immediately and fades in the rank over `ui.payout_stamp_time`. Buttons remain usable throughout.
+
+
+Day 25 audio tuning (author approved 8 October 2026): `audio.crossfade_time` (1.0 s) is the Stealth-to-Loud music crossfade duration after AlarmTriggered. It must be finite and strictly positive. `audio.voice_duck` (0.4) multiplies the selected music slider volume while voice plays; it must be finite and in [0, 1]. Missing or invalid values fall back to these defaults with a WARN. Master volume applies once to all channels; music, SFX and voice sliders apply to their own channels. Ducking preserves mute and never raises a chosen music volume.
 
 ## 3. weapons.json and enemies.json
 ```json
