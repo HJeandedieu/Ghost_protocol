@@ -1,171 +1,113 @@
-<p align="center">
-  <img src="reference/logo.png" alt="Ghost Protocol" width="320">
-</p>
-
 # Ghost Protocol
 
-**Are you in or out?**
+**Are you in or out?** A single-player bank heist in C++17 and raylib 5.5.
+Enter Gotham Central Bank as Ghost, use sound pings to see and distract guards,
+and reach the vault quietly—or fight police waves when the alarm goes Loud.
+Your sarcastic Handler is fully voiced. All recordings, music and effects are
+included; no microphone, TTS installation or API key is needed to play.
 
-A single-player, top-down stealth-action bank heist built in C++17 with raylib 5.5.
-Sound pings reveal the dark bank while drawing guards toward you. An alarm turns
-the stealth mission into a loud fight for the cash and the getaway van.
+## Play
 
-You are **Ghost**, a thief so quiet nobody noticed him leave his own birthday
-party with the cake. Tonight's job: **Gotham Central Bank**. Ten bags of cash,
-one night, and one sarcastic voice in your ear.
+On Windows, extract the entire `ghost-protocol-win.zip`, keep `assets/` and the
+included DLLs beside `ghost_game.exe`, then run the executable. Choose START
+HEIST, follow the briefing and select your equipment. Easy and Normal are
+available; Hard is reserved. The objective banner guides the six mission stages.
 
-## Current milestone
+Quiet cracking and thermite provide two vault routes. Retrieve cash, deliver it
+to the van, clear the escape route and leave. Dye packs can spoil bags; use the
+alternate interaction to disarm them. The alarm starts a combat phase with
+police waves, armor, medkits and ammunition pickups. Busted offers a stage retry
+with a payout penalty. Speech has subtitles; settings include volume sliders,
+hints and Reduce Effects.
 
-Day 9 foundation: Boot transitions to a placeholder Menu; Enter loads Gotham
-Central Bank. Tiles use the initial passability and light zones from the map and
-JSON. F3 toggles the full-bank overview in Debug builds; normal view starts at
-the alley spawn. Move with WASD or arrows, hold Left Shift to sprint, and toggle
-crouch with C or Left Ctrl. Movement accelerates, brakes, and slides along walls;
-the camera follows smoothly with mouse look-ahead. Rendering uses a 1280x720
-surface with letterboxing.
-Resize the window to change its size, F11 toggles fullscreen, and Escape quits.
-The existing fixed 60 Hz loop, typed tuning, logger, seeded RNG, and headless
-unit tests remain in place. Hold E to lockpick the Service Door, collect the red
-keycard, unlock its door, and operate the breaker to open the gate. The vault
-remains locked until its later milestone. Interaction prompts, a progress ring,
-six-segment noise meter, and the security-panel loop are available. Footsteps
-and pings publish queued hearing events. Eleven guards now follow their loop or
-ping-pong routes, or turn in place, with facing markers. F3 exposes their IDs in
-the overview. Hearing positions follow their movement, and pings reveal guards;
-visible guards show 75-degree vision cones clipped by walls and closed doors.
-Vision range uses Ghost's tile lighting (300/240/180 px for lit/dim/dark), with
-a further dark-range reduction while crouching. Detection meters and reactions
-to noise arrive in the following days.
-Tap Space for a small ping; hold up to
-0.8 seconds and release for a larger ping. Walls and closed doors block reveal;
-revealed tiles fade, the player has a local halo, lit rooms stay visible, and
-dim rooms stay faint. The ring around Ghost refills during the ping cooldown.
-Vignette and grain affect the world before the sharp HUD is drawn. Furnishing
-and the finished HUD remain later milestones.
-The level validator checks the shipped map and entity coordinates.
-The WebAssembly build and browser setup are described in [web/NOTES.md](web/NOTES.md).
-Windows CI is configured; its hosted result awaits an approved push.
+| Control | Action |
+|---|---|
+| WASD / arrows | Move |
+| Mouse | Aim |
+| Left click | Fire |
+| Right click | Takedown when eligible |
+| Space: tap / hold and release | Small / charged sound ping in Stealth |
+| C / Left Ctrl | Toggle crouch |
+| Left Shift | Sprint |
+| Hold E | Interact, quiet crack or pick up cash |
+| Hold Shift+E | Place thermite or disarm a dye pack |
+| G | Throw carried bag |
+| R | Reload |
+| 1 / 2 / mouse wheel | Switch equipped weapons |
+| Escape | Pause / back |
+| F11 | Toggle fullscreen |
+
+Menus support the mouse and keyboard navigation. Space skips the briefing;
+Enter advances its slides. In loadout, 1/2/3 chooses the excluded weapon,
+C toggles Easy/Normal and Enter starts. Desktop settings and records are stored under `save/` beside
+the executable; the browser uses localStorage. A fresh run starts from loadout.
+
+## Browser build
+
+Extract `ghost-protocol-web.zip` and serve its directory over HTTP; opening
+`index.html` directly as a local file is unsupported. For example:
+
+```sh
+python -m http.server 8014 --bind 127.0.0.1
+```
+
+Open `http://127.0.0.1:8014/index.html` in Chrome or Edge. Click the startup
+prompt to unlock browser audio. Keep `index.html`, `index.js`, `index.wasm` and
+`index.data` together. The game draws at 1280×720 with letterboxing.
 
 ## Build and test
 
-Requires CMake 3.20+, a C++17 compiler, and Python 3 for level-validation tests.
-The first configure downloads raylib 5.5, nlohmann_json 3.11.3, and GoogleTest
-1.15.2. Put the compiler's bin directory on PATH for terminal builds.
+Requires CMake 3.20+, a C++17 compiler and Python 3. Configure downloads raylib
+5.5, nlohmann_json 3.11.3 and GoogleTest 1.15.2. Put your compiler on PATH.
 
-In CLion, open this folder and select the bundled MinGW toolchain under
-Settings > Build, Execution, Deployment > Toolchains. Run `ghost_game`.
-Enable `GP_BUILD_TESTS` in the CMake profile to build `ghost_tests`.
-
-With MinGW and Ninja available:
-
-```powershell
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGP_BUILD_TESTS=ON
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DGP_BUILD_TESTS=ON
 cmake --build build
-ctest --test-dir build --output-on-failure --stop-on-failure
-.\build\ghost_game.exe
+ctest --test-dir build --output-on-failure
 ```
 
-If CMake cannot locate Python, pass `-DPython3_EXECUTABLE=<path-to-python>`.
-Disable desktop tests explicitly with `-DGP_BUILD_TESTS=OFF` for a game-only build.
-The build copies assets and the selected MinGW runtime DLLs beside executables.
-Desktop startup uses the executable directory, so assets load regardless of the
-launcher's working directory. Keep the copied `assets/` folder beside the executable.
-Startup loads `assets/config/tuning.json` and logs its RNG seed to the console
-and `logs/ghost.log`. Invalid tuning uses documented defaults with warnings.
+For multi-configuration generators, build with `--config Release` and test with
+`-C Release`. Optional `-DGP_BUILD_RENDER_TESTS=ON` adds graphics/audio integration
+checks requiring an OpenGL context. The normal logic suite is window independent.
+In CLion, select the bundled MinGW toolchain and run `ghost_game`.
 
-Validate the runtime level or its documentation source copy:
+With Emscripten **6.0.11** activated:
 
-```powershell
-python tools/validate_level.py
-python tools/validate_level.py docs/levels/gotham_central.json
+```sh
+emcmake cmake -S . -B build/web-release -DCMAKE_BUILD_TYPE=Release -DGP_BUILD_TESTS=OFF
+cmake --build build/web-release --target ghost_web
 ```
 
-`ghost_core` holds window-independent logic, state-stack management, and viewport
-math. `ghost_game` owns the window, concrete screens, and renderer. `ghost_tests`
-runs without opening a window; CTest also runs the Python level checks.
+Release packaging and verification:
 
-For desktop graphics verification, configure `-DGP_BUILD_RENDER_TESTS=ON` and
-rebuild. These additional tests require an OpenGL context, use hidden windows,
-check shader/lighting/HUD pixels and the Reduce Effects rendering stub, and
-export `day6-preview.png` into the build directory. They are off by default
-so the logic suite remains usable without a graphics context. Both desktop and
-web shader sources are present; the browser smoke test is still scheduled for Day 7.
-
-## Visual direction
-
-Gameplay images define the furnished vector bank, dark teal stealth, red Loud
-lighting, gold effects, and stable framed HUD. The video in `reference/` defines
-geometric transitions, layered presentation, and visual emphasis. These are the
-finished target; the current placeholder screens are development scaffolding.
-Reference media are excluded from runtime assets. Wireframes are pending delivery.
-
-## Documentation
-
-The docs define game behavior. Read the GDD, architecture, systems contract,
-data formats, and implementation plan in that order. Contract changes must be
-documented before implementation.
-
-| Document | Contents |
-|---|---|
-| [Game design](docs/01_GDD.md) | Story, mechanics, requirements, priorities |
-| [Architecture](docs/02_Architecture.md) | Layers, loop, rendering, web rules |
-| [Systems contract](docs/03_Systems_Contract.md) | Events, state machines, interfaces |
-| [Data formats](docs/04_Data_Formats.md) | Configuration, levels, saves, assets |
-| [Visual and audio design](docs/05_Design_Docs.md) | Palette, screens, effects, voice script |
-| [Development guidelines](docs/07_Development_Guidelines.md) | Git, code style, CI, testing, QA |
-| [Implementation plan](docs/08_Implementation_Plan.md) | Daily tasks and milestones |
-| [Visual reference](docs/09_Visual_Reference.md) | Gameplay appearance, motion, acceptance criteria |
-| [Agent instructions](AGENTS.md) | Rules for AI contributors |
-
-## Project structure
-
-```text
-Ghost Protocol/
-  CMakeLists.txt
-  README.md
-  AGENTS.md
-  ASSETS.md
-  src/
-    main.cpp
-    core/               Application, tuning, logger, timing, input, RNG
-    states/             State stack and Boot/Menu/Play placeholders
-    render/             Drawing and letterbox viewport math
-  tests/                C++ logic tests and Python validator tests
-  tools/                Level validator
-  assets/
-    config/             tuning.json
-    levels/             Runtime map and entity data
-  docs/
-    levels/             Level source copies and bank blueprint
-  reference/            Gameplay images, motion video, logo source
+```sh
+python tools/package_release.py --native build/release --web build/web-release --output build/submission
 ```
 
-Keep the documentation and runtime level copies synchronized. IDE files, logs,
-build outputs, and saves are ignored by Git. Future modules are added on their
-implementation days.
+Supply `--native` as the directory containing the executable (for Visual Studio,
+typically `build/Release`). Use `-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded`
+for self-contained Visual Studio release packages, as CI does. Packages include third-party notices and exclude
+reference media, model weights, logs and saves. The web packager rejects download
+payloads over 50 MB. CI tests Windows and builds the optimized web target.
 
-## Schedule and platforms
+## Credits
 
-Windows is primary; WebAssembly is secondary. The web build and Emscripten shell
-are planned later; no working browser package is claimed by this milestone.
-See Architecture section 10 for web requirements.
+Design, code and story: **RedBlue**. Engine: **raylib**; configuration parsing:
+**nlohmann_json**. Fonts: **Orbitron** and **Inter**, under the SIL Open Font
+License. Handler speech: locally generated **Kokoro-82M / Kokoro.js**, `af_bella`;
+the generator and model are development tools, not game dependencies. Music is
+original project work; sound effects use jsfxr. The project logo belongs to the
+author; generated logo variants and Handler portrait are project assets.
 
-| Week | Dates (2026) | Goal |
-|---|---|---|
-| 1 | October 5-11 | Foundation, movement, ping |
-| 2 | October 12-18 | Full stealth systems |
-| 3 | October 19-25 | Loud phase and complete mission |
-| 4 | October 26-31 | Menus, audio, polish, web build, QA, submission |
+Individual sources and licence notices are recorded in [ASSETS.md](ASSETS.md)
+and included with the runtime assets. A project code licence has not been
+selected. Third-party software notices do not assign a licence to project code.
 
-Submission is planned for October 31, with November 1 as the deadline buffer.
+## Development
 
-## Contributing and credits
-
-This is a solo project built on a deadline. External feature pull requests are
-not being accepted; bug reports are welcome as GitHub issues.
-
-Design, code, and story: **RedBlue**. Engine: raylib. Planned fonts: Orbitron and
-Inter; planned Handler voice: generated text-to-speech. Individual runtime asset
-sources and licences are recorded in [ASSETS.md](ASSETS.md). Supplied references
-with unknown provenance are documented there without claiming redistribution
-rights. A code licence has not yet been selected.
+The game follows [the GDD](docs/01_GDD.md), [architecture](docs/02_Architecture.md),
+[systems contract](docs/03_Systems_Contract.md), [data formats](docs/04_Data_Formats.md)
+and [implementation plan](docs/08_Implementation_Plan.md). Gameplay images guide
+appearance; reference video guides motion. Reference media are development
+inputs and are excluded from runtime packages. Contract changes require docs
+approval before implementation. Please report bugs through GitHub issues.

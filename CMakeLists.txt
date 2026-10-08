@@ -144,7 +144,9 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_level.py")
     add_test(NAME LevelValidatorTests
         COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tests/ValidateLevelTests.py")
-    set_tests_properties(LevelValidator LevelValidatorTests PROPERTIES TIMEOUT 15)
+    add_test(NAME PackageReleaseTests
+        COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tests/PackageReleaseTests.py")
+    set_tests_properties(LevelValidator LevelValidatorTests PackageReleaseTests PROPERTIES TIMEOUT 15)
     if(GP_BUILD_RENDER_TESTS)
         add_executable(ghost_render_tests tests/RenderTests.cpp tests/PayoutStateTests.cpp tests/AudioPlaybackTests.cpp src/audio/AudioPlayback.cpp src/states/BriefingState.cpp src/states/PauseState.cpp src/states/GameOverState.cpp src/states/MenuState.cpp src/render/Renderer.cpp src/states/PlayState.cpp
             src/states/LoadoutState.cpp src/states/PayoutState.cpp src/ui/UiAssets.cpp)

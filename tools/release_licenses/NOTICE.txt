@@ -1,0 +1,20 @@
+Third-party runtime software used by Ghost Protocol
+
+raylib 5.5: Ramon Santamaria and contributors, zlib/libpng licence.
+Copied verbatim from the raylib 5.5 source distribution LICENSE.
+
+nlohmann_json 3.11.3: Niels Lohmann and contributors, MIT licence.
+Copied verbatim from the 3.11.3 source distribution LICENSE.MIT.
+
+MinGW Windows packages also contain libgcc_s_seh-1.dll, libstdc++-6.dll
+and libwinpthread-1.dll copied from the compiler used for that build.
+GCC runtime: GNU GPL version 3 with GCC Runtime Library Exception 3.1.
+Winpthreads: mingw-w64 project, MIT and included BSD notices.
+The broader mingw-w64 distribution notice is also retained.
+These notices were copied verbatim from CLion 2026.1.3's bundled MinGW
+licenses/gcc and licenses/winpthreads directories. MSVC packages do not
+contain these MinGW DLLs.
+
+Font, audio and visual asset credits are in ASSETS.md. Their licence files
+are retained under assets/fonts and assets/audio, including in the web
+preloaded filesystem. This notice does not license Ghost Protocol code.

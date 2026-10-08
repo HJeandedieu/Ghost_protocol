@@ -10,6 +10,32 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGP_BUILD_TESTS=ON
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGP_BUILD_TESTS=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
       - run: cmake --build build --config Release
       - run: ctest --test-dir build -C Release --output-on-failure --stop-on-failure
+      - run: python tools/package_release.py --native build/Release --output build/submission
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ghost-protocol-win
+          path: build/submission/*
+          if-no-files-found: error
+  web-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: emscripten-core/setup-emsdk@v15
+        with:
+          version: '6.0.11'
+          actions-cache-folder: emsdk-cache
+      - run: emcmake cmake -S . -B build/web-release -DCMAKE_BUILD_TYPE=Release -DGP_BUILD_TESTS=OFF
+      - run: cmake --build build/web-release --target ghost_web --parallel 2
+      - run: python tests/PackageReleaseTests.py
+      - run: python tools/package_release.py --web build/web-release --output build/submission
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ghost-protocol-web
+          path: build/submission/*
+          if-no-files-found: error
