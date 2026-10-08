@@ -184,6 +184,17 @@ Author-approved tuning, 6 October 2026:
 - Music gains are multiplied by the selected music slider and, while voice plays, by `audio.voice_duck`. SFX and voice use their respective sliders. Master applies once to every channel. A muted channel remains muted, including during crossfade or voice ducking.
 - Desktop initializes playback after the audio device is ready. Web initializes it only after the Boot screen's first user click, as required by Architecture section 10. Missing audio assets warn and leave the corresponding sound silent; they never prevent a mission from running.
 
+### 3.10 Handler voice scheduling (Day 26; FR-22, FR-24)
+
+Author approved 8 October 2026:
+
+- Priority 3 interrupts any active line. Priority 2 interrupts priority 1 and queues behind priority 2 or 3. Priority 1 never interrupts. Pending lines remain FIFO; an interrupted line is discarded rather than resumed or requeued.
+- Pause freezes both speech playback and subtitle progress. Resuming continues the same line from its paused position.
+- Most lines play once per run. Pager lines may repeat for each body. A fresh run clears occurrence tracking.
+- V24 triggers once when health reaches `voice.low_health_fraction` (25% of maximum) or lower.
+- Subtitles remain visible for the recording duration. When audio is unavailable, use a text-reading duration so the line remains readable.
+- Voice scheduling is pure logic. The separate audio playback layer supplies recording durations and consumes playback, interruption and pause requests; logic never calls raylib audio or drawing functions.
+
 ## 4. Interfaces (C++ signatures, abbreviated)
 ```cpp
 struct Vec2 { float x, y; };
