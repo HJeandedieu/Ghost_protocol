@@ -195,6 +195,17 @@ Author approved 8 October 2026:
 - Subtitles remain visible for the recording duration. When audio is unavailable, use a text-reading duration so the line remains readable.
 - Voice scheduling is pure logic. The separate audio playback layer supplies recording durations and consumes playback, interruption and pause requests; logic never calls raylib audio or drawing functions.
 
+### 3.11 Tutorial and voice presentation (Day 26; FR-22, FR-24, FR-27)
+
+Author approved 8 October 2026:
+
+- Tutorial hints occur only in stages 1 and 2, once per fresh run: ping on stage 1 entry (V03), crouch after the first player ping (V04), takedown when a guard is first revealed and has player line of sight (V05), pager when a body pager rings (V07), and interact beside the first service door. The interact toast uses the existing control text; no new recording is required. V06 remains the first successful takedown line.
+- Hints off suppresses tutorial toasts and their voices. Other mission/panic lines and subtitles remain active. Already delivered hints remain delivered across stage retries.
+- Toasts use `ui.hint_time` (3 s). Missing recording subtitles use a word-count reading duration at `voice.subtitle_words_per_second` (3 words/s), counting whitespace-delimited words, with at least one word. Recording duration takes precedence when available.
+- The bottom-center subtitle bar uses Inter at 22 px on 80% Ink, with readable wrapping and a 96x96 Bone-framed Handler portrait. Priority 3 lines flicker the portrait at `ui.panic_flicker_hz` (2 Hz); Reduce Effects disables flicker. Pause freezes this presentation together with the line.
+- Film grain and corner vignette use `render.grain_intensity` (0.04) and `render.vignette_strength` (0.35), both disabled by Reduce Effects. Preserve the approved faint architecture baseline and entity reveal rules.
+- Existing event/state triggers drive the script table: V09 keycard interaction; V10 SecurityLooped; V11 breaker interaction that opens the gate (its legacy script says power off; the documented breaker mechanic still restores power); V12 first laser corridor proximity with clear LOS within the existing hazard reveal radius; V13 AlarmTriggered; V14 first WaveSpawned; V15 thermite placed; V16/V17 loud/quiet vault opening; V18 dye packs armed; V19 first BagPicked; V20 bollards lowered; V21 van arrived; V22 MissionComplete; V23 Busted; V24 low health; V25 alarm-free payout. V01 is Briefing and V02 Play starts. No new gameplay events or mechanics are introduced.
+
 ## 4. Interfaces (C++ signatures, abbreviated)
 ```cpp
 struct Vec2 { float x, y; };
