@@ -34,6 +34,7 @@ Every number from the GDD. Keys are `snake_case`. Example (complete set of group
   "pickup": { "medkit_chance": 0.20, "armor_chance": 0.10,
               "medkit_amount": 50, "armor_amount": 50, "collect_radius": 50 },
   "audio": { "crossfade_time": 1.0, "voice_duck": 0.4 },
+  "voice": { "low_health_fraction": 0.25 },
   "view": { "lead_px": 60, "follow_rate": 8 },
   "render": { "ambient_floor_alpha": 0.18, "ambient_wall_alpha": 0.45 },
   "ui": { "hover_time": 0.15, "transition_time": 0.25, "payout_line_time": 0.18, "payout_count_time": 1.2, "payout_stamp_time": 0.25 },
@@ -197,6 +198,8 @@ Day 24 score records (author approved 7 October 2026): `best_payout` is the high
 `voice_lines.json` is generated from the table in `05_Design_Docs.md` section 7: `{ "id": "V01", "file": "audio/voice/V01.ogg", "text": "...", "priority": 1..3, "trigger": "..." }`. Priority 3 (panic, alarm) interrupts anything; priority 1 never interrupts.
 
 Day 25 voice manifest clarification (author approved 8 October 2026): the outer value of `voice_lines.json` is a JSON array containing exactly 25 entry objects. IDs are unique and cover V01 through V25; each `file` is the matching relative `audio/voice/Vxx.ogg` path under assets, `text` and `trigger` come from the Handler script table, and `priority` is an integer from 1 through 3. Kokoro is the author's selected local generation tool. Use `kokoro` and `soundfile` through pip, or `kokoro-js` through npm when Python package downloads fail, in an isolated development environment. Both use Kokoro locally; generated OGG files ship with the game, while generator packages and model weights remain development-only. No API key or paid TTS service is required. Sources, generator/model licensing and the selected voice are recorded in ASSETS.md.
+
+Day 26 tuning: `voice.low_health_fraction` (0.25) is the V24 trigger threshold as a fraction of maximum health. It must be finite and in (0, 1]; missing or invalid values WARN and use the default.
 
 Day 26 voice scheduling follows Systems Contract section 3.10. Recording duration is supplied by the playback layer, not a new manifest field; the five-field manifest schema above remains unchanged. Missing recordings still produce timed subtitles.
 

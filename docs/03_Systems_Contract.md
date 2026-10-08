@@ -191,7 +191,7 @@ Author approved 8 October 2026:
 - Priority 3 interrupts any active line. Priority 2 interrupts priority 1 and queues behind priority 2 or 3. Priority 1 never interrupts. Pending lines remain FIFO; an interrupted line is discarded rather than resumed or requeued.
 - Pause freezes both speech playback and subtitle progress. Resuming continues the same line from its paused position.
 - Most lines play once per run. Pager lines may repeat for each body. A fresh run clears occurrence tracking.
-- V24 triggers once when health reaches 25% of maximum or lower.
+- V24 triggers once when health reaches `voice.low_health_fraction` (25% of maximum) or lower.
 - Subtitles remain visible for the recording duration. When audio is unavailable, use a text-reading duration so the line remains readable.
 - Voice scheduling is pure logic. The separate audio playback layer supplies recording durations and consumes playback, interruption and pause requests; logic never calls raylib audio or drawing functions.
 
