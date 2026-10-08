@@ -70,7 +70,7 @@ Panels: Slate `#14161B` fill, thin Bone outline, Orbitron for titles and numbers
 | In the image | Why ignore it |
 |---|---|
 | Exact furniture positions and flooring texture | Use original decorative furniture to preserve room identity; these do not introduce collision or new interactions |
-| Fine outlines and shading on furniture | World shapes are flat fills with no outlines |
+| Exact outlines and shading on furniture | Reproduce readable tonal depth with original fine edges, contact shadows and layered shading; exact generated strokes are not mandatory |
 | Exact HUD wording, e.g. "S2 RED CARD" on the loud image | The real text comes from the stage table (GDD 4.7); layout only |
 | Any garbled or mis-spelled text in the image | Generator artefact |
 | Crosswalk, road paint, small "0" in the main hall | Generator artefacts |
@@ -80,12 +80,15 @@ Panels: Slate `#14161B` fill, thin Bone outline, Orbitron for titles and numbers
 | Large muzzle flame when the pistol fires | The Whisper is suppressed: tiny flash only. The SMG and shotgun get the full flash |
 
 ## 5. Finished presentation target
+- **Author correction, 8 October 2026:** pixelated enlargement, circle-dominated actors, isolated tiny furniture marks and large uniform bright-red wall masses fail acceptance. High-quality local graphics take priority over minimizing rendering cost. Use supersampled presentation (Architecture section 8), clean text and smooth contours. A passing test suite or fast benchmark does not establish visual acceptance.
+- Build room boundaries as layered wall faces with restrained highlights, darker sides and recessed openings. Keep solid mass/void dark so the Loud accent reads as illuminated architecture rather than a giant red block. Floor panels, counters, desks, chairs, plants and the vault need cohesive scale and original illustrative detail. Contact shadows stay attached to their visible decorative object and follow its environmental visibility.
 - Characters have distinct shoulders, masks/headsets, caps, vests, weapons, and shield silhouettes built from the existing recipes. Circles provide construction geometry, not the entire final silhouette.
 - Rooms read as a bank: counters and pillars in the hall, desks and chairs in offices, consoles in security, cash stacks and a recognizable vault door, and van/bollards outside. Furnishing is decorative unless existing map data supplies collision.
 - Use layered flat geometry, restrained tonal separation, and controlled glow to convey depth while retaining the orthographic camera. No photorealistic textures or perspective gameplay.
 - Decorative detail receives the same reveal/light treatment as its room. It cannot disclose hidden threats through walls.
 - Preserve the visual hierarchy: player and threats first, objectives and interaction feedback second, decoration third. Grain and glow must not obscure text or cones.
 - Compare at the same logical resolution and a comparable player-centered viewport. The concept images are not a request to show the entire bank at once.
+- Also inspect the desktop build at 1920x1080 and a resized window. Thin wall edges, character contours, weapons, fonts, pings and subtitle borders must remain smooth; no nearest-neighbor enlargement. Compare Stealth and Loud captures against the supplied images before calling the visual work finished.
 
 ### 5.1 Motion reference: observed visual beats
 The supplied video is approximately 11.66 seconds, 720x1280, and is an abstract motion-graphics clip. The following approximate ranges describe visual observations, not game timing or measured interaction latency:

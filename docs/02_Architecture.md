@@ -86,7 +86,9 @@ Each state implements `enter()`, `exit()`, `update(dt)`, `render(alpha)`, `handl
 Events raised during a tick are delivered at step 11 and processed by listeners in the same tick; events raised by listeners are delivered next tick.
 
 ## 8. Rendering pipeline
-All drawing goes to a 1280x720 `RenderTexture` (the "game surface"), then scaled with letterboxing.
+All drawing uses a 1280x720 **logical** coordinate system. Physical render targets are supersampled, then resolved with bilinear filtering and letterboxing. On desktop, the target covers at least the larger of the logical frame and the current letterboxed physical output, multiplied by `render.ssaa_scale`. Preserve the 16:9 aspect ratio when rounding dimensions. On web, the canvas remains logically 1280x720 and the targets use that size multiplied by `render.ssaa_scale`.
+
+Recreate world, composition, frozen-frame and transition targets together when their physical dimensions change. UI positions, mouse mapping, camera zoom, world coordinates and collision remain logical; scissor rectangles and shader texel offsets must use the physical target dimensions. Allocate sufficiently detailed font atlases for the target scale. Apply bilinear filtering to every render-target texture, including copied frames. MSAA requested for the window is not a substitute for antialiasing offscreen geometry. If GPU texture limits or allocation failure prevent the requested scale, retain the highest supported aspect-correct target and WARN; do not silently lower quality to meet a frame-time budget.
 1. Clear to `INK`.
 2. **World pass:** lit tiles use 1.0, dim tiles use a 0.35 floor, and dark tiles use ripple/halo reveal. Reference-first presentation adds a faint environmental floor/room-edge baseline (Visual Reference §2), independent of gameplay visibility. Static furnishing follows the environmental reveal/baseline; threats and interaction markers never inherit it.
 3. **Entity pass:** items, bodies, guards, lasers, cameras; each drawn with alpha = its reveal value. Player is always drawn.

@@ -315,4 +315,6 @@ Day 22 presentation timing reads `ui.hover_time` and `ui.transition_time` from t
 5. A mission must always be completable from every stage preset.
 
 ## 7. Contract change process
+Author visual-quality decision, 8 October 2026: retain the 1280x720 logical gameplay/HUD space while replacing fixed-resolution offscreen targets with the supersampled presentation policy in Architecture section 8. `render.ssaa_scale` is the physical quality multiplier defined in Data Formats section 2. Resolution, decorative shading and surface detail cannot alter collision, interaction ranges, reveal, detection, spawn positions, aiming or event timing. Grain remains world-only with its revised subdued default. Reduce Effects disables the documented animated effects without reducing edge or text quality.
+
 Change this file (and `04_Data_Formats.md` if a key changes) in a `docs:` commit first, merge, then implement.

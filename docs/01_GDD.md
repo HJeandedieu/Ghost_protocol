@@ -363,7 +363,7 @@ Priority: **M** Must, **S** Should, **C** Could. Cut order when behind: C items,
 ## 7. Non-Functional Requirements
 | Category | Requirement |
 |---|---|
-| Performance | 60 FPS at 1280x720 on an Intel i7 laptop with integrated graphics; web target 45+ FPS |
+| Performance | Aim for 60 FPS on the desktop target and 45+ FPS on web. Author correction (8 October 2026): prioritize smooth high-quality graphics and reference fidelity over reduced processing cost; retain 1280x720 logical coordinates, supersample presentation, then optimize the finished visuals |
 | Responsiveness | Input to motion under 50 ms; menus respond within 1 frame |
 | Stability | No crash in a full run; no softlock (every stage always completable) |
 | Load time | Under 5 s on Windows, under 10 s on web |

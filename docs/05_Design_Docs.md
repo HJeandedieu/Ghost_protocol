@@ -9,6 +9,8 @@
 ### 1.1 Direction
 Stylized vector geometry with bold silhouettes, layered flat fills, restrained tonal depth, and controlled glow. Match the furnished bank identity and visual hierarchy in the supplied gameplay images; plain tiles and circles are early development placeholders. Build walls, counters, furniture, doors, and character details from original polygons, circles, rectangles, and lines. Fine surface texture is optional. PNG is used only for the logo, portraits and UI art. See `09_Visual_Reference.md` for the visual acceptance target.
 
+Author correction, 8 October 2026: the current blocky build is not accepted as the finished appearance. Deliver smoothly antialiased, detailed illustrated geometry at the desktop window's resolution, with reference-style architectural depth, coherent furniture and recognizable top-down characters. Original tonal shading, fine edges and contact shadows are allowed where they reproduce the reference's depth and readable forms. Prefer this fidelity over reduced processing cost; optimize after the intended appearance is present. This remains orthographic 2D, with existing gameplay and map positions.
+
 ### 1.2 Two palettes, one flip
 The game has a **Stealth palette** (teal and black) and a **Loud palette** (red and black). The alarm flips from one to the other over 0.4 s. That flip is the signature moment of the game.
 
