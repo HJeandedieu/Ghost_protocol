@@ -124,7 +124,7 @@ HUD anchors at 1280x720: objective top-left and bags top-right, both with 24 px 
 | Loud music | Driving percussion and bass, 140 BPM feel; crossfades in over 1 s at the alarm |
 | Menu music | Short moody loop with a cool, noir feel |
 | Payout sting | 3 s comedic brass sting |
-| Mix | Master 0.8, music 0.7 (ducked to 0.4 while voice plays), SFX 0.8, voice 1.0 |
+| Mix | Master 0.8, music 0.7 (multiplied by 0.4 while voice plays), SFX 0.8, voice 1.0 |
 | Sources | Royalty-free libraries with licences logged, or self-made; SFX generated with jsfxr or CC0 |
 
 ## 7. Handler Voice Script

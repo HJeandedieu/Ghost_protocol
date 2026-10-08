@@ -177,6 +177,13 @@ Author-approved tuning, 6 October 2026:
 - PLAY AGAIN opens loadout for a fresh mission; confirming loadout resets run statistics. MENU returns to the main menu, which shows the selected difficulty's best payout and rank.
 - Receipt lines appear in calculation order, followed by the final amount counting up and the rank stamp entering, using Data Formats section 2's payout timing keys. Show the finalized zero-to-three deductions; never force three or reroll for display. Reduce Effects shows the receipt/final amount immediately with a simple rank fade. Navigation works throughout; presentation never changes money or finalized payout.
 
+### 3.9 Audio mixing (Day 25; FR-23)
+
+- AudioDirector is pure logic in systems/: it reacts to the existing event catalogue and computes playback requests and channel gains. It never calls raylib audio functions. A separate platform playback layer consumes that state, loads the documented assets and performs raylib playback; it never changes gameplay state.
+- AlarmTriggered starts the Stealth-to-Loud crossfade over `audio.crossfade_time` seconds: Stealth gain moves from 1 to 0 while Loud gain moves from 0 to 1. Use the finite positive timing key documented in Data Formats section 2.
+- Music gains are multiplied by the selected music slider and, while voice plays, by `audio.voice_duck`. SFX and voice use their respective sliders. Master applies once to every channel. A muted channel remains muted, including during crossfade or voice ducking.
+- Desktop initializes playback after the audio device is ready. Web initializes it only after the Boot screen's first user click, as required by Architecture section 10. Missing audio assets warn and leave the corresponding sound silent; they never prevent a mission from running.
+
 ## 4. Interfaces (C++ signatures, abbreviated)
 ```cpp
 struct Vec2 { float x, y; };
