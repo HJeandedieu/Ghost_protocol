@@ -9,7 +9,9 @@
 #include "core/SaveStore.h"
 #include "core/Time.h"
 #include "states/StateMachine.h"
+#include "systems/AudioDirector.h"
 #include "systems/ScoreSystem.h"
+class AudioPlayback;
 
 class Renderer;
 
@@ -33,6 +35,8 @@ class Game {
     void startMission(int stage = 1, bool loud = false);
     Logger logger_;
     const Config config_;
+    AudioDirector audioDirector_;
+    std::unique_ptr<AudioPlayback> audioPlayback_;
     SaveStore saveStore_;
     Settings settings_;
     Scores scores_;

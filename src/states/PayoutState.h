@@ -7,10 +7,12 @@
 #include "systems/ScoreSystem.h"
 #include "ui/ScreenNavigation.h"
 class Renderer;
+class AudioDirector;
 class PayoutState : public IState {
    public:
     PayoutState(const Input& input, Renderer& renderer, UiConfig config, Payout payout,
-                std::function<void()> again, std::function<void()> menu);
+                std::function<void()> again, std::function<void()> menu,
+                AudioDirector* audio = nullptr);
     void enter() override {}
     void exit() override {}
     void update(float dt) override;
@@ -28,4 +30,5 @@ class PayoutState : public IState {
     std::function<void()> again_, menu_;
     ScreenNavigation navigation_;
     double elapsed_ = 0;
+    AudioDirector* audio_ = nullptr;
 };

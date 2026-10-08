@@ -1,11 +1,13 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <limits>
 #include <sstream>
 
 #include "core/Logger.h"
 #include "render/Renderer.h"
 #include "states/PayoutState.h"
+#include "systems/AudioDirector.h"
 class PayoutScreen : public testing::Test {
    protected:
     void SetUp() override {
@@ -15,6 +17,39 @@ class PayoutScreen : public testing::Test {
     }
     void TearDown() override { CloseWindow(); }
 };
+TEST_F(PayoutScreen, ReceiptSoundsOnlyOnceAndRenderDoesNotRequestAudio) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    Input input;
+    AudioDirector audio({});
+    PayoutState state(input, renderer, {}, {}, [] {}, [] {}, &audio);
+    state.update(.19f);
+    EXPECT_EQ(audio.takeSounds(), std::vector<std::string>{"payout_tick"});
+    state.update(0);
+    renderer.beginFrame();
+    state.render(0);
+    renderer.present();
+    EXPECT_TRUE(audio.takeSounds().empty());
+    state.update(3);
+    const auto sounds = audio.takeSounds();
+    EXPECT_EQ(std::count(sounds.begin(), sounds.end(), "payout_stamp"), 1);
+    state.update(3);
+    EXPECT_TRUE(audio.takeSounds().empty());
+}
+TEST_F(PayoutScreen, ReducedEffectsDoesNotReplayReceiptTicks) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    Input input;
+    AudioDirector audio({});
+    PayoutState state(input, renderer, {}, {}, [] {}, [] {}, &audio);
+    state.update(.1f);
+    EXPECT_EQ(audio.takeSounds(), std::vector<std::string>{"payout_stamp"});
+    state.update(1);
+    EXPECT_TRUE(audio.takeSounds().empty());
+}
 TEST_F(PayoutScreen, ReceiptCountsFinalizedAmountThenStampsAndSupportsImmediateNavigation) {
     std::ostringstream output;
     Logger logger(output, "");

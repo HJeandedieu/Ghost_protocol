@@ -311,3 +311,28 @@ TEST(Config, PayoutTimingsLoadAndInvalidValuesFallBack) {
         EXPECT_FLOAT_EQ(ui.payoutStampTime, .25f);
     }
 }
+
+TEST(Config, AudioTimingAndDuckValidateRangesAndWarnWithDefaults) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    std::ostringstream output;
+    Logger logger(output, "");
+    data["audio"] = {{"crossfade_time", 2}, {"voice_duck", .25}};
+    auto audio = Config::load(files.write("audio.json", data.dump()), logger).audio;
+    EXPECT_FLOAT_EQ(audio.crossfadeTime, 2);
+    EXPECT_FLOAT_EQ(audio.voiceDuck, .25f);
+    data["audio"]["voice_duck"] = 0;
+    EXPECT_FLOAT_EQ(Config::load(files.write("mute.json", data.dump()), logger).audio.voiceDuck, 0);
+    for (const auto& bad : {nlohmann::json(-1), nlohmann::json("bad"), nlohmann::json(1e100)}) {
+        data["audio"] = {{"crossfade_time", bad}, {"voice_duck", bad}};
+        audio = Config::load(files.write("bad-audio.json", data.dump()), logger).audio;
+        EXPECT_FLOAT_EQ(audio.crossfadeTime, 1);
+        EXPECT_FLOAT_EQ(audio.voiceDuck, .4f);
+    }
+    data["audio"] = {{"crossfade_time", 0}, {"voice_duck", 1.01}};
+    audio = Config::load(files.write("zero-audio.json", data.dump()), logger).audio;
+    EXPECT_FLOAT_EQ(audio.crossfadeTime, 1);
+    EXPECT_FLOAT_EQ(audio.voiceDuck, .4f);
+    EXPECT_NE(output.str().find("[WARN]"), std::string::npos);
+}

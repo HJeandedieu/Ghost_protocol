@@ -110,6 +110,15 @@ Config Config::load(const std::string& path, Logger& logger) {
     config.view.leadPx = readNumber(view, "lead_px", config.view.leadPx, "view", logger);
     config.view.followRate =
         readNumber(view, "follow_rate", config.view.followRate, "view", logger);
+    const auto& audio = groupOrEmpty(data, "audio", empty);
+    config.audio.crossfadeTime =
+        readNumber(audio, "crossfade_time", config.audio.crossfadeTime, "audio", logger);
+    if (config.audio.crossfadeTime <= 0) {
+        logger.log(LogLevel::Warn, "Invalid audio.crossfade_time; using default");
+        config.audio.crossfadeTime = AudioConfig{}.crossfadeTime;
+    }
+    config.audio.voiceDuck =
+        readNumber(audio, "voice_duck", config.audio.voiceDuck, "audio", logger, 1);
     const auto& ui = groupOrEmpty(data, "ui", empty);
     config.ui.hoverTime = readNumber(ui, "hover_time", config.ui.hoverTime, "ui", logger);
     config.ui.transitionTime =

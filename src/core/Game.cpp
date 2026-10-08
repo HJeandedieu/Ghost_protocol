@@ -3,6 +3,7 @@
 #include <chrono>
 #include <string>
 
+#include "audio/AudioPlayback.h"
 #include "raylib.h"
 #include "render/Letterbox.h"
 #include "render/Renderer.h"
@@ -21,6 +22,7 @@
 
 Game::Game()
     : config_(Config::load("assets/config/tuning.json", logger_)),
+      audioDirector_(config_.audio),
       saveStore_(logger_),
       settings_(saveStore_.loadSettings()),
       scores_(saveStore_.loadScores()),
@@ -65,6 +67,9 @@ int Game::run() {
         InitAudioDevice();
         SetMasterVolume(settings_.volumeMaster);
 #endif
+        audioDirector_.setVolumes(settings_.volumeMaster, settings_.volumeMusic,
+                                  settings_.volumeSfx, settings_.volumeVoice);
+        audioPlayback_ = std::make_unique<AudioPlayback>(logger_);
         showMenu();
     }));
 #ifdef __EMSCRIPTEN__
@@ -74,6 +79,7 @@ int Game::run() {
     while (!quit_ && !WindowShouldClose()) {
         tick();
     }
+    audioPlayback_.reset();
     renderer_.reset();
     if (IsAudioDeviceReady()) CloseAudioDevice();
     CloseWindow();
@@ -144,6 +150,7 @@ void Game::tick() {
     while (time_.consumeStep()) {
         update(static_cast<float>(Time::kStep));
     }
+    if (audioPlayback_) audioPlayback_->update(audioDirector_);
     renderer_->beginFrame();
     states_.render(time_.alpha());
     renderer_->present();
@@ -151,11 +158,22 @@ void Game::tick() {
 
 void Game::update(float dt) {
     renderer_->updateTransition(dt);
+    const bool presentation = dynamic_cast<const PlayState*>(states_.top()) == nullptr;
     states_.update(dt);
+    if (presentation && audioPlayback_) {
+        if (input_.backPressed)
+            audioDirector_.request("ui_back");
+        else if (input_.confirmPressed || (input_.startClicked && input_.mouseInViewport))
+            audioDirector_.request("ui_select");
+        else if (input_.menuVertical || input_.menuHorizontal)
+            audioDirector_.request("ui_move");
+    }
+    audioDirector_.update(dt, audioPlayback_ && audioPlayback_->voicePlaying());
     input_.clearEdges();
 }
 
 void Game::showMenu(const std::string& error) {
+    audioDirector_.setScene(AudioScene::Menu);
     logger_.log(LogLevel::Info, "State: Menu");
     renderer_->startTransition(config_.ui.transitionTime, true);
     states_.replace(std::make_unique<MenuState>(
@@ -186,6 +204,7 @@ void Game::startMission(int stage, bool loud) {
         showMenu("Unable to load police waves. Check the enemy file and try again.");
         return;
     }
+    audioDirector_.setScene(loud ? AudioScene::Loud : AudioScene::Stealth);
     renderer_->startTransition(config_.ui.transitionTime);
     logger_.log(LogLevel::Info, "State: Play");
     states_.replace(std::make_unique<PlayState>(
@@ -194,12 +213,15 @@ void Game::startMission(int stage, bool loud) {
         [this](int retryStage, bool wasLoud) { startMission(retryStage, wasLoud); }, missionRun_,
         [this](Payout payout) { showPayout(std::move(payout)); }, loadout_, difficulty_,
         [this](int currentStage, bool currentLoud) { showPause(currentStage, currentLoud); },
-        [this](int currentStage, bool currentLoud) { showBusted(currentStage, currentLoud); }));
+        [this](int currentStage, bool currentLoud) { showBusted(currentStage, currentLoud); },
+        &audioDirector_));
 }
 
 bool Game::applySettings(const Settings& settings) {
     if (!saveStore_.saveSettings(settings)) return false;
     settings_ = settings;
+    audioDirector_.setVolumes(settings_.volumeMaster, settings_.volumeMusic, settings_.volumeSfx,
+                              settings_.volumeVoice);
     renderer_->setReduceEffects(settings_.reduceEffects);
     renderer_->setHints(settings_.hints);
     if (IsAudioDeviceReady()) SetMasterVolume(settings_.volumeMaster);
@@ -225,6 +247,7 @@ void Game::toggleFullscreen() {
 }
 
 void Game::showLoadout() {
+    audioDirector_.setScene(AudioScene::Menu);
     renderer_->startTransition(config_.ui.transitionTime);
     states_.replace(std::make_unique<LoadoutState>(
         input_,
@@ -242,11 +265,13 @@ void Game::showLoadout() {
         settings_.difficulty == "easy", [this] { showBriefing(); }));
 }
 void Game::showBriefing() {
+    audioDirector_.setScene(AudioScene::Menu);
     renderer_->startTransition(config_.ui.transitionTime);
     states_.replace(std::make_unique<BriefingState>(
         input_, *renderer_, config_.ui, [this] { showLoadout(); }, [this] { showMenu(); }));
 }
 void Game::showPause(int stage, bool loud) {
+    audioDirector_.clearLoops();
     renderer_->freezeFrame();
     renderer_->startTransition(config_.ui.transitionTime);
     const auto resume = [this] {
@@ -270,6 +295,7 @@ void Game::showPause(int stage, bool loud) {
                                               [this] { showMenu(); }}}));
 }
 void Game::showBusted(int stage, bool loud) {
+    audioDirector_.setScene(AudioScene::Silent);
     renderer_->freezeFrame();
     renderer_->startTransition(config_.ui.transitionTime);
     const char* quips[] = {"Cuffs: bigger than expected.", "Gotham PD sends its regards.",
@@ -280,6 +306,7 @@ void Game::showBusted(int stage, bool loud) {
         [this] { showMenu(); }));
 }
 void Game::showPayout(Payout payout) {
+    audioDirector_.setScene(AudioScene::Payout);
     renderer_->startTransition(config_.ui.transitionTime);
     logger_.log(LogLevel::Info, "State: Payout");
     if (missionRun_ && !payoutRecorded_) {
@@ -290,5 +317,5 @@ void Game::showPayout(Payout payout) {
     }
     states_.replace(std::make_unique<PayoutState>(
         input_, *renderer_, config_.ui, std::move(payout), [this] { showLoadout(); },
-        [this] { showMenu(); }));
+        [this] { showMenu(); }, &audioDirector_));
 }
