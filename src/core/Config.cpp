@@ -110,6 +110,19 @@ Config Config::load(const std::string& path, Logger& logger) {
     config.view.leadPx = readNumber(view, "lead_px", config.view.leadPx, "view", logger);
     config.view.followRate =
         readNumber(view, "follow_rate", config.view.followRate, "view", logger);
+    const auto& voice = groupOrEmpty(data, "voice", empty);
+    config.voice.lowHealthFraction = readNumber(voice, "low_health_fraction",
+                                                config.voice.lowHealthFraction, "voice", logger, 1);
+    if (config.voice.lowHealthFraction <= 0) {
+        logger.log(LogLevel::Warn, "Invalid voice.low_health_fraction; using default");
+        config.voice.lowHealthFraction = VoiceConfig{}.lowHealthFraction;
+    }
+    config.voice.subtitleWordsPerSecond = readNumber(
+        voice, "subtitle_words_per_second", config.voice.subtitleWordsPerSecond, "voice", logger);
+    if (config.voice.subtitleWordsPerSecond <= 0) {
+        logger.log(LogLevel::Warn, "Invalid voice.subtitle_words_per_second; using default");
+        config.voice.subtitleWordsPerSecond = VoiceConfig{}.subtitleWordsPerSecond;
+    }
     const auto& audio = groupOrEmpty(data, "audio", empty);
     config.audio.crossfadeTime =
         readNumber(audio, "crossfade_time", config.audio.crossfadeTime, "audio", logger);
@@ -120,6 +133,17 @@ Config Config::load(const std::string& path, Logger& logger) {
     config.audio.voiceDuck =
         readNumber(audio, "voice_duck", config.audio.voiceDuck, "audio", logger, 1);
     const auto& ui = groupOrEmpty(data, "ui", empty);
+    config.ui.hintTime = readNumber(ui, "hint_time", config.ui.hintTime, "ui", logger);
+    config.ui.panicFlickerHz =
+        readNumber(ui, "panic_flicker_hz", config.ui.panicFlickerHz, "ui", logger, 3);
+    if (config.ui.hintTime <= 0) {
+        logger.log(LogLevel::Warn, "Invalid ui.hint_time; using default");
+        config.ui.hintTime = UiConfig{}.hintTime;
+    }
+    if (config.ui.panicFlickerHz <= 0) {
+        logger.log(LogLevel::Warn, "Invalid ui.panic_flicker_hz; using default");
+        config.ui.panicFlickerHz = UiConfig{}.panicFlickerHz;
+    }
     config.ui.hoverTime = readNumber(ui, "hover_time", config.ui.hoverTime, "ui", logger);
     config.ui.transitionTime =
         readNumber(ui, "transition_time", config.ui.transitionTime, "ui", logger);
@@ -150,6 +174,10 @@ Config Config::load(const std::string& path, Logger& logger) {
         config.ui.payoutStampTime = .25f;
     }
     const auto& render = groupOrEmpty(data, "render", empty);
+    config.render.grainIntensity =
+        readNumber(render, "grain_intensity", config.render.grainIntensity, "render", logger, 1);
+    config.render.vignetteStrength = readNumber(
+        render, "vignette_strength", config.render.vignetteStrength, "render", logger, 1);
     config.render.ambientFloorAlpha = readNumber(
         render, "ambient_floor_alpha", config.render.ambientFloorAlpha, "render", logger, 1.0f);
     config.render.ambientWallAlpha = readNumber(

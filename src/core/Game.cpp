@@ -70,6 +70,15 @@ int Game::run() {
         audioDirector_.setVolumes(settings_.volumeMaster, settings_.volumeMusic,
                                   settings_.volumeSfx, settings_.volumeVoice);
         audioPlayback_ = std::make_unique<AudioPlayback>(logger_);
+        if (auto lines = loadVoiceLines("assets/config/voice_lines.json", logger_)) {
+            voiceDirector_ = std::make_unique<VoiceDirector>(
+                std::move(*lines), config_.voice.lowHealthFraction,
+                config_.voice.subtitleWordsPerSecond, config_.ui.hintTime);
+            for (int i = 1; i <= 25; ++i) {
+                const auto id = std::string("V") + (i < 10 ? "0" : "") + std::to_string(i);
+                voiceDirector_->setDuration(id, audioPlayback_->voiceDuration(id));
+            }
+        }
         showMenu();
     }));
 #ifdef __EMSCRIPTEN__
@@ -150,9 +159,13 @@ void Game::tick() {
     while (time_.consumeStep()) {
         update(static_cast<float>(Time::kStep));
     }
-    if (audioPlayback_) audioPlayback_->update(audioDirector_);
+    if (audioPlayback_) {
+        if (voiceDirector_) audioPlayback_->updateVoice(*voiceDirector_);
+        audioPlayback_->update(audioDirector_);
+    }
     renderer_->beginFrame();
     states_.render(time_.alpha());
+    if (voiceDirector_) renderer_->drawVoice(*voiceDirector_, config_.ui);
     renderer_->present();
 }
 
@@ -168,11 +181,17 @@ void Game::update(float dt) {
         else if (input_.menuVertical || input_.menuHorizontal)
             audioDirector_.request("ui_move");
     }
+    if (voiceDirector_) {
+        voiceDirector_->setPaused(voicePaused_);
+        voiceDirector_->update(dt);
+    }
     audioDirector_.update(dt, audioPlayback_ && audioPlayback_->voicePlaying());
     input_.clearEdges();
 }
 
 void Game::showMenu(const std::string& error) {
+    voicePaused_ = false;
+    if (voiceDirector_) voiceDirector_->clear();
     audioDirector_.setScene(AudioScene::Menu);
     logger_.log(LogLevel::Info, "State: Menu");
     renderer_->startTransition(config_.ui.transitionTime, true);
@@ -204,6 +223,8 @@ void Game::startMission(int stage, bool loud) {
         showMenu("Unable to load police waves. Check the enemy file and try again.");
         return;
     }
+    voicePaused_ = false;
+    if (voiceDirector_) voiceDirector_->clear();
     audioDirector_.setScene(loud ? AudioScene::Loud : AudioScene::Stealth);
     renderer_->startTransition(config_.ui.transitionTime);
     logger_.log(LogLevel::Info, "State: Play");
@@ -214,7 +235,7 @@ void Game::startMission(int stage, bool loud) {
         [this](Payout payout) { showPayout(std::move(payout)); }, loadout_, difficulty_,
         [this](int currentStage, bool currentLoud) { showPause(currentStage, currentLoud); },
         [this](int currentStage, bool currentLoud) { showBusted(currentStage, currentLoud); },
-        &audioDirector_));
+        &audioDirector_, voiceDirector_.get()));
 }
 
 bool Game::applySettings(const Settings& settings) {
@@ -224,6 +245,10 @@ bool Game::applySettings(const Settings& settings) {
                               settings_.volumeVoice);
     renderer_->setReduceEffects(settings_.reduceEffects);
     renderer_->setHints(settings_.hints);
+    if (voiceDirector_ && voicePaused_) {
+        voiceDirector_->setTutorialContext(voiceDirector_->tutorialStage(), settings_.hints,
+                                           voiceDirector_->playerId());
+    }
     if (IsAudioDeviceReady()) SetMasterVolume(settings_.volumeMaster);
     if (IsWindowFullscreen() != settings_.fullscreen) toggleFullscreen();
     return true;
@@ -247,6 +272,7 @@ void Game::toggleFullscreen() {
 }
 
 void Game::showLoadout() {
+    if (voiceDirector_) voiceDirector_->clear();
     audioDirector_.setScene(AudioScene::Menu);
     renderer_->startTransition(config_.ui.transitionTime);
     states_.replace(std::make_unique<LoadoutState>(
@@ -258,6 +284,7 @@ void Game::showLoadout() {
             difficulty_ = easy ? config_.difficulty.easy : config_.difficulty.normal;
             if (!easy) difficulty_.maxAlive = config_.alarm.maxAlive;
             missionRun_ = std::make_shared<MissionRun>();
+            if (voiceDirector_) voiceDirector_->resetRun();
             missionDifficulty_ = settings_.difficulty;
             payoutRecorded_ = false;
             startMission();
@@ -265,16 +292,23 @@ void Game::showLoadout() {
         settings_.difficulty == "easy", [this] { showBriefing(); }));
 }
 void Game::showBriefing() {
+    voicePaused_ = false;
+    if (voiceDirector_) {
+        voiceDirector_->resetRun();
+        voiceDirector_->request("V01");
+    }
     audioDirector_.setScene(AudioScene::Menu);
     renderer_->startTransition(config_.ui.transitionTime);
     states_.replace(std::make_unique<BriefingState>(
         input_, *renderer_, config_.ui, [this] { showLoadout(); }, [this] { showMenu(); }));
 }
 void Game::showPause(int stage, bool loud) {
+    voicePaused_ = true;
     audioDirector_.clearLoops();
     renderer_->freezeFrame();
     renderer_->startTransition(config_.ui.transitionTime);
     const auto resume = [this] {
+        voicePaused_ = false;
         renderer_->startTransition(config_.ui.transitionTime, true);
         states_.pop();
     };
@@ -295,6 +329,11 @@ void Game::showPause(int stage, bool loud) {
                                               [this] { showMenu(); }}}));
 }
 void Game::showBusted(int stage, bool loud) {
+    voicePaused_ = false;
+    if (voiceDirector_) {
+        voiceDirector_->clear();
+        voiceDirector_->request("V23");
+    }
     audioDirector_.setScene(AudioScene::Silent);
     renderer_->freezeFrame();
     renderer_->startTransition(config_.ui.transitionTime);
@@ -306,6 +345,12 @@ void Game::showBusted(int stage, bool loud) {
         [this] { showMenu(); }));
 }
 void Game::showPayout(Payout payout) {
+    voicePaused_ = false;
+    if (voiceDirector_) {
+        voiceDirector_->clear();
+        voiceDirector_->request("V22");
+        if (missionRun_ && !missionRun_->alarmEver) voiceDirector_->request("V25");
+    }
     audioDirector_.setScene(AudioScene::Payout);
     renderer_->startTransition(config_.ui.transitionTime);
     logger_.log(LogLevel::Info, "State: Payout");

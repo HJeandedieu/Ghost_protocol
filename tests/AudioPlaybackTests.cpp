@@ -8,6 +8,7 @@
 #include "audio/AudioPlayback.h"
 #include "core/Logger.h"
 #include "systems/AudioDirector.h"
+#include "systems/VoiceDirector.h"
 
 TEST(AudioPlaybackTests, UnavailableDeviceLeavesGameplayRunningAndDrainsRequests) {
     ASSERT_FALSE(IsAudioDeviceReady());
@@ -17,7 +18,11 @@ TEST(AudioPlaybackTests, UnavailableDeviceLeavesGameplayRunningAndDrainsRequests
     AudioDirector director({});
     director.setScene(AudioScene::Stealth);
     director.request("ping_small");
+    director.setVolumes(1, .7f, 1, 1);
+    director.update(0, true);  // A pending subtitle must not masquerade as actual playback.
+    EXPECT_FLOAT_EQ(director.musicGains()[1], .28f);
     playback.update(director);
+    EXPECT_FLOAT_EQ(director.musicGains()[1], .7f);
     EXPECT_TRUE(director.takeSounds().empty());
     EXPECT_EQ(director.scene(), AudioScene::Stealth);
     EXPECT_FALSE(playback.playVoice("V01"));
@@ -53,4 +58,26 @@ TEST(AudioPlaybackTests, EveryMusicSfxAndVoiceAssetDecodesToFiniteAudio) {
     EXPECT_EQ(music, 4);
     EXPECT_EQ(sfx, 34);
     EXPECT_EQ(voice, 25);
+}
+
+TEST(AudioPlaybackTests, VoiceDurationWorksWithoutDeviceAndMissingRecordingKeepsSubtitle) {
+    std::ostringstream out;
+    Logger logger(out, "");
+    AudioPlayback playback(logger);
+    const float duration = playback.voiceDuration("V01");
+    EXPECT_GT(duration, 1);
+    EXPECT_FLOAT_EQ(playback.voiceDuration("V01"), duration);
+    EXPECT_FLOAT_EQ(playback.voiceDuration("../unsafe"), 0);
+    AudioPlayback missing(logger, "assets/not-present");
+    EXPECT_FLOAT_EQ(missing.voiceDuration("V01"), 0);
+    VoiceDirector director({{"V01", "", "missing voice has readable subtitles", "", 2, 0}}, .25f);
+    director.setDuration("V01", missing.voiceDuration("V01"));
+    director.request("V01");
+    missing.updateVoice(director);
+    ASSERT_NE(director.current(), nullptr);
+    EXPECT_FALSE(missing.voicePlaying());
+    director.setPaused(true);
+    missing.updateVoice(director);
+    director.update(100);
+    EXPECT_FLOAT_EQ(director.age(), 0);
 }

@@ -88,3 +88,5 @@ Day 25 Handler exports use Kokoro.js 1.2.1, af_bella, and the q8 model from http
 
 Log each future runtime font, texture, sound, and music file with its source,
 author, licence, and attribution requirements before adding it to a release.
+
+| `assets/ui/handler_portrait.png` | Original portrait generated with OpenAI imagegen on 8 October 2026, using the project gameplay reference for style | Ghost Protocol project / OpenAI imagegen | AI-generated original project asset; no third-party asset incorporated | No additional attribution required | Day 26 Handler subtitle HUD portrait |

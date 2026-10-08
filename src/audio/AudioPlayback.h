@@ -7,6 +7,7 @@
 #include "raylib.h"
 class Logger;
 class AudioDirector;
+class VoiceDirector;
 class AudioPlayback {
    public:
     explicit AudioPlayback(Logger& logger, const std::string& root = "assets");
@@ -14,6 +15,8 @@ class AudioPlayback {
     AudioPlayback(const AudioPlayback&) = delete;
     AudioPlayback& operator=(const AudioPlayback&) = delete;
     void update(AudioDirector& director);
+    void updateVoice(const VoiceDirector& director);
+    float voiceDuration(const std::string& id);
     bool playVoice(const std::string& id);
     void stopVoice();
     bool voicePlaying() const;
@@ -27,4 +30,8 @@ class AudioPlayback {
     std::map<std::string, Music> loops_;
     std::set<std::string> activeLoops_, warned_;
     float voiceGain_ = 1;
+    unsigned long voiceSerial_ = 0;
+    bool voicePaused_ = false;
+    std::string activeVoice_;
+    std::map<std::string, float> durations_;
 };

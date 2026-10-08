@@ -4,6 +4,7 @@
 
 #include "core/Logger.h"
 #include "systems/AudioDirector.h"
+#include "systems/VoiceDirector.h"
 AudioPlayback::AudioPlayback(Logger& logger, const std::string& root)
     : logger_(logger), root_(root) {
     if (!IsAudioDeviceReady()) {
@@ -48,6 +49,7 @@ AudioPlayback::~AudioPlayback() {
         if (IsMusicValid(music)) UnloadMusicStream(music);
 }
 void AudioPlayback::update(AudioDirector& director) {
+    director.update(0, voicePlaying());
     if (!IsAudioDeviceReady()) {
         director.takeSounds();
         return;
@@ -114,4 +116,41 @@ bool AudioPlayback::voicePlaying() const {
     for (const auto& pair : voices_)
         if (IsSoundPlaying(pair.second)) return true;
     return false;
+}
+
+float AudioPlayback::voiceDuration(const std::string& id) {
+    if (id.size() != 3 || id < "V01" || id > "V25" || id[0] != 'V' || id[1] < '0' || id[1] > '2' ||
+        id[2] < '0' || id[2] > '9')
+        return 0;
+    const auto cached = durations_.find(id);
+    if (cached != durations_.end()) return cached->second;
+    auto wave = LoadWave((root_ + "/audio/voice/" + id + ".ogg").c_str());
+    float duration = 0;
+    if (IsWaveValid(wave) && wave.sampleRate > 0)
+        duration = static_cast<float>(wave.frameCount) / wave.sampleRate;
+    else if (warned_.insert(id).second)
+        logger_.log(LogLevel::Warn, "Cannot load voice duration; using reading fallback: " + id);
+    if (wave.data) UnloadWave(wave);
+    durations_[id] = duration;
+    return duration;
+}
+void AudioPlayback::updateVoice(const VoiceDirector& director) {
+    if (voiceSerial_ != director.serial()) {
+        stopVoice();
+        voiceSerial_ = director.serial();
+        activeVoice_.clear();
+        if (const auto* line = director.current()) {
+            if (playVoice(line->id)) activeVoice_ = line->id;
+        }
+        voicePaused_ = false;
+    }
+    if (director.paused() == voicePaused_) return;
+    const auto found = voices_.find(activeVoice_);
+    if (found != voices_.end()) {
+        if (director.paused())
+            PauseSound(found->second);
+        else
+            ResumeSound(found->second);
+    }
+    voicePaused_ = director.paused();
 }
