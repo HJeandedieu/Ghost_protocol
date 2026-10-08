@@ -268,7 +268,7 @@ Every day lists: **Goal**, **Tasks** (do them in order), and **Done when** (the 
 1. Choose music (stealth, loud, menu, payout sting) from royalty-free sources; log every file in `ASSETS.md`.
 2. Generate the SFX list from `04_Data_Formats.md` section 7 (jsfxr or CC0), export as OGG.
 3. `AudioDirector`: crossfade stealth to loud over 1 s at the alarm, duck music to 0.4 under voice, volume sliders applied.
-4. Generate all 25 voice lines from `05_Design_Docs.md` section 7 with your chosen text-to-speech service (key kept in `.env`); export OGG; create `voice_lines.json`.
+4. Generate all 25 voice lines from `05_Design_Docs.md` section 7 locally with Kokoro (author selected 8 October 2026); export OGG; create the JSON-array `voice_lines.json` defined in Data Formats section 6. Python or JavaScript generation tooling/model weights stay outside the runtime package; no API key is needed.
 **Done when:** the game has music, sounds and all 25 voice files exist on disk with licences logged.
 
 ### Day 26: Fri 30 Oct (light, 2.5 h) Voice director, subtitles, hints

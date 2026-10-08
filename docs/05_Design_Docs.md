@@ -128,7 +128,7 @@ HUD anchors at 1280x720: objective top-left and bags top-right, both with 24 px 
 | Sources | Royalty-free libraries with licences logged, or self-made; SFX generated with jsfxr or CC0 |
 
 ## 7. Handler Voice Script
-Voice: calm, dry, confident female voice; deadpan; slight smirk; panic lines are fast and higher pitch. Generated with a text-to-speech service; keep API keys out of the repo. All lines avoid naming her.
+Voice: calm, dry, confident female voice; deadpan; slight smirk; panic lines are fast and higher pitch. Generated locally with Kokoro, as selected by the author on 8 October 2026; keep generator packages and model weights in development tooling, not the runtime assets. All lines avoid naming her.
 
 | ID | Trigger | Pri | Line |
 |---|---|---|---|
