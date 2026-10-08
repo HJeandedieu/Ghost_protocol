@@ -4,17 +4,26 @@
 #include <cmath>
 #include <utility>
 
+#include "systems/AudioDirector.h"
 #include "ui/ScreenDrawing.h"
 PayoutState::PayoutState(const Input& input, Renderer& renderer, UiConfig config, Payout payout,
-                         std::function<void()> again, std::function<void()> menu)
+                         std::function<void()> again, std::function<void()> menu,
+                         AudioDirector* audio)
     : input_(input),
       renderer_(renderer),
       config_(config),
       payout_(std::move(payout)),
       again_(std::move(again)),
-      menu_(std::move(menu)) {}
+      menu_(std::move(menu)),
+      audio_(audio) {}
 void PayoutState::update(float dt) {
+    const int before = visibleLines();
+    const float stampBefore = stampProgress();
     if (std::isfinite(dt) && dt > 0) elapsed_ += dt;
+    if (audio_) {
+        for (int i = before; i < visibleLines(); ++i) audio_->request("payout_tick");
+        if (stampBefore <= 0 && stampProgress() > 0) audio_->request("payout_stamp");
+    }
     const int action = navigation_.update(input_, dt, config_.hoverTime, 2, 440);
     if (input_.backPressed || action == 1) {
         menu_();

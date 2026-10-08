@@ -6,6 +6,7 @@
 
 #include "render/Letterbox.h"
 #include "render/Renderer.h"
+#include "systems/AudioDirector.h"
 #include "systems/VisionSystem.h"
 
 namespace {
@@ -23,7 +24,7 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
                      std::function<void(int, bool)> retry, std::shared_ptr<MissionRun> run,
                      std::function<void(Payout)> finish, std::array<std::string, 2> loadout,
                      DifficultyPreset difficulty, std::function<void(int, bool)> pause,
-                     std::function<void(int, bool)> busted)
+                     std::function<void(int, bool)> busted, AudioDirector* audio)
     : world_(missionWorld(std::move(level), config, stage)),
       input_(input),
       camera_(world_.player.pos, config.view),
@@ -53,10 +54,24 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       score_(config.payout),
       payoutRng_(seed),
       pause_(std::move(pause)),
-      busted_(std::move(busted)) {
+      busted_(std::move(busted)),
+      audio_(audio) {
+    if (audio_) audio_->listen(events_);
     noise_.setWeapons(weapons, config.noise);
     noise_.setEnemies(enemies);
     interaction_.loadBank(world_, config_);
+    if (audio_) {
+        const auto& map = world_.level.map;
+        for (int y = 0; y < map.height(); ++y)
+            for (int x = 0; x < map.width(); ++x) {
+                const auto type = map.tile(x, y);
+                const auto id = std::to_string(x) + ":" + std::to_string(y);
+                if (type == TileType::ServiceDoor || type == TileType::CardDoor)
+                    audio_->bindInteraction(id, "door_open");
+                if (type == TileType::Keycard) audio_->bindInteraction(id, "keycard_pick");
+                if (type == TileType::Breaker) audio_->bindInteraction(id, "gate_open");
+            }
+    }
     objectives_ =
         std::make_unique<ObjectiveSystem>(events_, world_, interaction_, alarm_, config_, stage);
     events_.subscribe<PlayerDowned>([this](const PlayerDowned&) {
@@ -120,6 +135,12 @@ void PlayState::update(float dt) {
         renderer_.updateHealthHud(dt, world_.player);
         return;
     }
+    if (audio_) audio_->clearLoops();
+    const bool vaultBefore = objectives_->vaultOpen(),
+               bollardsBefore = objectives_->bollardsLowered(),
+               vanBefore = objectives_->vanArrived();
+    const float cooldownBefore = ripple_.cooldownRemaining();
+    const bool reloadBefore = combat_.activeWeapon().reloadRemaining() > 0;
     noise_.beginTick();
     auto& player = world_.player;
     player.update(dt, input_, world_.level.map);
@@ -164,9 +185,13 @@ void PlayState::update(float dt) {
     const float before = ripple_.cooldownRemaining();
     if (!world_.alarmLoud)
         ripple_.updateCharge(dt, input_.pingHeld, input_.pingPressed, player.pos);
-    if (before <= 0 && ripple_.waveActive() && ripple_.waveRadius() == 0)
+    if (before <= 0 && ripple_.waveActive() && ripple_.waveRadius() == 0) {
+        if (audio_)
+            audio_->request(ripple_.maxRadius() > config_.ping.smallRadius ? "ping_big"
+                                                                           : "ping_small");
         noise_.emit(ripple_.origin(), ripple_.maxRadius() * config_.ping.noiseMult, NoiseType::Ping,
                     player.id);
+    }
     detection_.update(dt, player, world_.level.map, world_.guards);
     for (auto& camera : world_.cameras) camera.update(dt);
     const bool looped = world_.securityLoopRemaining > 0;
@@ -203,6 +228,29 @@ void PlayState::update(float dt) {
     waves_.update(realDt, {viewCenter.x - halfWidth, viewCenter.y - halfHeight,
                            viewCenter.x + halfWidth, viewCenter.y + halfHeight});
     objectives_->update(dt);
+    if (audio_) {
+        if (cooldownBefore > 0 && ripple_.cooldownRemaining() <= 0) audio_->request("ping_ready");
+        if (!reloadBefore && combat_.activeWeapon().reloadRemaining() > 0)
+            audio_->request("reload");
+        if (!vaultBefore && objectives_->vaultOpen()) audio_->request("vault_open");
+        if (!bollardsBefore && objectives_->bollardsLowered()) audio_->request("bollard_lower");
+        if (!vanBefore && objectives_->vanArrived()) audio_->request("van_arrive");
+        if (player.pos.x != player.prevPos.x || player.pos.y != player.prevPos.y)
+            audio_->loop(player.isCrouched()    ? "step_crouch"
+                         : player.isSprinting() ? "step_sprint"
+                                                : "step_walk");
+        if (objectives_->thermiteRemaining() > 0) audio_->loop("thermite_loop");
+        const auto* target = interaction_.target();
+        if (target && interaction_.claimedThisTick() && interaction_.progress() > 0) {
+            if (target->id.rfind("vault:", 0) == 0 &&
+                target->id.find(":thermite") == std::string::npos)
+                audio_->loop("drill_pulse");
+            const auto tile = world_.level.map.tile(
+                static_cast<int>(target->position.x / world_.level.map.tileSize()),
+                static_cast<int>(target->position.y / world_.level.map.tileSize()));
+            if (tile == TileType::ServiceDoor) audio_->loop("lockpick_loop");
+        }
+    }
     events_.dispatch();
 #ifndef NDEBUG
     if (input_.debugPressed) debugView_ = !debugView_;

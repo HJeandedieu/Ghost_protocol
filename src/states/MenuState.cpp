@@ -223,7 +223,12 @@ void MenuState::render(float alpha) {
         art.text("Ramon Santamaria and contributors", {96, 320}, 18, kBone, true);
         art.text("Orbitron - The Orbitron Project Authors", {96, 392}, 18, kBone, true);
         art.text("Inter - Rasmus Andersson and contributors", {96, 424}, 18, kBone, true);
-        art.text("Both fonts licensed under SIL Open Font License 1.1", {96, 472}, 14, kGrey, true);
+        art.text("Both fonts: SIL Open Font License 1.1", {96, 456}, 14, kGrey, true);
+        art.text("Music: original Ghost Protocol compositions", {96, 488}, 14, kBone, true);
+        art.text("SFX: jsfxr / Eric Fredricksen, Chris McCormick (Unlicense)", {96, 512}, 14, kBone,
+                 true);
+        art.text("Handler: local Kokoro / hexgrad (Apache 2.0), af_bella", {96, 536}, 14, kBone,
+                 true);
         const auto b = bounds(0);
         const float t = buttons_[0].emphasis();
         DrawRectangleRounded({b.x, b.y, b.width, b.height}, .28f, 8, mix(kSlate, kBone, t));

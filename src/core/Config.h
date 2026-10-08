@@ -49,6 +49,11 @@ struct PingConfig {
     float hazardRevealRadius = 120.0f;
 };
 
+struct AudioConfig {
+    float crossfadeTime = 1.0f;
+    float voiceDuck = .4f;
+};
+
 struct UiConfig {
     float hoverTime = 0.15f;
     float transitionTime = 0.25f;
@@ -202,6 +207,7 @@ class Config {
     ViewConfig view;
     RenderConfig render;
     UiConfig ui;
+    AudioConfig audio;
     PingConfig ping;
     NoiseConfig noise;
     GuardConfig guard;
