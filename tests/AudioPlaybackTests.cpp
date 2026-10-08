@@ -18,7 +18,11 @@ TEST(AudioPlaybackTests, UnavailableDeviceLeavesGameplayRunningAndDrainsRequests
     AudioDirector director({});
     director.setScene(AudioScene::Stealth);
     director.request("ping_small");
+    director.setVolumes(1, .7f, 1, 1);
+    director.update(0, true);  // A pending subtitle must not masquerade as actual playback.
+    EXPECT_FLOAT_EQ(director.musicGains()[1], .28f);
     playback.update(director);
+    EXPECT_FLOAT_EQ(director.musicGains()[1], .7f);
     EXPECT_TRUE(director.takeSounds().empty());
     EXPECT_EQ(director.scene(), AudioScene::Stealth);
     EXPECT_FALSE(playback.playVoice("V01"));

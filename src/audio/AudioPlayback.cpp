@@ -49,6 +49,7 @@ AudioPlayback::~AudioPlayback() {
         if (IsMusicValid(music)) UnloadMusicStream(music);
 }
 void AudioPlayback::update(AudioDirector& director) {
+    director.update(0, voicePlaying());
     if (!IsAudioDeviceReady()) {
         director.takeSounds();
         return;

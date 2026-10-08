@@ -161,7 +161,6 @@ void Game::tick() {
     }
     if (audioPlayback_) {
         if (voiceDirector_) audioPlayback_->updateVoice(*voiceDirector_);
-        audioDirector_.update(0, audioPlayback_->voicePlaying());
         audioPlayback_->update(audioDirector_);
     }
     renderer_->beginFrame();
