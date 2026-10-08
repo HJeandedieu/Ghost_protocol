@@ -160,8 +160,9 @@ void Game::tick() {
         update(static_cast<float>(Time::kStep));
     }
     if (audioPlayback_) {
-        audioPlayback_->update(audioDirector_);
         if (voiceDirector_) audioPlayback_->updateVoice(*voiceDirector_);
+        audioDirector_.update(0, audioPlayback_->voicePlaying());
+        audioPlayback_->update(audioDirector_);
     }
     renderer_->beginFrame();
     states_.render(time_.alpha());
@@ -185,7 +186,7 @@ void Game::update(float dt) {
         voiceDirector_->setPaused(voicePaused_);
         voiceDirector_->update(dt);
     }
-    audioDirector_.update(dt, voiceDirector_ && voiceDirector_->current());
+    audioDirector_.update(dt, audioPlayback_ && audioPlayback_->voicePlaying());
     input_.clearEdges();
 }
 
