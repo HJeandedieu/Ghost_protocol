@@ -49,6 +49,11 @@ struct PingConfig {
     float hazardRevealRadius = 120.0f;
 };
 
+struct VoiceConfig {
+    float lowHealthFraction = .25f;
+    float subtitleWordsPerSecond = 3;
+};
+
 struct AudioConfig {
     float crossfadeTime = 1.0f;
     float voiceDuck = .4f;
@@ -58,11 +63,13 @@ struct UiConfig {
     float hoverTime = 0.15f;
     float transitionTime = 0.25f;
     float payoutLineTime = .18f, payoutCountTime = 1.2f, payoutStampTime = .25f;
+    float hintTime = 3, panicFlickerHz = 2;
 };
 
 struct RenderConfig {
     float ambientFloorAlpha = 0.18f;
     float ambientWallAlpha = 0.45f;
+    float grainIntensity = .04f, vignetteStrength = .35f;
 };
 
 struct ViewConfig {
@@ -208,6 +215,7 @@ class Config {
     RenderConfig render;
     UiConfig ui;
     AudioConfig audio;
+    VoiceConfig voice;
     PingConfig ping;
     NoiseConfig noise;
     GuardConfig guard;

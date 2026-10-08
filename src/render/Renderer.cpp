@@ -25,6 +25,7 @@
 #include "systems/RippleSystem.h"
 #include "systems/ScoreSystem.h"
 #include "systems/VisionSystem.h"
+#include "systems/VoiceDirector.h"
 #include "systems/WaveSpawner.h"
 #include "ui/Widgets.h"
 #include "world/Level.h"
@@ -37,27 +38,98 @@ constexpr int kConeArcSegments = 64;
 
 // Original decorative geometry; collision and interactions remain map-owned.
 void drawBankFurniture(int x, int y, float size, float visibility, Color wall, Color floor) {
-    const Color outline = Fade(wall, visibility);
-    const Color surface = Fade(floor, visibility);
-    const float left = x * size;
-    const float top = y * size;
-    const bool office = (x == 27 || x == 31) && (y == 22 || y == 25 || y == 30 || y == 34);
+    const Color edge = Fade(wall, visibility);
+    const Color surface = Fade(Color{static_cast<unsigned char>((wall.r + floor.r) / 2),
+                                     static_cast<unsigned char>((wall.g + floor.g) / 2),
+                                     static_cast<unsigned char>((wall.b + floor.b) / 2), 255},
+                               visibility);
+    const Color dark = Fade(Palette::Ink, visibility);
+    const float left = x * size, top = y * size;
+    const auto rect = [&](float px, float py, float w, float h, Color color) {
+        DrawRectangleRec({left + size * px, top + size * py, size * w, size * h}, color);
+    };
+    const bool desk = (x == 27 || x == 31) && (y == 22 || y == 25 || y == 30 || y == 34);
     const bool console = (x == 27 || x == 30 || x == 32) && y == 14;
-    const bool counter = x >= 43 && x <= 59 && y == 18;
+    const bool counter = (x == 43 || x == 44 || x == 60 || x == 61) && y >= 23 && y <= 33;
     const bool bench = (x == 44 || x == 57) && (y == 28 || y == 36);
     const bool crate = (x == 6 || x == 10 || x == 14) && y == 34;
-    if (office || console || counter || bench || crate) {
-        Rectangle body{left + size * 0.12f, top + size * 0.2f, size * 0.76f, size * 0.55f};
-        DrawRectangleRec(body, surface);
-        DrawRectangleLinesEx(body, 2, outline);
-        if (office || console) {
-            DrawRectangleRec({left + size * 0.4f, top + size * 0.3f, size * 0.22f, size * 0.18f},
-                             outline);
-            if (office) DrawCircleV({left + size * 0.5f, top + size * 0.9f}, size * 0.09f, outline);
-        }
-        if (crate)
-            DrawLineEx({body.x, body.y}, {body.x + body.width, body.y + body.height}, 2, outline);
+    if (desk || console) {
+        rect(.1f, .15f, .8f, .55f, surface);
+        rect(.14f, .15f, .72f, .08f, edge);
+        rect(.35f, .27f, .3f, .2f, dark);
+        rect(.38f, .3f, .24f, .12f, edge);
+        rect(.42f, .52f, .16f, .04f, dark);
+        rect(.42f, .77f, .2f, .18f, dark);
+        rect(.4f, .75f, .24f, .05f, edge);
+        rect(.7f, .5f, .12f, .1f, Fade(Palette::Bone, visibility * .25f));
     }
+    if (counter) {
+        rect(0, 0, 1, 1, surface);
+        if (x == 43 || x == 60) rect(.08f, 0, .12f, 1, edge);
+        if (x == 44 || x == 61) rect(.86f, .05f, .08f, .9f, dark);
+        if (y == 23 || y == 33) rect(0, y == 23 ? 0 : .85f, 1, .15f, edge);
+        if (y % 3 == 0) {
+            rect(.35f, .35f, .24f, .22f, dark);
+            rect(.38f, .38f, .18f, .12f, edge);
+        }
+    }
+    if ((x == 42 || x == 62) && y >= 23 && y <= 33 && y % 3 == 0) {
+        rect(.28f, .3f, .44f, .42f, dark);
+        rect(.25f, .26f, .5f, .12f, surface);
+    }
+    if (bench) {
+        rect(.08f, .18f, .84f, .55f, dark);
+        rect(.12f, .2f, .76f, .13f, edge);
+        rect(.12f, .36f, .35f, .3f, surface);
+        rect(.53f, .36f, .35f, .3f, surface);
+    }
+    if (crate) {
+        rect(.15f, .15f, .7f, .7f, surface);
+        rect(.2f, .2f, .6f, .08f, edge);
+        rect(.2f, .72f, .6f, .08f, edge);
+        DrawLineEx({left + size * .25f, top + size * .3f}, {left + size * .75f, top + size * .7f},
+                   2, dark);
+        DrawLineEx({left + size * .75f, top + size * .3f}, {left + size * .25f, top + size * .7f},
+                   2, dark);
+    }
+    if ((x == 25 || x == 33) && (y == 18 || y == 26 || y == 36)) {
+        DrawCircleV({left + size * .5f, top + size * .5f}, size * .2f, dark);
+        for (int i = 0; i < 6; ++i) {
+            const float angle = i * kPi / 3;
+            const Vector2 tip{left + size * (.5f + .3f * std::cos(angle)),
+                              top + size * (.5f + .3f * std::sin(angle))};
+            DrawTriangle({left + size * .5f, top + size * .5f}, {tip.x + size * .08f, tip.y},
+                         {tip.x, tip.y + size * .08f}, surface);
+        }
+    }
+}
+
+void drawOperator(Vector2 p, float radius, float facing, Color body, float opacity, bool rim,
+                  bool ghost, bool heavy = false) {
+    const Vector2 forward{std::cos(facing), std::sin(facing)}, side{-forward.y, forward.x};
+    const auto at = [&](float x, float y) {
+        return Vector2{p.x + radius * (forward.x * x + side.x * y),
+                       p.y + radius * (forward.y * x + side.y * y)};
+    };
+    for (const auto shoulder : {at(-.2f, -.65f), at(-.2f, .65f)}) {
+        if (rim) DrawCircleV(shoulder, radius * .55f + 2, Fade(Palette::Bone, opacity));
+        DrawCircleV(shoulder, radius * .55f, Fade(body, opacity));
+    }
+    if (rim) DrawCircleV(p, radius + 2, Fade(Palette::Bone, opacity));
+    DrawCircleV(p, radius, Fade(body, opacity));
+    const Vector2 head = at(.2f, 0);
+    DrawCircleV(head, radius * .65f, Fade(ghost ? Palette::Bone : Palette::Slate, opacity));
+    if (ghost) {
+        for (float eye : {-.24f, .24f})
+            DrawCircleV(at(.39f, eye), radius * .14f, Fade(Palette::Ink, opacity));
+        DrawLineEx(at(.65f, -.18f), at(.65f, .18f), radius * .12f, Fade(Palette::Ink, opacity));
+        DrawCircleV(at(-.2f, -.85f), radius * .16f, Fade(Palette::Alarm, opacity));
+    } else {
+        DrawLineEx(at(.65f, -.45f), at(.65f, .45f), radius * .17f, Fade(Palette::Bone, opacity));
+        DrawLineEx(at(-.45f, -.42f), at(-.45f, .42f), radius * .24f,
+                   Fade(heavy ? Color{242, 183, 5, 255} : Palette::Bone, opacity));
+    }
+    DrawLineEx(at(-.15f, -.68f), at(.2f, -.68f), radius * .15f, Fade(Palette::Teal, opacity));
 }
 
 void drawClippedTriangle(Vector2 eye, Vector2 right, Vector2 left, Rectangle tile, Color color) {
@@ -228,6 +300,8 @@ Renderer::Renderer(Logger& logger, const RenderConfig& config)
         post_ = LoadShader(nullptr, path);
         timeLocation_ = GetShaderLocation(post_, "elapsedTime");
         alarmPulseLocation_ = GetShaderLocation(post_, "alarmPulse");
+        grainLocation_ = GetShaderLocation(post_, "grainIntensity");
+        vignetteLocation_ = GetShaderLocation(post_, "vignetteStrength");
     }
     if (timeLocation_ < 0)
         logger.log(LogLevel::Error, "Post shader unavailable; using plain rendering");
@@ -255,6 +329,11 @@ void Renderer::compose(bool effects) {
     if (useShader) {
         const float elapsed = static_cast<float>(GetTime());
         SetShaderValue(post_, timeLocation_, &elapsed, SHADER_UNIFORM_FLOAT);
+        if (grainLocation_ >= 0)
+            SetShaderValue(post_, grainLocation_, &config_.grainIntensity, SHADER_UNIFORM_FLOAT);
+        if (vignetteLocation_ >= 0)
+            SetShaderValue(post_, vignetteLocation_, &config_.vignetteStrength,
+                           SHADER_UNIFORM_FLOAT);
         if (alarmPulseLocation_ >= 0)
             SetShaderValue(post_, alarmPulseLocation_, &alarmPulse_, SHADER_UNIFORM_FLOAT);
         BeginShaderMode(post_);
@@ -521,10 +600,8 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
             continue;
         }
         if (!pickupsLit) drawGuardCone(guard, position, map, player.isCrouched(), visible);
-        if (pickupsLit)
-            DrawRing({position.x, position.y}, guard.radius, guard.radius + 2, 0, 360, 64,
-                     Fade(kBone, visible));
-        DrawCircleV({position.x, position.y}, guard.radius, Fade(kBone, visible));
+        drawOperator({position.x, position.y}, guard.radius, guard.facing(), Palette::Navy, visible,
+                     pickupsLit, false);
         const Vector2 direction{std::cos(guard.facing()), std::sin(guard.facing())};
         DrawLineEx({position.x, position.y},
                    {position.x + direction.x * guard.radius * 1.7f,
@@ -563,14 +640,8 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
         }
         const bool heavy = enemy->spec().id == "heavy";
         const Color body = heavy ? Color{16, 21, 31, 255} : Color{27, 42, 74, 255};
-        DrawEllipse(static_cast<int>(p.x), static_cast<int>(p.y), enemy->radius * 1.2f,
-                    enemy->radius * 0.72f, Fade(body, visible));
-        DrawCircleV({p.x, p.y}, enemy->radius, Fade(body, visible));
-        if (pickupsLit)
-            DrawRing({p.x, p.y}, enemy->radius, enemy->radius + 2, 0, 360, 64,
-                     Fade(kBone, visible));
-        DrawRectangle(static_cast<int>(p.x - 6), static_cast<int>(p.y - 3), 12, 6,
-                      Fade(heavy ? kGold : kBone, visible));
+        drawOperator({p.x, p.y}, enemy->radius, enemy->facing(), body, visible, pickupsLit, false,
+                     heavy);
         DrawLineEx({p.x, p.y},
                    {p.x + std::cos(enemy->facing()) * enemy->radius * 1.7f,
                     p.y + std::sin(enemy->facing()) * enemy->radius * 1.7f},
@@ -731,20 +802,11 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
             DrawCircleLinesV(meter, 8, Fade(kBone, visible));
         }
     }
-    DrawCircleV({spawn.x, spawn.y}, player.radius, {10, 10, 12, 255});
-    DrawCircleV({spawn.x, spawn.y}, player.radius * 0.65f, kBone);
-    DrawRectangleRec({spawn.x - player.radius * 0.35f, spawn.y - player.radius * 0.1f,
-                      player.radius * 0.2f, player.radius * 0.2f},
-                     {10, 10, 12, 255});
-    DrawRectangleRec({spawn.x + player.radius * 0.15f, spawn.y - player.radius * 0.1f,
-                      player.radius * 0.2f, player.radius * 0.2f},
-                     {10, 10, 12, 255});
-    const Vector2 aim{std::cos(facing), std::sin(facing)};
+    drawOperator({spawn.x, spawn.y}, player.radius, facing, Palette::Ink, 1, pickupsLit, true);
     DrawLineEx({spawn.x, spawn.y},
-               {spawn.x + aim.x * player.radius * 1.7f, spawn.y + aim.y * player.radius * 1.7f},
-               player.radius * 0.25f, kBone);
-    if (pickupsLit)
-        DrawRing({spawn.x, spawn.y}, player.radius, player.radius + 2, 0, 360, 64, kBone);
+               {spawn.x + std::cos(facing) * player.radius * 1.7f,
+                spawn.y + std::sin(facing) * player.radius * 1.7f},
+               3, kBone);
     if (!overview && !pickupsLit)
         DrawRing({spawn.x, spawn.y}, player.radius + 4, player.radius + 6, -90,
                  -90 + 360 * ripple.cooldownFraction(), 64, kBone);
@@ -781,9 +843,7 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                    : player.isSprinting() ? "SPRINT"
                                           : "WALK",
                    {464, 48}, 14, kGold, true);
-    if (hints_)
-        uiAssets_.text("WASD move  |  SPACE ping  |  E interact  |  G throw", {448, 692}, 14, kBone,
-                       true);
+
 #ifndef NDEBUG
     if (overview)
         uiAssets_.text(TextFormat("%d x %d | Seed %u", map.width(), map.height(), seed), {464, 72},
@@ -855,19 +915,19 @@ void Renderer::drawInteractionHud(const World& world, const InteractionSystem& i
         uiAssets_.text(TextFormat("SECURITY LOOP %.0fs", world.securityLoopRemaining), {272, 96},
                        14, kTeal, true);
     if (const auto* target = interaction.target()) {
-        DrawRectangle(312, Letterbox::kHeight - 112, 704, 56, kSlate);
-        DrawText(target->prompt.c_str(), 336, Letterbox::kHeight - 96, 20, kBone);
+        DrawRectangle(312, Letterbox::kHeight - 208, 704, 56, kSlate);
+        DrawText(target->prompt.c_str(), 336, Letterbox::kHeight - 192, 20, kBone);
         if (interaction.progress() > 0)
-            DrawRing({960, static_cast<float>(Letterbox::kHeight - 84)}, 14, 18, -90,
+            DrawRing({960, static_cast<float>(Letterbox::kHeight - 180)}, 14, 18, -90,
                      -90 + 360 * interaction.progress(), 64, kBone);
     }
 }
 
 void Renderer::drawPickupHud(const RecoveryPickup* pickup) const {
     if (!pickup) return;
-    DrawRectangle(312, Letterbox::kHeight - 112, 704, 56, {20, 22, 27, 255});
+    DrawRectangle(312, Letterbox::kHeight - 208, 704, 56, {20, 22, 27, 255});
     DrawText(pickup->type == PickupType::Medkit ? "E: collect medkit" : "E: collect armor plate",
-             336, Letterbox::kHeight - 96, 20, {233, 228, 208, 255});
+             336, Letterbox::kHeight - 192, 20, {233, 228, 208, 255});
 }
 
 void Renderer::drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pagers,
@@ -984,4 +1044,54 @@ void Renderer::drawPayout(const Payout& payout) {
     DrawText(TextFormat("RANK %c    PAYOUT $%.0f", payout.rank, payout.finalAmount), 280, 556, 28,
              gold);
     DrawText("ENTER: return to menu", 280, 632, 22, bone);
+}
+
+void Renderer::drawVoice(const VoiceDirector& director, const UiConfig& config) const {
+    if (!director.hint().empty() && hints_) {
+        const float fraction = std::clamp(director.hintAge() / config.transitionTime, 0.f, 1.f);
+        const float entry =
+            reduceEffects_ ? 0 : (1 - fraction) * (1 - fraction) * (1 - fraction) * 520;
+        const Rectangle toast{736 + entry, 272, 520, 72};
+        DrawRectangleRounded(toast, .1f, 8, Fade(Palette::Ink, .9f));
+        DrawRectangleRoundedLinesEx(toast, .1f, 8, 2, Fade(Palette::Bone, .2f));
+        uiAssets_.text(director.hint().c_str(), {752 + entry, 296}, 18, Palette::Bone, true);
+    }
+    const auto* line = director.current();
+    if (!line) return;
+    std::istringstream words(line->text);
+    std::vector<std::string> lines;
+    std::string word, row;
+    while (words >> word) {
+        const auto next = row.empty() ? word : row + " " + word;
+        if (!row.empty() && MeasureTextEx(uiAssets_.body(), next.c_str(), 22, 1).x > 664) {
+            lines.push_back(row);
+            row = word;
+        } else
+            row = next;
+    }
+    if (!row.empty()) lines.push_back(row);
+    const float height = std::max(96.f, 32 + static_cast<float>(lines.size()) * 28);
+    const float top = 696 - height;
+    DrawRectangleRounded({312, top, 832, height}, .08f, 8, Fade(Palette::Ink, .8f));
+    DrawRectangleRoundedLinesEx({312, top, 832, height}, .08f, 8, 2, Fade(Palette::Bone, .2f));
+    const float flicker =
+        line->priority == 3 && !reduceEffects_
+            ? .6f + .4f * (.5f + .5f * std::cos(director.age() * config.panicFlickerHz * 2 * kPi))
+            : 1.f;
+    const Rectangle portrait{312, top, 96, 96};
+    const auto texture = uiAssets_.handlerPortrait();
+    if (texture.id)
+        DrawTexturePro(
+            texture, {0, 0, static_cast<float>(texture.width), static_cast<float>(texture.height)},
+            portrait, {0, 0}, 0, Fade(WHITE, flicker));
+    else {
+        DrawCircleV({360, top + 44}, 24, Palette::Bone);
+        DrawRing({360, top + 44}, 26, 30, 170, 350, 24, Palette::Teal);
+    }
+    DrawRectangleLinesEx(portrait, 2, Fade(Palette::Bone, flicker));
+    float y = top + 16;
+    for (const auto& value : lines) {
+        uiAssets_.text(value.c_str(), {432, y}, 22, Palette::Bone, true);
+        y += 28;
+    }
 }

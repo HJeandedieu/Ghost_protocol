@@ -336,3 +336,42 @@ TEST(Config, AudioTimingAndDuckValidateRangesAndWarnWithDefaults) {
     EXPECT_FLOAT_EQ(audio.voiceDuck, .4f);
     EXPECT_NE(output.str().find("[WARN]"), std::string::npos);
 }
+
+TEST(Config, VoiceLowHealthThresholdLoadsAndRejectsZeroOrAboveOne) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    std::ostringstream out;
+    Logger logger(out, "");
+    data["voice"]["low_health_fraction"] = .4;
+    EXPECT_FLOAT_EQ(
+        Config::load(files.write("voice.json", data.dump()), logger).voice.lowHealthFraction, .4f);
+    for (float value : {0.f, 1.1f, -1.f}) {
+        data["voice"]["low_health_fraction"] = value;
+        EXPECT_FLOAT_EQ(Config::load(files.write("invalidvoice.json", data.dump()), logger)
+                            .voice.lowHealthFraction,
+                        .25f);
+    }
+    EXPECT_NE(out.str().find("voice.low_health_fraction"), std::string::npos);
+}
+
+TEST(Config, Day26PresentationKeysLoadAndInvalidValuesWarnWithDefaults) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    std::ostringstream out;
+    Logger logger(out, "");
+    data["voice"]["subtitle_words_per_second"] = 0;
+    data["ui"]["hint_time"] = -1;
+    data["ui"]["panic_flicker_hz"] = 4;
+    data["render"]["grain_intensity"] = 2;
+    data["render"]["vignette_strength"] = "bad";
+    const auto config = Config::load(files.write("day26-invalid.json", data.dump()), logger);
+    EXPECT_FLOAT_EQ(config.voice.subtitleWordsPerSecond, 3);
+    EXPECT_FLOAT_EQ(config.ui.hintTime, 3);
+    EXPECT_FLOAT_EQ(config.ui.panicFlickerHz, 2);
+    EXPECT_FLOAT_EQ(config.render.grainIntensity, .04f);
+    EXPECT_FLOAT_EQ(config.render.vignetteStrength, .35f);
+    EXPECT_NE(out.str().find("panic_flicker_hz"), std::string::npos);
+    EXPECT_NE(out.str().find("subtitle_words_per_second"), std::string::npos);
+}

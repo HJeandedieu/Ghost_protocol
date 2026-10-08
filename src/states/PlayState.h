@@ -31,6 +31,7 @@
 class Renderer;
 class Logger;
 class AudioDirector;
+class VoiceDirector;
 
 class PlayState : public IState {
    public:
@@ -42,7 +43,8 @@ class PlayState : public IState {
               std::function<void(Payout)> finish = {},
               std::array<std::string, 2> loadout = {{"whisper", "chatter"}},
               DifficultyPreset difficulty = {}, std::function<void(int, bool)> pause = {},
-              std::function<void(int, bool)> busted = {}, AudioDirector* audio = nullptr);
+              std::function<void(int, bool)> busted = {}, AudioDirector* audio = nullptr,
+              VoiceDirector* voice = nullptr);
     void enter() override;
     void exit() override;
     void update(float dt) override;
@@ -86,4 +88,5 @@ class PlayState : public IState {
     bool bustedShown_ = false;
     GameplayInputGate inputGate_;
     AudioDirector* audio_ = nullptr;
+    VoiceDirector* voice_ = nullptr;
 };

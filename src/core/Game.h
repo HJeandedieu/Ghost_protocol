@@ -11,6 +11,7 @@
 #include "states/StateMachine.h"
 #include "systems/AudioDirector.h"
 #include "systems/ScoreSystem.h"
+#include "systems/VoiceDirector.h"
 class AudioPlayback;
 
 class Renderer;
@@ -37,6 +38,8 @@ class Game {
     const Config config_;
     AudioDirector audioDirector_;
     std::unique_ptr<AudioPlayback> audioPlayback_;
+    std::unique_ptr<VoiceDirector> voiceDirector_;
+    bool voicePaused_ = false;
     SaveStore saveStore_;
     Settings settings_;
     Scores scores_;

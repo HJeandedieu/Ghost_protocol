@@ -1,6 +1,9 @@
 #pragma once
 #include "raylib.h"
 namespace Palette {
+inline constexpr Color Ink{10, 10, 12, 255};
+inline constexpr Color Navy{27, 42, 74, 255};
+inline constexpr Color Slate{20, 22, 27, 255};
 inline constexpr Color Teal{63, 143, 140, 255};
 inline constexpr Color DeepTeal{30, 74, 74, 255};
 inline constexpr Color Alarm{255, 59, 92, 255};

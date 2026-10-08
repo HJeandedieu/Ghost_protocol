@@ -8,6 +8,8 @@
 #include "render/Renderer.h"
 #include "systems/AudioDirector.h"
 #include "systems/VisionSystem.h"
+#include "systems/VoiceDirector.h"
+#include "world/Raycast.h"
 
 namespace {
 World missionWorld(Level level, const Config& config, int stage) {
@@ -24,7 +26,8 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
                      std::function<void(int, bool)> retry, std::shared_ptr<MissionRun> run,
                      std::function<void(Payout)> finish, std::array<std::string, 2> loadout,
                      DifficultyPreset difficulty, std::function<void(int, bool)> pause,
-                     std::function<void(int, bool)> busted, AudioDirector* audio)
+                     std::function<void(int, bool)> busted, AudioDirector* audio,
+                     VoiceDirector* voice)
     : world_(missionWorld(std::move(level), config, stage)),
       input_(input),
       camera_(world_.player.pos, config.view),
@@ -55,21 +58,31 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       payoutRng_(seed),
       pause_(std::move(pause)),
       busted_(std::move(busted)),
-      audio_(audio) {
+      audio_(audio),
+      voice_(voice) {
+    if (voice_) voice_->listen(events_);
     if (audio_) audio_->listen(events_);
     noise_.setWeapons(weapons, config.noise);
     noise_.setEnemies(enemies);
     interaction_.loadBank(world_, config_);
-    if (audio_) {
+    if (audio_ || voice_) {
         const auto& map = world_.level.map;
         for (int y = 0; y < map.height(); ++y)
             for (int x = 0; x < map.width(); ++x) {
                 const auto type = map.tile(x, y);
                 const auto id = std::to_string(x) + ":" + std::to_string(y);
                 if (type == TileType::ServiceDoor || type == TileType::CardDoor)
-                    audio_->bindInteraction(id, "door_open");
-                if (type == TileType::Keycard) audio_->bindInteraction(id, "keycard_pick");
-                if (type == TileType::Breaker) audio_->bindInteraction(id, "gate_open");
+                    if (audio_) audio_->bindInteraction(id, "door_open");
+                if (type == TileType::Keycard) {
+                    if (audio_) audio_->bindInteraction(id, "keycard_pick");
+                    if (voice_) voice_->bindInteraction(id, "V09");
+                }
+                if (type == TileType::VaultDoor && voice_)
+                    voice_->bindInteraction("vault:" + id + ":thermite", "V15");
+                if (type == TileType::Breaker) {
+                    if (audio_) audio_->bindInteraction(id, "gate_open");
+                    if (voice_) voice_->bindInteraction(id, "V11");
+                }
             }
     }
     objectives_ =
@@ -111,7 +124,12 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
     }
 }
 
-void PlayState::enter() {}
+void PlayState::enter() {
+    if (voice_) {
+        voice_->setTutorialContext(objectives_->stage(), renderer_.hints(), world_.player.id);
+        voice_->request("V02");
+    }
+}
 void PlayState::exit() {}
 void PlayState::update(float dt) {
     if (!std::isfinite(dt) || dt <= 0) return;
@@ -252,6 +270,40 @@ void PlayState::update(float dt) {
         }
     }
     events_.dispatch();
+    if (voice_) {
+        voice_->setTutorialContext(objectives_->stage(), renderer_.hints(), player.id);
+        voice_->observeHealth(player.hp(), player.maximumHp());
+        bool seenGuard = false;
+        for (const auto& guard : world_.guards) {
+            const TileCoord tile{static_cast<int>(guard.pos.x / world_.level.map.tileSize()),
+                                 static_cast<int>(guard.pos.y / world_.level.map.tileSize())};
+            if (!guard.dead() && guard.state() != GuardState::Unconscious &&
+                (world_.alarmLoud || guard.reveal > 0 ||
+                 ripple_.visibility(tile.x, tile.y, player.pos, world_.level.map) > 0) &&
+                Raycast::hasLineOfSight(player.pos, guard.pos, world_.level.map))
+                seenGuard = true;
+        }
+        const auto* target = interaction_.target();
+        const bool service =
+            target && world_.level.map.tile(
+                          static_cast<int>(target->position.x / world_.level.map.tileSize()),
+                          static_cast<int>(target->position.y / world_.level.map.tileSize())) ==
+                          TileType::ServiceDoor;
+        voice_->observeTutorial(seenGuard, service);
+        for (const auto& laser : world_.lasers) {
+            const auto point = laser.nearestPoint(player.pos);
+            if (std::hypot(point.x - player.pos.x, point.y - player.pos.y) <=
+                    config_.ping.hazardRevealRadius &&
+                Raycast::hasLineOfSight(player.pos, point, world_.level.map))
+                voice_->request("V12");
+        }
+        if (!vaultBefore && objectives_->vaultOpen()) {
+            voice_->request(world_.alarmLoud ? "V16" : "V17");
+            voice_->request("V18");
+        }
+        if (!bollardsBefore && objectives_->bollardsLowered()) voice_->request("V20");
+        if (!vanBefore && objectives_->vanArrived()) voice_->request("V21");
+    }
 #ifndef NDEBUG
     if (input_.debugPressed) debugView_ = !debugView_;
 #endif

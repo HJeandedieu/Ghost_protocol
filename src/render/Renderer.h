@@ -18,6 +18,7 @@ class SecurityCamera;
 class Laser;
 class RippleSystem;
 class Logger;
+class VoiceDirector;
 class InteractionSystem;
 class TileMap;
 class AlarmDirector;
@@ -44,6 +45,8 @@ class Renderer {
     void drawFrozenFrame() const;
     bool reduceEffects() const { return reduceEffects_; }
     void updateTransition(float dt) { transitionElapsed_ += dt; }
+    bool hints() const { return hints_; }
+    void drawVoice(const VoiceDirector& director, const UiConfig& config) const;
     void setHints(bool enabled) { hints_ = enabled; }
     void setReduceEffects(bool enabled) { reduceEffects_ = enabled; }
     Texture2D frameTexture() const { return surface_.texture; }
@@ -95,6 +98,7 @@ class Renderer {
     Shader post_{};
     int timeLocation_ = -1;
     int alarmPulseLocation_ = -1;
+    int grainLocation_ = -1, vignetteLocation_ = -1;
     float alarmPulse_ = 0;
     bool composed_ = false;
     bool reduceEffects_ = false;

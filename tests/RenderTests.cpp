@@ -21,6 +21,7 @@
 #include "systems/InteractionSystem.h"
 #include "systems/ObjectiveSystem.h"
 #include "systems/RippleSystem.h"
+#include "systems/VoiceDirector.h"
 #include "systems/WaveSpawner.h"
 #include "world/LevelLoader.h"
 #include "world/World.h"
@@ -455,11 +456,11 @@ TEST_F(Render, InteractionPromptAndSixSegmentNoiseMeterRemainReadable) {
         segmentsFound = segmentsFound || matches;
     }
     EXPECT_TRUE(segmentsFound);
-    const auto prompt = GetImageColor(image, 316, 612);
+    const auto prompt = GetImageColor(image, 316, 516);
     EXPECT_EQ(prompt.r, 20);
     EXPECT_EQ(prompt.g, 22);
     EXPECT_EQ(prompt.b, 27);
-    const auto ring = GetImageColor(image, 960, 620);
+    const auto ring = GetImageColor(image, 960, 524);
     EXPECT_GT(ring.r, 200);
     UnloadImage(image);
 }
@@ -1279,4 +1280,76 @@ TEST_F(Render, MenuControlsSaveSettingsAndRemainResponsiveDuringTransitions) {
     menu.update(.016f);
     input.clearEdges();
     EXPECT_EQ(starts, 1);
+}
+
+TEST_F(Render, HandlerSubtitleWrapsInsidePanelAndReducedEffectsFreezesPanicAppearance) {
+    std::ostringstream out;
+    Logger logger(out, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    auto script = loadVoiceLines("assets/config/voice_lines.json", logger);
+    ASSERT_TRUE(script);
+    VoiceDirector voice(std::move(*script), .25f);
+    voice.request("V08");
+    renderer.beginFrame();
+    renderer.drawVoice(voice, {});
+    renderer.present();
+    auto first = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&first);
+    const auto border = GetImageColor(first, 312, 602);
+    EXPECT_GT(border.r, 180);
+    EXPECT_TRUE(ExportImage(first, GP_RENDER_OUTPUT_DIRECTORY "/day26-handler-subtitles.png"));
+    voice.update(.15f);
+    renderer.beginFrame();
+    renderer.drawVoice(voice, {});
+    renderer.present();
+    auto second = LoadImageFromTexture(renderer.frameTexture());
+    ImageFlipVertical(&second);
+    const auto next = GetImageColor(second, 312, 602);
+    EXPECT_EQ(border.r, next.r);
+    EXPECT_EQ(border.g, next.g);
+    EXPECT_EQ(border.b, next.b);
+    UnloadImage(first);
+    UnloadImage(second);
+}
+
+TEST_F(Render, Day26BankAndHandlerRemainReadableInStealthAndLoud) {
+    std::ostringstream out;
+    Logger logger(out, "");
+    Config config = Config::load("assets/config/tuning.json", logger);
+    Renderer renderer(logger, config.render);
+    auto level = LevelLoader::load("assets/levels/gotham_central.json", logger);
+    ASSERT_TRUE(level);
+    World world(std::move(*level), config.player, config.guard, config.camera);
+    renderer.prepareLevel(world.level);
+    renderer.resetHealthHud(world.player);
+    world.player.pos = world.player.prevPos = world.level.map.tileCenter({50, 32});
+    RippleSystem ripple(config.ping, world.level.map);
+    ripple.startPing(world.player.pos, config.ping.chargeMax);
+    std::vector<Entity*> entities;
+    for (auto& guard : world.guards) entities.push_back(&guard);
+    ripple.update(.55f, world.level.map, entities);
+    EventBus events;
+    InteractionSystem interaction(events);
+    interaction.loadBank(world, config);
+    auto script = loadVoiceLines("assets/config/voice_lines.json", logger);
+    ASSERT_TRUE(script);
+    VoiceDirector voice(std::move(*script), config.voice.lowHealthFraction);
+    voice.request("V05");
+    for (bool loud : {false, true}) {
+        world.alarmLoud = loud;
+        renderer.beginFrame();
+        renderer.drawLevel(world.level, world.player, ripple, world.player.pos, 0, 1, false, 42,
+                           world.guards, world.cameras, world.lasers, false, nullptr, {}, loud);
+        renderer.drawInteractionHud(world, interaction, config.noise.walk, config.noise.sprint);
+        renderer.drawVoice(voice, config.ui);
+        renderer.present();
+        auto image = LoadImageFromTexture(renderer.frameTexture());
+        ImageFlipVertical(&image);
+        EXPECT_GT(GetImageColor(image, 312, 602).r, 180);
+        EXPECT_TRUE(ExportImage(image, loud ? GP_RENDER_OUTPUT_DIRECTORY "/day26-loud.png"
+                                            : GP_RENDER_OUTPUT_DIRECTORY "/day26-stealth.png"));
+        UnloadImage(image);
+    }
+    for (const auto& guard : world.guards) EXPECT_GE(guard.reveal, 0);
 }

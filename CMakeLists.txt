@@ -71,7 +71,7 @@ add_library(ghost_core STATIC
     src/systems/DetectionSystem.cpp
     src/systems/AlarmDirector.cpp src/systems/PagerSystem.cpp
     src/systems/LaserSystem.cpp src/systems/CombatSystem.cpp src/systems/PickupSystem.cpp src/systems/EnemyCombatSystem.cpp
-    src/systems/WaveSpawner.cpp src/systems/ObjectiveSystem.cpp src/systems/ScoreSystem.cpp src/systems/AudioDirector.cpp
+    src/systems/WaveSpawner.cpp src/systems/ObjectiveSystem.cpp src/systems/ScoreSystem.cpp src/systems/AudioDirector.cpp src/systems/VoiceDirector.cpp
 )
 target_include_directories(ghost_core PUBLIC src)
 target_link_libraries(ghost_core PRIVATE nlohmann_json::nlohmann_json)
@@ -114,7 +114,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
         tests/AssetsTests.cpp tests/SaveStoreTests.cpp tests/ScoresTests.cpp tests/WidgetsTests.cpp tests/GameplayInputGateTests.cpp tests/ScreenNavigationTests.cpp
         tests/PlayerTests.cpp tests/GuardTests.cpp tests/WeaponTests.cpp tests/EnemySpecTests.cpp tests/EnemyCombatTests.cpp
-        tests/GuardAITests.cpp tests/WaveSpawnerTests.cpp tests/ObjectiveSystemTests.cpp tests/ScoreSystemTests.cpp tests/AudioDirectorTests.cpp
+        tests/GuardAITests.cpp tests/WaveSpawnerTests.cpp tests/ObjectiveSystemTests.cpp tests/ScoreSystemTests.cpp tests/AudioDirectorTests.cpp tests/VoiceDirectorTests.cpp
         tests/FollowCameraTests.cpp tests/AlarmSequenceTests.cpp
         tests/RaycastTests.cpp tests/RippleSystemTests.cpp
         tests/PathfinderTests.cpp
