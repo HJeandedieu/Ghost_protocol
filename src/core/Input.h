@@ -17,6 +17,7 @@ struct Input {
     bool sprintHeld = false;
     Vec2 move;
     Vec2 mouseLogical;
+    Vec2 mouseDelta;
     bool mouseInViewport = false;
     bool pingPressed = false;
     bool pingHeld = false;
@@ -31,6 +32,7 @@ struct Input {
     int loadoutExcluded = -1;
     int weaponWheel = 0;
     void clearEdges() {
+        mouseDelta = {};
         backPressed = false;
         menuVertical = 0;
         menuHorizontal = 0;

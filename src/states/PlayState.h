@@ -5,12 +5,12 @@
 #include <memory>
 
 #include "core/EventBus.h"
+#include "core/FirstPersonView.h"
 #include "core/GameplayInputGate.h"
 #include "core/Input.h"
 #include "entities/GuardAI.h"
 #include "entities/Player.h"
 #include "render/AlarmSequence.h"
-#include "render/FollowCamera.h"
 #include "states/IState.h"
 #include "systems/AlarmDirector.h"
 #include "systems/CombatSystem.h"
@@ -51,13 +51,15 @@ class PlayState : public IState {
     void render(float alpha) override;
     const World& world() const { return world_; }
     const ObjectiveSystem& objectives() const { return *objectives_; }
+    const FirstPersonView& view() const { return view_; }
+    void pauseForCaptureLoss();
 
    private:
     EventBus events_;
     World world_;
     std::vector<std::unique_ptr<GuardAI>> guardAi_;
     const Input& input_;
-    FollowCamera camera_;
+    FirstPersonView view_;
     float facing_ = 0.0f;
     std::uint32_t seed_;
     bool debugView_ = false;

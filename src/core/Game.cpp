@@ -18,6 +18,7 @@
 #include "world/LevelLoader.h"
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
 #endif
 
 Game::Game()
@@ -49,6 +50,30 @@ int Game::run() {
     SetTargetFPS(60);
 #endif
     SetExitKey(KEY_NULL);
+#ifdef __EMSCRIPTEN__
+    emscripten_set_mousedown_callback(
+        "#canvas", this, false, [](int, const EmscriptenMouseEvent*, void* context) -> EM_BOOL {
+            static_cast<Game*>(context)->requestBrowserCapture();
+            return EM_FALSE;
+        });
+    emscripten_set_keydown_callback(
+        EMSCRIPTEN_EVENT_TARGET_WINDOW, this, false,
+        [](int, const EmscriptenKeyboardEvent* event, void* context) -> EM_BOOL {
+            if (event->keyCode != 27) static_cast<Game*>(context)->requestBrowserCapture();
+            return EM_FALSE;
+        });
+    // Observe at document level without replacing raylib's canvas mouse handler.
+    emscripten_set_mousemove_callback(
+        EMSCRIPTEN_EVENT_TARGET_DOCUMENT, this, false,
+        [](int, const EmscriptenMouseEvent* event, void* context) -> EM_BOOL {
+            auto* game = static_cast<Game*>(context);
+            if (game->pointerCapture_.active()) {
+                game->input_.mouseDelta.x += static_cast<float>(event->movementX);
+                game->input_.mouseDelta.y += static_cast<float>(event->movementY);
+            }
+            return EM_FALSE;
+        });
+#endif
     renderer_ = std::make_unique<Renderer>(logger_, config_.render);
     renderer_->setReduceEffects(settings_.reduceEffects);
     renderer_->setHints(settings_.hints);
@@ -101,6 +126,7 @@ int Game::run() {
 }
 
 void Game::tick() {
+    discardGameplayFrame_ = false;
     // The key queue also retains short down/up taps occurring between rendered frames.
     for (int key = GetKeyPressed(); key != 0; key = GetKeyPressed()) {
         if (key == KEY_ENTER || key == KEY_KP_ENTER) input_.confirmPressed = true;
@@ -158,6 +184,15 @@ void Game::tick() {
         input_.mouseLogical = {(mouse.x - viewport.x) * Letterbox::kWidth / viewport.width,
                                (mouse.y - viewport.y) * Letterbox::kHeight / viewport.height};
     }
+    syncPointerCapture();
+    if (!IsWindowFocused()) input_ = {};
+#ifndef __EMSCRIPTEN__
+    if (pointerCapture_.active() && !discardGameplayFrame_) {
+        const auto delta = GetMouseDelta();
+        input_.mouseDelta.x += delta.x;
+        input_.mouseDelta.y += delta.y;
+    }
+#endif
     time_.addFrame(GetFrameTime());
     while (time_.consumeStep()) {
         update(static_cast<float>(Time::kStep));
@@ -168,14 +203,61 @@ void Game::tick() {
     }
     renderer_->beginFrame();
     states_.render(time_.alpha());
+    if (dynamic_cast<const PlayState*>(states_.top()) && !pointerCapture_.active())
+        renderer_->uiAssets().text("CLICK TO FOCUS THE HEIST", {430, 340}, 24, WHITE, true);
     if (voiceDirector_) renderer_->drawVoice(*voiceDirector_, config_.ui);
     renderer_->present();
 }
 
+void Game::requestBrowserCapture() {
+#ifdef __EMSCRIPTEN__
+    if (dynamic_cast<const PlayState*>(states_.top()) && IsWindowFocused() &&
+        !pointerCapture_.active()) {
+        const auto result = emscripten_request_pointerlock("#canvas", false);
+        if (result != EMSCRIPTEN_RESULT_SUCCESS)
+            logger_.log(LogLevel::Warn, "Pointer capture unavailable; click the game to retry");
+    }
+#endif
+}
+
+void Game::syncPointerCapture() {
+    auto* play = dynamic_cast<PlayState*>(states_.top());
+#ifdef __EMSCRIPTEN__
+    constexpr bool kBrowser = true;
+    EmscriptenPointerlockChangeEvent status{};
+    emscripten_get_pointerlock_status(&status);
+    const bool captured = status.isActive;
+#else
+    constexpr bool kBrowser = false;
+    const bool captured = IsCursorHidden();
+#endif
+    const auto action = pointerCapture_.sync(play && !play->world().player.dead(),
+                                             IsWindowFocused(), captured, kBrowser);
+    if (action.discardInput) {
+        input_ = {};
+        discardGameplayFrame_ = true;
+    }
+    if (action.release) EnableCursor();
+    if (action.request) DisableCursor();
+    if (action.pause && play) {
+        play->pauseForCaptureLoss();
+        // Refresh immediately so a catch-up tick cannot resume a lost-capture game.
+        pointerCapture_.sync(false, IsWindowFocused(), false, kBrowser);
+        EnableCursor();
+    }
+}
+
 void Game::update(float dt) {
+    if (dynamic_cast<const PlayState*>(states_.top()) &&
+        (!pointerCapture_.active() || discardGameplayFrame_)) {
+        if (voiceDirector_) voiceDirector_->setPaused(true);
+        input_.clearEdges();
+        return;
+    }
     renderer_->updateTransition(dt);
     const bool presentation = dynamic_cast<const PlayState*>(states_.top()) == nullptr;
     states_.update(dt);
+    syncPointerCapture();
     if (presentation && audioPlayback_) {
         if (input_.backPressed)
             audioDirector_.request("ui_back");

@@ -57,6 +57,7 @@ endfunction()
 
 add_library(ghost_core STATIC
     src/core/Config.cpp src/core/Logger.cpp src/core/Rng.cpp src/core/Time.cpp
+    src/core/FirstPersonView.cpp src/core/PointerCapture.cpp
     src/states/StateMachine.cpp src/render/Letterbox.cpp
     src/world/TileMap.cpp src/world/LevelLoader.cpp
     src/core/Assets.cpp src/core/SaveStore.cpp src/core/Scores.cpp
@@ -110,6 +111,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
     FetchContent_MakeAvailable(googletest)
     add_executable(ghost_tests
         tests/ConfigTests.cpp tests/LoggerTests.cpp tests/RngTests.cpp tests/TimeTests.cpp
+        tests/FirstPersonViewTests.cpp tests/PointerCaptureTests.cpp
         tests/StateMachineTests.cpp tests/LetterboxTests.cpp
         tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
         tests/AssetsTests.cpp tests/SaveStoreTests.cpp tests/ScoresTests.cpp tests/WidgetsTests.cpp tests/GameplayInputGateTests.cpp tests/ScreenNavigationTests.cpp

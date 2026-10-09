@@ -28,7 +28,34 @@ const nlohmann::json& groupOrEmpty(const nlohmann::json& parent, const char* key
     const auto entry = parent.is_object() ? parent.find(key) : parent.end();
     return entry != parent.end() && entry->is_object() ? *entry : empty;
 }
+
+float readViewNumber(const nlohmann::json& group, const char* key, float fallback, float minimum,
+                     float maximum, bool strictMinimum, Logger& logger) {
+    const float value = readNumber(group, key, fallback, "view", logger, maximum);
+    if (value < minimum || (strictMinimum && value == minimum)) {
+        logger.log(LogLevel::Warn, std::string("Invalid view.") + key + "; using default");
+        return fallback;
+    }
+    return value;
+}
 }  // namespace
+
+ViewConfig validateViewForLevel(ViewConfig view, float tileSize, float mapDiagonal,
+                                Logger& logger) {
+    const ViewConfig defaults;
+    if (view.wallHeight < tileSize) {
+        logger.log(LogLevel::Warn, "Invalid view.wall_height for level; using default geometry");
+        view.wallHeight = defaults.wallHeight;
+        view.eyeHeight = defaults.eyeHeight;
+        view.crouchEyeHeight = defaults.crouchEyeHeight;
+        view.nearClip = defaults.nearClip;
+    }
+    if (view.farClip < mapDiagonal) {
+        logger.log(LogLevel::Warn, "Invalid view.far_clip for level; using default");
+        view.farClip = defaults.farClip;
+    }
+    return view;
+}
 
 Config Config::load(const std::string& path, Logger& logger) {
     Config config;
@@ -110,6 +137,32 @@ Config Config::load(const std::string& path, Logger& logger) {
     config.view.leadPx = readNumber(view, "lead_px", config.view.leadPx, "view", logger);
     config.view.followRate =
         readNumber(view, "follow_rate", config.view.followRate, "view", logger);
+    config.view.fovYDeg =
+        readViewNumber(view, "fov_y_deg", config.view.fovYDeg, 30, 100, false, logger);
+    config.view.mouseDegPerPx =
+        readViewNumber(view, "mouse_deg_per_px", config.view.mouseDegPerPx, 0, 2, true, logger);
+    config.view.pitchLimitDeg =
+        readViewNumber(view, "pitch_limit_deg", config.view.pitchLimitDeg, 1, 89, false, logger);
+    config.view.wallHeight =
+        readViewNumber(view, "wall_height", config.view.wallHeight, 0, 256, true, logger);
+    config.view.eyeHeight =
+        readViewNumber(view, "eye_height", config.view.eyeHeight, 0, 256, true, logger);
+    config.view.crouchEyeHeight = readViewNumber(view, "crouch_eye_height",
+                                                 config.view.crouchEyeHeight, 0, 256, true, logger);
+    config.view.nearClip =
+        readViewNumber(view, "near_clip", config.view.nearClip, 0, 256, true, logger);
+    config.view.farClip =
+        readViewNumber(view, "far_clip", config.view.farClip, 0, 20000, true, logger);
+    if (config.view.eyeHeight >= config.view.wallHeight ||
+        config.view.crouchEyeHeight > config.view.eyeHeight ||
+        config.view.nearClip >= config.view.eyeHeight) {
+        logger.log(LogLevel::Warn, "Invalid view geometry relationships; using default geometry");
+        const ViewConfig defaults;
+        config.view.wallHeight = defaults.wallHeight;
+        config.view.eyeHeight = defaults.eyeHeight;
+        config.view.crouchEyeHeight = defaults.crouchEyeHeight;
+        config.view.nearClip = defaults.nearClip;
+    }
     const auto& voice = groupOrEmpty(data, "voice", empty);
     config.voice.lowHealthFraction = readNumber(voice, "low_health_fraction",
                                                 config.voice.lowHealthFraction, "voice", logger, 1);

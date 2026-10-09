@@ -82,5 +82,6 @@ void StateMachine::render(float alpha) {
     flush();
 }
 
+IState* StateMachine::top() { return stack_.empty() ? nullptr : stack_.back().get(); }
 const IState* StateMachine::top() const { return stack_.empty() ? nullptr : stack_.back().get(); }
 std::size_t StateMachine::size() const { return stack_.size(); }
