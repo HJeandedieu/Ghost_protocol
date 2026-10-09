@@ -10,6 +10,7 @@
 #include "entities/Guard.h"
 #include "entities/Player.h"
 #include "render/Palette.h"
+#include "render/TacticalArt.h"
 #include "systems/ObjectiveSystem.h"
 #include "systems/RippleSystem.h"
 #include "world/Raycast.h"
@@ -230,7 +231,8 @@ void BankScene::drawDoors(const TileMap& map, float height, Color accent) {
 
 void BankScene::draw(const World& world, const RippleSystem& ripple, const ViewConfig& view,
                      const RenderConfig& render, float alpha, float phase,
-                     const ObjectiveSystem* objectives, const ShotGeometryConfig& geometry) {
+                     const ObjectiveSystem* objectives, const ShotGeometryConfig& geometry,
+                     TacticalArt* art) {
     const auto& map = world.level.map;
     prepare(map, view.wallHeight);
     const float size = static_cast<float>(map.tileSize());
@@ -278,40 +280,6 @@ void BankScene::draw(const World& world, const RippleSystem& ripple, const ViewC
     const Color accent = ColorLerp(Palette::Teal, Palette::Alarm, phase);
     drawDoors(map, view.wallHeight, accent);
 
-    // Temporary readable 3D actors; detailed articulated art belongs to Step 5.
-    const auto actor = [&](Vec2 position, float radius, float height, float visibility, bool shield,
-                           float facing) {
-        if (visibility <= 0) return;
-        const auto navy = Fade(Palette::Navy, visibility);
-        box({position.x, height * .52f, position.y}, {radius * 1.5f, height * .54f, radius}, navy);
-        box({position.x, height * .89f, position.y}, {radius, height * .21f, radius},
-            Fade(Palette::Ink, visibility));
-        box({position.x + std::cos(facing) * radius * .45f, height * .875f,
-             position.y + std::sin(facing) * radius * .45f},
-            {radius * .6f, height * .04f, radius * .6f}, Fade(Palette::Bone, visibility));
-        for (float sign : {-1.f, 1.f})
-            box({position.x + sign * radius * .4f, height * .145f, position.y},
-                {radius * .5f, height * .29f, radius * .7f}, navy);
-        if (shield) {
-            const float cosine = std::cos(facing), sine = std::sin(facing);
-            const float mode = 2;
-            SetShaderValue(material_.shader, modeLoc_, &mode, SHADER_UNIFORM_FLOAT);
-            material_.maps[MATERIAL_MAP_DIFFUSE].color = Fade(Palette::Slate, visibility);
-            // A unit cube's front surface sits exactly on the shared gameplay plate.
-            const float thickness = radius * .1f;
-            Matrix transform{};
-            transform.m0 = sine * geometry.shieldWidth;
-            transform.m2 = -cosine * geometry.shieldWidth;
-            transform.m5 = geometry.shieldHeight;
-            transform.m8 = cosine * thickness;
-            transform.m10 = sine * thickness;
-            transform.m12 = position.x + cosine * (geometry.shieldForwardOffset - thickness * .5f);
-            transform.m13 = geometry.shieldBottom + geometry.shieldHeight * .5f;
-            transform.m14 = position.y + sine * (geometry.shieldForwardOffset - thickness * .5f);
-            transform.m15 = 1;
-            DrawMesh(cube_, material_, transform);
-        }
-    };
     const auto visible = [&](const Entity& entity) {
         if (world.alarmLoud) return entity.deathOpacity();
         return std::max(entity.reveal, ripple.visibility(static_cast<int>(entity.pos.x / size),
@@ -319,15 +287,27 @@ void BankScene::draw(const World& world, const RippleSystem& ripple, const ViewC
                                                          world.player.pos, map)) *
                entity.deathOpacity();
     };
-    for (const auto& guard : world.guards) {
-        if (!guard.dead() && guard.state() != GuardState::Unconscious)
-            actor(guard.interpolatedPosition(alpha), guard.radius, geometry.guardHeight,
-                  visible(guard), false, guard.facing());
-    }
-    for (const auto& enemy : world.enemies) {
-        if (!enemy->dead())
-            actor(enemy->pos, enemy->radius, geometry.enemyHeight(enemy->spec().id),
-                  visible(*enemy), enemy->spec().id == "shield_cop", enemy->facing());
+    if (art) {
+        art->beginActors();
+        for (const auto& guard : world.guards) {
+            if (!guard.dead() && guard.state() != GuardState::Unconscious)
+                art->drawActor(guard.id, guard.interpolatedPosition(alpha), guard.facing(),
+                               guard.radius, geometry.guardHeight, TacticalKind::Guard,
+                               visible(guard), phase, geometry,
+                               guard.pos.x != guard.prevPos.x || guard.pos.y != guard.prevPos.y);
+        }
+        for (const auto& enemy : world.enemies) {
+            if (!enemy->dead()) {
+                const auto kind = enemy->spec().id == "shield_cop" ? TacticalKind::Shield
+                                  : enemy->spec().id == "heavy"    ? TacticalKind::Heavy
+                                                                   : TacticalKind::Cop;
+                art->drawActor(
+                    enemy->id, enemy->pos, enemy->facing(), enemy->radius,
+                    geometry.enemyHeight(enemy->spec().id), kind, visible(*enemy), phase, geometry,
+                    enemy->pos.x != enemy->prevPos.x || enemy->pos.y != enemy->prevPos.y);
+            }
+        }
+        art->endActors();
     }
     for (int y = 0; y < map.height(); ++y)
         for (int x = 0; x < map.width(); ++x) {

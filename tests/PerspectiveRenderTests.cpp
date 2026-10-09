@@ -8,6 +8,7 @@
 #include "render/BankScene.h"
 #include "render/Letterbox.h"
 #include "render/Renderer.h"
+#include "render/TacticalArt.h"
 #include "systems/CombatSystem.h"
 #include "systems/RippleSystem.h"
 #include "world/World.h"
@@ -223,4 +224,131 @@ TEST_F(PerspectiveRender, PhysicalResizePreservesPerspectiveAndFrozenFrame) {
     UnloadImage(before);
     UnloadImage(frozen);
     UnloadImage(after);
+}
+
+TEST_F(PerspectiveRender, ForegroundWeaponsSwitchAndReloadWithoutMovingAimOrWritingWorldState) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    auto world = bankFixture();
+    world.alarmLoud = true;
+    FirstPersonView view({});
+    RippleSystem ripple({}, world.level.map);
+    EventBus events;
+    const auto specs = loadWeapons("assets/config/weapons.json", logger);
+    ASSERT_TRUE(specs);
+    CombatSystem combat(events, *specs, 42);
+    const auto render = [&] {
+        renderer.beginFrame();
+        renderer.drawPerspective(world, view, ripple, 1, nullptr, nullptr, &combat);
+        renderer.present();
+        auto result = LoadImageFromTexture(renderer.frameTexture());
+        ImageResize(&result, 1280, 720);
+        ImageFlipVertical(&result);
+        return result;
+    };
+    const auto position = world.player.pos;
+    auto pistol = render();
+    Input input;
+    input.weaponSlot = 1;
+    combat.update(1.f / 60, input, view.shotRay(position, false), world);
+    auto smg = render();
+    EXPECT_GT(changedPixels(pistol, smg, {720, 440, 520, 280}), 1000);
+    EXPECT_EQ(changedPixels(pistol, smg, {625, 345, 30, 30}), 0);
+    input = {};
+    input.mouseInViewport = true;
+    input.firePressed = true;
+    combat.update(.1f, input, view.shotRay(position, false), world);
+    input.firePressed = false;
+    input.reloadPressed = true;
+    combat.update(.1f, input, view.shotRay(position, false), world);
+    input.reloadPressed = false;
+    combat.update(combat.activeWeapon().spec().reload * .5f, input, view.shotRay(position, false),
+                  world);
+    auto reload = render();
+    EXPECT_GT(changedPixels(smg, reload, {720, 440, 520, 280}), 1000);
+    EXPECT_EQ(changedPixels(smg, reload, {625, 345, 30, 30}), 0);
+    EXPECT_FLOAT_EQ(world.player.pos.x, position.x);
+    EXPECT_FLOAT_EQ(world.player.pos.y, position.y);
+    EXPECT_FLOAT_EQ(view.pitchDeg(), 0);
+    EXPECT_FALSE(world.level.map.isOpen(5, 4));
+    EXPECT_EQ(output.str().find("[ERROR]"), std::string::npos);
+    UnloadImage(pistol);
+    UnloadImage(smg);
+    UnloadImage(reload);
+}
+
+TEST_F(PerspectiveRender, WeaponDepthIsIndependentOfNearbyClosedDoorDepth) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    auto world = bankFixture();
+    world.alarmLoud = true;
+    FirstPersonView view({});
+    RippleSystem ripple({}, world.level.map);
+    EventBus events;
+    const auto specs = loadWeapons("assets/config/weapons.json", logger);
+    ASSERT_TRUE(specs);
+    CombatSystem combat(events, *specs, 42);
+    const auto frame = [&](bool weapon) {
+        renderer.beginFrame();
+        renderer.drawPerspective(world, view, ripple, 1, nullptr, nullptr,
+                                 weapon ? &combat : nullptr);
+        renderer.present();
+        auto result = LoadImageFromTexture(renderer.frameTexture());
+        ImageResize(&result, 1280, 720);
+        ImageFlipVertical(&result);
+        return result;
+    };
+    auto farBase = frame(false), farGun = frame(true);
+    world.player.pos = world.player.prevPos = {239, 216};
+    auto nearBase = frame(false), nearGun = frame(true);
+    int stableWeaponPixels = 0;
+    for (int y = 440; y < 720; ++y)
+        for (int x = 720; x < 1240; ++x) {
+            const auto a = GetImageColor(farGun, x, y), b = GetImageColor(nearGun, x, y);
+            const auto c = GetImageColor(farBase, x, y), d = GetImageColor(nearBase, x, y);
+            const bool weaponPixel = a.r != c.r || a.g != c.g || a.b != c.b;
+            const bool nearWeapon = b.r != d.r || b.g != d.g || b.b != d.b;
+            if (weaponPixel && nearWeapon && a.r == b.r && a.g == b.g && a.b == b.b)
+                ++stableWeaponPixels;
+        }
+    EXPECT_GT(stableWeaponPixels, 10000);
+    EXPECT_FALSE(world.level.map.isOpen(5, 4));
+    UnloadImage(farBase);
+    UnloadImage(farGun);
+    UnloadImage(nearBase);
+    UnloadImage(nearGun);
+}
+
+TEST_F(PerspectiveRender, DetailedActorRemainsHiddenUntilRippleRevealsIt) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    auto world = bankFixture();
+    world.level.map.setOpen(5, 4, true);
+    FirstPersonView view({});
+    RippleSystem ripple({}, world.level.map);
+    auto empty = capture(renderer, world, view, ripple);
+    GuardSpawn spawn{"hidden", "room", PatrolMode::Stationary, false, {{7, 4}}, 180};
+    world.guards.emplace_back(spawn, world.level.map, GuardConfig{});
+    auto hidden = capture(renderer, world, view, ripple);
+    EXPECT_EQ(changedPixels(empty, hidden, {500, 180, 280, 420}), 0);
+    ripple.startPing(world.player.pos, PingConfig{}.chargeMax);
+    std::vector<Entity*> entities{&world.guards.front()};
+    ripple.update(.8f, world.level.map, entities);
+    ASSERT_GT(world.guards.front().reveal, 0);
+    const float reveal = world.guards.front().reveal;
+    auto visible = capture(renderer, world, view, ripple);
+    EXPECT_FLOAT_EQ(world.guards.front().reveal, reveal);
+    world.guards.clear();
+    auto revealedEmpty = capture(renderer, world, view, ripple);
+    EXPECT_GT(changedPixels(visible, revealedEmpty, {500, 180, 280, 420}), 1000);
+    UnloadImage(empty);
+    UnloadImage(hidden);
+    UnloadImage(visible);
+    UnloadImage(revealedEmpty);
 }

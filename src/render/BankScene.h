@@ -6,6 +6,7 @@
 #include "raylib.h"
 
 class Logger;
+class TacticalArt;
 class TileMap;
 class RippleSystem;
 class Player;
@@ -21,7 +22,8 @@ class BankScene {
     BankScene& operator=(const BankScene&) = delete;
     void draw(const World& world, const RippleSystem& ripple, const ViewConfig& view,
               const RenderConfig& render, float alpha, float phase,
-              const ObjectiveSystem* objectives, const ShotGeometryConfig& geometry = {});
+              const ObjectiveSystem* objectives, const ShotGeometryConfig& geometry = {},
+              TacticalArt* art = nullptr);
     int geometryRevision() const { return geometryRevision_; }
 
    private:

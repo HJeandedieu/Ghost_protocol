@@ -104,6 +104,11 @@ author, licence, and attribution requirements before adding it to a release.
 | `reference/step3/bank-stealth.png`, `reference/step3/bank-loud.png`, `reference/step3/browser-play.png` | Captured from the project's native/web perspective renderer | Ghost Protocol project | Project-owned gameplay captures | None | Development-only Step 3 review evidence; not runtime assets |
 | `reference/step4/bank-stealth-impact.png`, `reference/step4/bank-loud-impact.png`, `reference/step4/reticle-impact.png`, `reference/step4/browser-fired.png` | Captured from the project's native/web 3D shooting renderer | Ghost Protocol project | Project-owned gameplay/test captures | None | Development-only Step 4 impact and browser firing evidence; not runtime assets |
 
+| `src/render/TacticalArt.cpp` | Original procedural tactical characters, articulated limbs, Ghost skull/hood/headset and three foreground weapons | Ghost Protocol project | Project-owned original code/art | None | Cached beveled/curved meshes; no reference bitmap or external model used |
+| `assets/shaders/glsl330/tactical.vs`, `assets/shaders/glsl330/tactical.fs` | Original project GLSL | Ghost Protocol project | Project-owned | None | Desktop tactical mesh normals, palette lighting and read-only reveal opacity |
+| `assets/shaders/glsl100/tactical.vs`, `assets/shaders/glsl100/tactical.fs` | Original project GLSL | Ghost Protocol project | Project-owned | None | Matching WebGL tactical presentation |
+| `reference/step5/character-sheet.png`, `reference/step5/ghost-portrait.png`, `reference/step5/bank-chatter-loud.png`, `reference/step5/bank-whisper-stealth.png`, `reference/step5/bank-gavel-loud.png`, `reference/step5/browser-chatter.png` | Project native character/bank review fixtures and actual WebGL gameplay capture | Ghost Protocol project | Project-owned review captures | None | Development evidence only; arranged character poses do not modify the runtime map or entity spawns |
+
 ## Packaged software notices
 
 Release archives include `licenses/` from `tools/release_licenses/`: raylib 5.5
