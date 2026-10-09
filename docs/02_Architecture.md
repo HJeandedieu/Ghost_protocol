@@ -155,7 +155,7 @@ All randomness goes through `Rng` (seeded; seed printed in the log and shown in 
 ## 14. Open Questions
 None. Any new question becomes a decision in `01_GDD.md` section 0 first.
 
-## 11. First-person rendering replacement (9 October 2026)
+## 15. First-person rendering replacement (9 October 2026)
 This section supersedes the orthographic world-camera portions of section 8. Keep pure planar game logic and the existing raylib dependency. The renderer maps world (x, y) to 3D (x, height, y), using the same world-pixel units; map tile coordinates and collision do not change. Extrude map walls and existing blocking doors. Decorative furniture remains non-colliding unless the map already defines collision. No new engine or asset dependency is authorized.
 
 Use a perspective camera at the interpolated player position plus eye height, with yaw/pitch from the input adapter. Do not smooth camera position independently of the player into walls. Keep UI in logical 1280x720 and retain coherent supersampled targets, snapshots, physical shader texels and letterboxing. Draw depth-tested architecture and original articulated actors, then translucent reveal/beam effects with occlusion, then foreground hands/weapon with independent depth handling, post effects and sharp screen-space HUD. First-person view geometry never obstructs the gameplay ray or writes world state.
