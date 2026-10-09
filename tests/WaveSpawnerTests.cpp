@@ -177,12 +177,12 @@ TEST_F(WaveTest, ShieldFrontalEdgesBlockAndSidesRearDoNot) {
     for (float angle : {-60.f, 0.f, 60.f}) {
         const Vec2 from{shield.pos.x + 100 * std::cos(angle * pi / 180),
                         shield.pos.y + 100 * std::sin(angle * pi / 180)};
-        EXPECT_NEAR(shield.hitscanDamage(100, from), 10, 0.001);
+        EXPECT_NEAR(shield.shieldPlateDamage(100, from), 10, 0.001);
     }
     for (float angle : {-61.f, 61.f, 90.f, 180.f}) {
         const Vec2 from{shield.pos.x + 100 * std::cos(angle * pi / 180),
                         shield.pos.y + 100 * std::sin(angle * pi / 180)};
-        EXPECT_EQ(shield.hitscanDamage(100, from), 100);
+        EXPECT_EQ(shield.shieldPlateDamage(100, from), 100);
     }
 }
 TEST_F(WaveTest, PlayerPelletsApplyShieldReductionAndRearKillsDropOnce) {
@@ -198,10 +198,11 @@ TEST_F(WaveTest, PlayerPelletsApplyShieldReductionAndRearKillsDropOnce) {
     gun.range = 600;
     Rng rng(42);
     Weapon weapon(gun);
-    auto front = combat.fire(weapon, {400, 160}, 180, rng, world);
+    auto front =
+        combat.fire(weapon, ShotRay::aim({400, 160}, ViewConfig{}.eyeHeight, 180), rng, world);
     EXPECT_NEAR(world.enemies[0]->hp(), 100, 0.001);
     EXPECT_NEAR(front.pellets[0].damage, 10, 0.001);
-    combat.fire(weapon, {160, 160}, 0, rng, world);
+    combat.fire(weapon, ShotRay::aim({160, 160}, ViewConfig{}.eyeHeight, 0), rng, world);
     bus.dispatch();
     EXPECT_TRUE(world.enemies[0]->dead());
     EXPECT_EQ(world.pickups.size(), 1u);

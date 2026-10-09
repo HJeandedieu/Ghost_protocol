@@ -9,7 +9,8 @@ class Enemy : public Entity {
     const EnemySpec& spec() const { return spec_; }
     EnemyState state() const { return dead() ? EnemyState::Dead : state_; }
     float facing() const { return facing_; }
-    float hitscanDamage(float damage, Vec2 from) const;
+    float shieldPlateDamage(float damage, Vec2 from) const;
+    bool shieldFaces(Vec2 from) const;
 
    private:
     friend class EnemyCombatSystem;

@@ -55,6 +55,7 @@ class PlayState : public IState {
     void pauseForCaptureLoss();
 
    private:
+    const Config config_;
     EventBus events_;
     World world_;
     std::vector<std::unique_ptr<GuardAI>> guardAi_;
@@ -78,7 +79,6 @@ class PlayState : public IState {
     EnemyCombatSystem enemyCombat_;
     WaveSpawner waves_;
     AlarmSequence alarmSequence_;
-    const Config& config_;
     std::unique_ptr<ObjectiveSystem> objectives_;
     std::function<void(int, bool)> retry_;
     bool downed_ = false;

@@ -118,7 +118,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/PlayerTests.cpp tests/GuardTests.cpp tests/WeaponTests.cpp tests/EnemySpecTests.cpp tests/EnemyCombatTests.cpp
         tests/GuardAITests.cpp tests/WaveSpawnerTests.cpp tests/ObjectiveSystemTests.cpp tests/ScoreSystemTests.cpp tests/AudioDirectorTests.cpp tests/VoiceDirectorTests.cpp
         tests/FollowCameraTests.cpp tests/AlarmSequenceTests.cpp
-        tests/RaycastTests.cpp tests/RippleSystemTests.cpp
+        tests/RaycastTests.cpp tests/Raycast3DTests.cpp tests/Combat3DTests.cpp tests/RippleSystemTests.cpp
         tests/PathfinderTests.cpp
         tests/EventBusTests.cpp tests/NoiseSystemTests.cpp tests/InteractionSystemTests.cpp
         tests/VisionSystemTests.cpp

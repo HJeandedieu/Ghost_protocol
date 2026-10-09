@@ -57,7 +57,9 @@ class Renderer {
     void drawPerspective(const World& world, const FirstPersonView& view,
                          const RippleSystem& ripple, float alpha,
                          const AlarmSequence* sequence = nullptr,
-                         const ObjectiveSystem* objectives = nullptr);
+                         const ObjectiveSystem* objectives = nullptr,
+                         const CombatSystem* combat = nullptr,
+                         const EnemyCombatSystem* enemyCombat = nullptr);
     void drawInteractionHud(const World& world, const InteractionSystem& interaction,
                             float noiseRadius, float maximumNoise,
                             const ObjectiveSystem* objectives = nullptr) const;

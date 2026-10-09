@@ -64,3 +64,18 @@ TEST(FirstPersonView, InvalidDeltasAndMovementDoNotCorruptThePose) {
     EXPECT_GE(view.yawDeg(), -180);
     EXPECT_FLOAT_EQ(view.pitchDeg(), 80);
 }
+
+TEST(FirstPersonView, ShotRayUsesUnshakenYawPitchAndCurrentEyeHeight) {
+    FirstPersonView view({}, 90);
+    view.look({0, 300});
+    const auto standing = view.shotRay({120, 240}, false);
+    const auto crouched = view.shotRay({120, 240}, true);
+    EXPECT_FLOAT_EQ(standing.origin.x, 120);
+    EXPECT_FLOAT_EQ(standing.origin.z, 240);
+    EXPECT_FLOAT_EQ(standing.origin.y, 36);
+    EXPECT_FLOAT_EQ(crouched.origin.y, 22);
+    EXPECT_NEAR(standing.direction.y, -.5f, .000001);
+    EXPECT_NEAR(standing.direction.z, std::sqrt(.75f), .000001);
+    EXPECT_FLOAT_EQ(standing.direction.y, crouched.direction.y);
+    EXPECT_NEAR(standing.direction.dot(standing.direction), 1, .000001);
+}

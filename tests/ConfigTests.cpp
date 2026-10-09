@@ -8,6 +8,74 @@
 #include "core/Config.h"
 #include "core/Logger.h"
 
+TEST(Config, ShotGeometryLoadsAndChecksEnemyRadiusWithoutChangingUnrelatedViewTuning) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    data["shot_geometry"]["heavy_height"] = 60;
+    data["shot_geometry"]["shield_width"] = 30;
+    std::ostringstream output;
+    Logger logger(output, "");
+    auto config = Config::load(files.write("geometry-custom.json", data.dump()), logger);
+    validateShotGeometry(config.shotGeometry, config.view, 16, logger);
+    EXPECT_FLOAT_EQ(config.shotGeometry.heavyHeight, 60);
+    EXPECT_FLOAT_EQ(config.shotGeometry.shieldWidth, 30);
+    EXPECT_EQ(output.str().find("[WARN]"), std::string::npos);
+    config.view.fovYDeg = 85;
+    config.shotGeometry.shieldForwardOffset = 17;
+    validateShotGeometry(config.shotGeometry, config.view, 16, logger);
+    EXPECT_FLOAT_EQ(config.shotGeometry.shieldForwardOffset, 14);
+    EXPECT_FLOAT_EQ(config.shotGeometry.heavyHeight, 56);
+    EXPECT_FLOAT_EQ(config.view.fovYDeg, 85);
+    EXPECT_NE(output.str().find("[WARN]"), std::string::npos);
+}
+
+TEST(Config, InvalidShotGeometryIndividualValuesWarnAndFallback) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    for (const char* key : {"player_height", "player_crouch_height", "guard_height", "cop_height",
+                            "shield_cop_height", "heavy_height", "shield_width", "shield_height",
+                            "shield_forward_offset", "shield_bottom"}) {
+        for (const nlohmann::json& invalid :
+             {nlohmann::json(-1), nlohmann::json("bad"), nlohmann::json(nullptr)}) {
+            auto broken = data;
+            broken["shot_geometry"][key] = invalid;
+            std::ostringstream output;
+            Logger logger(output, "");
+            const auto config =
+                Config::load(files.write("geometry-invalid.json", broken.dump()), logger);
+            EXPECT_FLOAT_EQ(config.shotGeometry.playerHeight, 48);
+            EXPECT_FLOAT_EQ(config.shotGeometry.playerCrouchHeight, 32);
+            EXPECT_FLOAT_EQ(config.shotGeometry.guardHeight, 48);
+            EXPECT_FLOAT_EQ(config.shotGeometry.copHeight, 48);
+            EXPECT_FLOAT_EQ(config.shotGeometry.shieldCopHeight, 48);
+            EXPECT_FLOAT_EQ(config.shotGeometry.heavyHeight, 56);
+            EXPECT_FLOAT_EQ(config.shotGeometry.shieldWidth, 32);
+            EXPECT_FLOAT_EQ(config.shotGeometry.shieldForwardOffset, 14);
+            EXPECT_FLOAT_EQ(config.shotGeometry.shieldHeight, 44);
+            EXPECT_FLOAT_EQ(config.shotGeometry.shieldBottom, 2);
+            EXPECT_NE(output.str().find("[WARN]"), std::string::npos) << key;
+        }
+    }
+}
+
+TEST(Config, ShotGeometryRelationshipFailureResetsWholeGroupAndRelatedEyeHeights) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    data["shot_geometry"]["player_height"] = 35;
+    data["shot_geometry"]["cop_height"] = 50;
+    std::ostringstream output;
+    Logger logger(output, "");
+    const auto config = Config::load(files.write("geometry-relation.json", data.dump()), logger);
+    EXPECT_FLOAT_EQ(config.shotGeometry.playerHeight, 48);
+    EXPECT_FLOAT_EQ(config.shotGeometry.copHeight, 48);
+    EXPECT_FLOAT_EQ(config.view.eyeHeight, 36);
+    EXPECT_FLOAT_EQ(config.view.crouchEyeHeight, 22);
+    EXPECT_NE(output.str().find("[WARN]"), std::string::npos);
+}
+
 TEST(Config, FirstPersonViewLoadsCustomValuesAndValidatedLevelBounds) {
     TestFiles files;
     nlohmann::json data;

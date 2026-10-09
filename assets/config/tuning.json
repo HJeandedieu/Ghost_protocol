@@ -175,5 +175,17 @@
       "ammo": 0.8,
       "max_alive": 16
     }
+  },
+  "shot_geometry": {
+    "player_height": 48,
+    "player_crouch_height": 32,
+    "guard_height": 48,
+    "cop_height": 48,
+    "shield_cop_height": 48,
+    "heavy_height": 56,
+    "shield_width": 32,
+    "shield_height": 44,
+    "shield_bottom": 2,
+    "shield_forward_offset": 14
   }
 }

@@ -4,6 +4,7 @@
 #include "core/Config.h"
 #include "core/Rng.h"
 #include "core/Vec2.h"
+#include "core/Vec3.h"
 #include "entities/EnemySpec.h"
 class EventBus;
 class CombatSystem;
@@ -13,6 +14,8 @@ struct World;
 struct EnemyShot {
     Vec2 from, to;
     float age = 0;
+    Vec3 from3D, to3D;
+    bool hitPlayer = false;
 };
 class EnemyCombatSystem {
    public:

@@ -159,15 +159,28 @@ void EnemyCombatSystem::updateActor(Entity& entity, float& facing, const EnemySp
                     (world_.player.pos.x - entity.pos.x) / length * world_.player.radius * 2;
             }
         }
-        const float length = distance(entity.pos, endpoint);
-        const float clear = Raycast::sightDistance(entity.pos, endpoint, world_.level.map);
-        if (length > 0)
-            endpoint = {entity.pos.x + (endpoint.x - entity.pos.x) * clear / length,
-                        entity.pos.y + (endpoint.y - entity.pos.y) * clear / length};
-        shots_.push_back({entity.pos, endpoint, 0});
-        events_.publish(
-            ShotFired{entity.id, spec.id, entity.pos, {std::cos(facing), std::sin(facing)}});
-        if (hit) combat_.applyDamage(world_.player, spec.damage * damageMultiplier_, entity.id);
+        const float playerHeight = world_.player.isCrouched()
+                                       ? config_.shotGeometry.playerCrouchHeight
+                                       : config_.shotGeometry.playerHeight;
+        const Vec3 origin{entity.pos.x, config_.shotGeometry.enemyHeight(spec.id) * .5f,
+                          entity.pos.y};
+        const Vec3 target{endpoint.x, playerHeight * .5f, endpoint.y};
+        const auto direction = (target - origin).normalized();
+        bool reachedPlayer = false;
+        Vec3 impact = origin;
+        if (direction) {
+            const ShotRay ray{origin, *direction};
+            const auto block = Raycast::blockingDistance(ray, spec.engage, world_.level.map,
+                                                         config_.view.wallHeight);
+            const auto body = Raycast::intersectCylinder(ray, world_.player.pos,
+                                                         world_.player.radius, playerHeight);
+            reachedPlayer = hit && body && *body <= spec.engage && (!block || *body < *block);
+            impact = ray.at(reachedPlayer ? *body : block.value_or(spec.engage));
+            shots_.push_back({entity.pos, impact.planar(), 0, origin, impact, reachedPlayer});
+            events_.publish(ShotFired{entity.id, spec.id, entity.pos, direction->planar()});
+            if (reachedPlayer)
+                combat_.applyDamage(world_.player, spec.damage * damageMultiplier_, entity.id);
+        }
         ++actor.bullet;
         if (actor.bullet >= spec.burst) {
             actor.bullet = 0;

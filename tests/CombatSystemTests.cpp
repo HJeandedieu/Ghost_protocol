@@ -29,22 +29,25 @@ TEST_F(CombatSystemTest, DefaultTwoSlotsSwitchWithKeysAndWheelAndPreserveAmmo) {
     Input input;
     input.mouseInViewport = true;
     input.firePressed = true;
-    combat.update(1.0f / 60, input, 0, world);
+    combat.update(1.0f / 60, input, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0),
+                  world);
     EXPECT_EQ(combat.activeWeapon().ammunition(), 11);
     input.clearEdges();
     input.weaponSlot = 1;
-    combat.update(1.0f / 60, input, 0, world);
+    combat.update(1.0f / 60, input, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0),
+                  world);
     EXPECT_EQ(combat.activeWeapon().spec().id, "chatter");
     EXPECT_EQ(combat.activeWeapon().ammunition(), 30);
     input.clearEdges();
     input.weaponWheel = -1;
-    combat.update(1.0f / 60, input, 0, world);
+    combat.update(1.0f / 60, input, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0),
+                  world);
     EXPECT_EQ(combat.activeSlot(), 0);
     EXPECT_EQ(combat.activeWeapon().ammunition(), 11);
     input.clearEdges();
     input.firePressed = true;
     input.mouseInViewport = false;
-    combat.update(1, input, 0, world);
+    combat.update(1, input, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0), world);
     EXPECT_EQ(combat.activeWeapon().ammunition(), 11);
 }
 TEST_F(CombatSystemTest, HitscanStopsAtWallAndClosedDoorAndFindsClosestCircleBeforeWall) {
@@ -54,7 +57,8 @@ TEST_F(CombatSystemTest, HitscanStopsAtWallAndClosedDoorAndFindsClosestCircleBef
     spec.spreadDeg = 0;
     Weapon weapon(spec);
     Rng rng(42);
-    auto shot = combat.fire(weapon, world.player.pos, 0, rng, world);
+    auto shot =
+        combat.fire(weapon, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0), rng, world);
     ASSERT_EQ(shot.pellets.size(), 1u);
     EXPECT_FLOAT_EQ(shot.pellets[0].to.x, 240);
     GuardSpawn far;
@@ -65,14 +69,17 @@ TEST_F(CombatSystemTest, HitscanStopsAtWallAndClosedDoorAndFindsClosestCircleBef
     near.waypoints = {{2, 0}};
     world.guards.emplace_back(far, world.level.map, GuardConfig{});
     world.guards.emplace_back(near, world.level.map, GuardConfig{});
-    shot = combat.fire(weapon, world.player.pos, 0, rng, world);
+    shot =
+        combat.fire(weapon, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0), rng, world);
     EXPECT_EQ(shot.pellets[0].targetId, "near");
     EXPECT_FLOAT_EQ(shot.pellets[0].to.x, world.guards[1].pos.x - world.guards[1].radius);
     auto closed = makeWorld(".....d.........");
-    shot = combat.fire(weapon, closed.player.pos, 0, rng, closed);
+    shot = combat.fire(weapon, ShotRay::aim(closed.player.pos, ViewConfig{}.eyeHeight, 0), rng,
+                       closed);
     EXPECT_FLOAT_EQ(shot.pellets[0].to.x, 240);
     closed.level.map.setOpen(5, 0, true);
-    shot = combat.fire(weapon, closed.player.pos, 0, rng, closed);
+    shot = combat.fire(weapon, ShotRay::aim(closed.player.pos, ViewConfig{}.eyeHeight, 0), rng,
+                       closed);
     EXPECT_FLOAT_EQ(shot.pellets[0].to.x, closed.player.pos.x + spec.range);
 }
 TEST_F(CombatSystemTest, AllPelletsRespectSeededTotalSpreadAndRange) {
@@ -82,8 +89,10 @@ TEST_F(CombatSystemTest, AllPelletsRespectSeededTotalSpreadAndRange) {
         Weapon weapon(spec);
         Rng a(999), b(999);
         for (int trial = 0; trial < 40; ++trial) {
-            const auto one = combat.fire(weapon, world.player.pos, 0, a, world);
-            const auto two = combat.fire(weapon, world.player.pos, 0, b, world);
+            const auto one = combat.fire(
+                weapon, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0), a, world);
+            const auto two = combat.fire(
+                weapon, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0), b, world);
             ASSERT_EQ(one.pellets.size(), static_cast<std::size_t>(spec.pellets));
             for (std::size_t i = 0; i < one.pellets.size(); ++i) {
                 EXPECT_GE(one.pellets[i].dirDeg, -spec.spreadDeg * 0.5f);
@@ -116,18 +125,21 @@ TEST_F(CombatSystemTest, AcceptedShotsEmitNoiseAndOnlyHeardUnsuppressedShotsRais
     Input input;
     input.firePressed = true;
     input.mouseInViewport = true;
-    combat.update(1.0f / 60, input, 0, world);
+    combat.update(1.0f / 60, input, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0),
+                  world);
     bus.dispatch();
     bus.dispatch();
     EXPECT_EQ(fired, 1);
     EXPECT_FLOAT_EQ(radius, 350);
     EXPECT_EQ(alarm.state(), AlarmState::Quiet);
-    combat.update(1.0f / 60, input, 0, world);
+    combat.update(1.0f / 60, input, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0),
+                  world);
     bus.dispatch();
     bus.dispatch();
     EXPECT_EQ(fired, 1);
     input.weaponSlot = 1;
-    combat.update(1.0f / 60, input, 0, world);
+    combat.update(1.0f / 60, input, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0),
+                  world);
     bus.dispatch();
     bus.dispatch();
     EXPECT_EQ(fired, 2);
@@ -148,7 +160,8 @@ TEST_F(CombatSystemTest, UnsuppressedShotOutsideHearingDoesNotRaiseAlarm) {
     input.weaponSlot = 1;
     input.firePressed = true;
     input.mouseInViewport = true;
-    combat.update(1.0f / 60, input, 0, world);
+    combat.update(1.0f / 60, input, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0),
+                  world);
     bus.dispatch();
     bus.dispatch();
     EXPECT_EQ(alarm.state(), AlarmState::Quiet);
@@ -160,7 +173,7 @@ TEST_F(CombatSystemTest, LoadoutEquipsAnyTwoDistinctGunsIncludingGavel) {
     EXPECT_EQ(combat.activeWeapon().spec().id, "gavel");
     Input input;
     input.weaponSlot = 1;
-    combat.update(.01f, input, 0, world);
+    combat.update(.01f, input, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0), world);
     EXPECT_EQ(combat.activeWeapon().spec().id, "whisper");
     EXPECT_THROW((CombatSystem(bus, specs, 42, {{"gavel", "gavel"}})), std::invalid_argument);
     EXPECT_THROW((CombatSystem(bus, specs, 42, {{"unknown", "whisper"}})), std::invalid_argument);
