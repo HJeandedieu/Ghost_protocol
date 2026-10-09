@@ -67,9 +67,10 @@ struct UiConfig {
 };
 
 struct RenderConfig {
+    int ssaaScale = 2;
     float ambientFloorAlpha = 0.18f;
     float ambientWallAlpha = 0.45f;
-    float grainIntensity = .04f, vignetteStrength = .35f;
+    float grainIntensity = .01f, vignetteStrength = .35f;
 };
 
 struct ViewConfig {

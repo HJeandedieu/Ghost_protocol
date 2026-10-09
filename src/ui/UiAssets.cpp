@@ -6,11 +6,12 @@
 #include "core/Logger.h"
 
 namespace {
-Font loadFont(const char* path, Logger& logger) {
+Font loadFont(const char* path, Logger& logger, int pixelHeight = 64) {
     if (FileExists(path)) {
         std::array<int, 224> glyphs{};
         for (std::size_t i = 0; i < glyphs.size(); ++i) glyphs[i] = 32 + static_cast<int>(i);
-        const auto font = LoadFontEx(path, 64, glyphs.data(), static_cast<int>(glyphs.size()));
+        const auto font =
+            LoadFontEx(path, pixelHeight, glyphs.data(), static_cast<int>(glyphs.size()));
         if (font.texture.id != 0 && font.texture.id != GetFontDefault().texture.id) {
             SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
             return font;
@@ -25,7 +26,9 @@ void unloadFont(Font font) {
 }  // namespace
 
 UiAssets::UiAssets(Logger& logger, const std::string& root)
-    : title_(loadFont((root + "/fonts/Orbitron-Bold.ttf").c_str(), logger)),
+    : logger_(logger),
+      root_(root),
+      title_(loadFont((root + "/fonts/Orbitron-Bold.ttf").c_str(), logger)),
       button_(loadFont((root + "/fonts/Orbitron-Medium.ttf").c_str(), logger)),
       body_(loadFont((root + "/fonts/Inter-Medium.ttf").c_str(), logger)) {
     const auto portraitPath = root + "/ui/handler_portrait.png";
@@ -43,6 +46,20 @@ UiAssets::UiAssets(Logger& logger, const std::string& root)
         SetTextureFilter(logo_, TEXTURE_FILTER_BILINEAR);
     else
         logger.log(LogLevel::Error, "Logo unavailable; using text lockup");
+}
+void UiAssets::ensureFontResolution(int pixelHeight) {
+    if (pixelHeight <= fontPixelHeight_) return;
+    const auto title = loadFont((root_ + "/fonts/Orbitron-Bold.ttf").c_str(), logger_, pixelHeight);
+    const auto button =
+        loadFont((root_ + "/fonts/Orbitron-Medium.ttf").c_str(), logger_, pixelHeight);
+    const auto body = loadFont((root_ + "/fonts/Inter-Medium.ttf").c_str(), logger_, pixelHeight);
+    unloadFont(title_);
+    unloadFont(button_);
+    unloadFont(body_);
+    title_ = title;
+    button_ = button;
+    body_ = body;
+    fontPixelHeight_ = pixelHeight;
 }
 UiAssets::~UiAssets() {
     unloadFont(title_);

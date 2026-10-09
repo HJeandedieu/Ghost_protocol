@@ -14,6 +14,7 @@ this register does not grant redistribution rights or claim ownership.
 | `reference/gameplay_reference_loud.png` | Supplied by project author; described as AI-generated in visual-reference notes | Generator/creator not supplied | Not supplied | Unknown | Loud visual target only |
 | `reference/transitions_and_user_interactions.mp4` | Supplied by project author; source URL not supplied | Not supplied | Not supplied | Unknown | Motion reference only |
 | `docs/levels/gotham_central_blueprint.png` | Supplied by project author; source URL not supplied | Not supplied | Not supplied | Unknown | Bank composition reference only |
+| `src/render/Renderer.cpp` (procedural artwork) | Original vector geometry and shading authored for the project | Ghost Protocol project | Project-owned | None | Bank furniture, architectural faces, doors, vault, character silhouettes and raycast-shaped lighting |
 | `assets/shaders/glsl330/post.fs` | Original project code | Ghost Protocol project | Project-owned | None | Desktop vignette and grain |
 | `assets/shaders/glsl100/post.fs` | Original project code | Ghost Protocol project | Project-owned | None | Web variant of vignette and grain |
 | `assets/config/enemies.json` | Enemy and wave catalog from Data Formats §3 | Ghost Protocol project | Project-owned | None | Enemy tuning and planned assault composition |

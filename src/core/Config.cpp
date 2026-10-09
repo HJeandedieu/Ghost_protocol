@@ -174,6 +174,12 @@ Config Config::load(const std::string& path, Logger& logger) {
         config.ui.payoutStampTime = .25f;
     }
     const auto& render = groupOrEmpty(data, "render", empty);
+    const float ssaa = readNumber(render, "ssaa_scale", 2, "render", logger, 4);
+    if (ssaa >= 1 && std::trunc(ssaa) == ssaa)
+        config.render.ssaaScale = static_cast<int>(ssaa);
+    else
+        logger.log(LogLevel::Warn,
+                   "render.ssaa_scale must be an integer from 1 to 4; using default 2");
     config.render.grainIntensity =
         readNumber(render, "grain_intensity", config.render.grainIntensity, "render", logger, 1);
     config.render.vignetteStrength = readNumber(

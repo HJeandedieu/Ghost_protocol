@@ -4,6 +4,7 @@
 #include <array>
 #include <cmath>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 #include "core/Logger.h"
@@ -13,6 +14,12 @@
 #include "entities/Player.h"
 #include "entities/SecurityCamera.h"
 #include "raylib.h"
+#include "rlgl.h"
+#ifdef __EMSCRIPTEN__
+#include <GLES2/gl2.h>
+#else
+#include "external/glad.h"
+#endif
 #include "render/AlarmSequence.h"
 #include "render/Letterbox.h"
 #include "render/Palette.h"
@@ -36,15 +43,37 @@ namespace {
 constexpr float kPi = 3.14159265358979323846f;
 constexpr int kConeArcSegments = 64;
 
+RenderTexture2D loadFilteredTarget(int width, int height) {
+    auto target = LoadRenderTexture(width, height);
+    if (target.texture.id != 0) SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
+    return target;
+}
+
+void beginLogicalTarget(RenderTexture2D target) {
+    BeginTextureMode(target);
+    rlMatrixMode(RL_PROJECTION);
+    rlLoadIdentity();
+    rlOrtho(0, Letterbox::kWidth, Letterbox::kHeight, 0, 0, 1);
+    rlMatrixMode(RL_MODELVIEW);
+    rlLoadIdentity();
+}
+
+void drawLogicalTexture(Texture2D texture, Color tint) {
+    DrawTexturePro(texture,
+                   {0, 0, static_cast<float>(texture.width), -static_cast<float>(texture.height)},
+                   {0, 0, 1280, 720}, {0, 0}, 0, tint);
+}
+
 // Original decorative geometry; collision and interactions remain map-owned.
 void drawBankFurniture(int x, int y, float size, float visibility, Color wall, Color floor) {
-    const Color edge = Fade(wall, visibility);
-    const Color surface = Fade(Color{static_cast<unsigned char>((wall.r + floor.r) / 2),
-                                     static_cast<unsigned char>((wall.g + floor.g) / 2),
-                                     static_cast<unsigned char>((wall.b + floor.b) / 2), 255},
-                               visibility);
-    const Color dark = Fade(Palette::Ink, visibility);
-    const float left = x * size, top = y * size;
+    const Color edge = Fade(ColorLerp(wall, floor, .3f), visibility);
+    const Color surface = Fade(ColorLerp(wall, floor, .72f), visibility);
+    const Color dark = Fade(ColorLerp(floor, Palette::Ink, .7f), visibility);
+    const float tileSize = size;
+    const bool smallProp = !((x == 43 || x == 44 || x == 60 || x == 61) && y >= 23 && y <= 33);
+    if (smallProp) size *= 1.65f;
+    const float left = x * tileSize + (tileSize - size) * .5f;
+    const float top = y * tileSize + (tileSize - size) * .5f;
     const auto rect = [&](float px, float py, float w, float h, Color color) {
         DrawRectangleRec({left + size * px, top + size * py, size * w, size * h}, color);
     };
@@ -54,31 +83,74 @@ void drawBankFurniture(int x, int y, float size, float visibility, Color wall, C
     const bool bench = (x == 44 || x == 57) && (y == 28 || y == 36);
     const bool crate = (x == 6 || x == 10 || x == 14) && y == 34;
     if (desk || console) {
-        rect(.1f, .15f, .8f, .55f, surface);
+        DrawRectangleRounded({left + size * .08f, top + size * .16f, size * .86f, size * .58f},
+                             .13f, 12, Fade(BLACK, visibility * .59f));
+        DrawRectangleRounded({left + size * .06f, top + size * .08f, size * .88f, size * .58f},
+                             .13f, 12, dark);
+        DrawRectangleRounded({left + size * .09f, top + size * .09f, size * .82f, size * .52f}, .1f,
+                             12, surface);
+        rect(.12f, .59f, .76f, .055f, dark);
+        for (int drawer = 0; drawer < 2; ++drawer) {
+            rect(.14f + drawer * .57f, .42f, .13f, .13f, dark);
+            rect(.17f + drawer * .57f, .44f, .07f, .015f, edge);
+        }
         rect(.14f, .15f, .72f, .08f, edge);
         rect(.35f, .27f, .3f, .2f, dark);
         rect(.38f, .3f, .24f, .12f, edge);
-        rect(.42f, .52f, .16f, .04f, dark);
-        rect(.42f, .77f, .2f, .18f, dark);
-        rect(.4f, .75f, .24f, .05f, edge);
-        rect(.7f, .5f, .12f, .1f, Fade(Palette::Bone, visibility * .25f));
+        rect(.34f, .51f, .3f, .07f, dark);
+        for (int row = 0; row < 2; ++row)
+            for (int key = 0; key < 7; ++key)
+                rect(.35f + key * .04f, .52f + row * .023f, .024f, .012f, edge);
+        rect(.65f, .51f, .04f, .06f, dark);
+        rect(.38f, .3f, .24f, .018f, Fade(Palette::Bone, visibility * .5f));
+        rect(.39f, .34f, .14f, .012f, dark);
+        rect(.39f, .37f, .19f, .012f, dark);
+        const Vector2 chair{left + size * .5f, top + size * .83f};
+        DrawCircleSector(chair, size * .14f, 0, 360, 48, dark);
+        DrawRectangleRounded(
+            {chair.x - size * .16f, chair.y - size * .13f, size * .32f, size * .18f}, .3f, 12,
+            surface);
+        rect(.32f, .88f, .36f, .045f, edge);
+        rect(.31f, .76f, .025f, .14f, edge);
+        rect(.67f, .76f, .025f, .14f, edge);
+        rect(.73f, .50f, .11f, .09f, Fade(Palette::Bone, visibility * .45f));
+        for (int line = 0; line < 3; ++line) rect(.75f, .52f + line * .018f, .07f, .008f, dark);
     }
     if (counter) {
-        rect(0, 0, 1, 1, surface);
-        if (x == 43 || x == 60) rect(.08f, 0, .12f, 1, edge);
+        rect(0, 0, 1, 1, dark);
+        rect(.05f, 0, .9f, 1, surface);
+        rect(.25f, 0, .55f, 1, Fade(ColorLerp(wall, floor, .75f), visibility));
+        rect(.25f, .96f, .55f, .025f, Fade(wall, visibility * .15f));
+        if (x == 43 || x == 60) {
+            rect(.06f, 0, .045f, 1, edge);
+            rect(.11f, 0, .12f, 1, Fade(ColorLerp(wall, floor, .35f), visibility));
+            rect(.21f, 0, .025f, 1, dark);
+        }
         if (x == 44 || x == 61) rect(.86f, .05f, .08f, .9f, dark);
         if (y == 23 || y == 33) rect(0, y == 23 ? 0 : .85f, 1, .15f, edge);
         if (y % 3 == 0) {
-            rect(.35f, .35f, .24f, .22f, dark);
-            rect(.38f, .38f, .18f, .12f, edge);
+            rect(.35f, .25f, .36f, .31f, dark);
+            rect(.38f, .28f, .30f, .18f, edge);
+            rect(.4f, .32f, .2f, .025f, Fade(Palette::Bone, visibility * .35f));
+            rect(.47f, .56f, .13f, .09f, dark);
+            rect(.32f, .68f, .42f, .12f, dark);
+            for (int key = 0; key < 6; ++key) rect(.34f + key * .065f, .7f, .04f, .025f, edge);
         }
     }
     if ((x == 42 || x == 62) && y >= 23 && y <= 33 && y % 3 == 0) {
-        rect(.28f, .3f, .44f, .42f, dark);
-        rect(.25f, .26f, .5f, .12f, surface);
+        DrawRectangleRounded({left + size * .24f, top + size * .23f, size * .52f, size * .54f},
+                             .35f, 16, dark);
+        DrawRectangleRounded({left + size * .29f, top + size * .29f, size * .42f, size * .37f},
+                             .25f, 16, surface);
+        rect(.25f, .26f, .5f, .09f, edge);
+        rect(.22f, .42f, .06f, .28f, edge);
+        rect(.72f, .42f, .06f, .28f, edge);
     }
     if (bench) {
-        rect(.08f, .18f, .84f, .55f, dark);
+        DrawRectangleRounded({left + size * .06f, top + size * .18f, size * .88f, size * .59f},
+                             .16f, 16, dark);
+        rect(.06f, .24f, .065f, .48f, edge);
+        rect(.875f, .24f, .065f, .48f, edge);
         rect(.12f, .2f, .76f, .13f, edge);
         rect(.12f, .36f, .35f, .3f, surface);
         rect(.53f, .36f, .35f, .3f, surface);
@@ -93,15 +165,80 @@ void drawBankFurniture(int x, int y, float size, float visibility, Color wall, C
                    2, dark);
     }
     if ((x == 25 || x == 33) && (y == 18 || y == 26 || y == 36)) {
-        DrawCircleV({left + size * .5f, top + size * .5f}, size * .2f, dark);
-        for (int i = 0; i < 6; ++i) {
-            const float angle = i * kPi / 3;
-            const Vector2 tip{left + size * (.5f + .3f * std::cos(angle)),
-                              top + size * (.5f + .3f * std::sin(angle))};
-            DrawTriangle({left + size * .5f, top + size * .5f}, {tip.x + size * .08f, tip.y},
-                         {tip.x, tip.y + size * .08f}, surface);
+        const Vector2 center{left + size * .5f, top + size * .5f};
+        DrawCircleSector({center.x + size * .05f, center.y + size * .08f}, size * .37f, 0, 360, 64,
+                         Fade(BLACK, visibility * .51f));
+        DrawRectangleRounded({center.x - size * .2f, center.y - size * .2f, size * .4f, size * .4f},
+                             .2f, 12, dark);
+        for (int i = 0; i < 10; ++i) {
+            const float angle = i * 2 * kPi / 10;
+            const Vector2 direction{std::cos(angle), std::sin(angle)};
+            const Vector2 side{-direction.y, direction.x};
+            std::array<Vector2, 18> leaf{};
+            leaf[0] = center;
+            for (int point = 0; point <= 16; ++point) {
+                const float theta = point * 2 * kPi / 16;
+                const float along = (.18f + .18f * std::cos(theta)) * size;
+                const float across = .085f * size * std::sin(theta);
+                leaf[point + 1] = {center.x + direction.x * along + side.x * across,
+                                   center.y + direction.y * along + side.y * across};
+            }
+            std::reverse(leaf.begin() + 1, leaf.end());
+            DrawTriangleFan(leaf.data(), static_cast<int>(leaf.size()),
+                            Fade(ColorLerp(wall, floor, i % 2 == 0 ? .75f : .55f), visibility));
+            DrawLineEx(center,
+                       {center.x + direction.x * size * .32f, center.y + direction.y * size * .32f},
+                       size * .012f, dark);
         }
+        DrawCircleSector(center, size * .06f, 0, 360, 32, edge);
     }
+}
+
+void drawKeycard(Vec2 center, float size, float reveal) {
+    constexpr Color kAlarm = Palette::Alarm, kBone = Palette::Bone;
+    constexpr Color kGold{242, 183, 5, 255};
+    const Rectangle card{center.x - size * .22f, center.y - size * .13f, size * .44f, size * .26f};
+    DrawRectangleRounded({card.x + 2, card.y + 3, card.width, card.height}, .2f, 12,
+                         Fade(BLACK, reveal * .5f));
+    DrawRectangleRounded(card, .2f, 12, Fade(kAlarm, reveal));
+    DrawRectangleRec({card.x + 2, card.y + 2, card.width - 4, size * .04f},
+                     Fade(Palette::Ink, reveal));
+    DrawRectangleRec({card.x + size * .06f, card.y + size * .12f, size * .07f, size * .065f},
+                     Fade(kGold, reveal));
+    DrawLineEx({card.x + size * .19f, card.y + size * .15f},
+               {card.x + size * .35f, card.y + size * .15f}, 1, Fade(kBone, reveal));
+}
+
+bool isDoor(TileType tile) {
+    return tile == TileType::Door || tile == TileType::ServiceDoor || tile == TileType::CardDoor ||
+           tile == TileType::FrontDoor || tile == TileType::Gate;
+}
+
+void drawBankDoor(int x, int y, float size, float visibility, const TileMap& map, Color wall) {
+    const Vector2 center{(x + .5f) * size, (y + .5f) * size};
+    const bool vertical = map.blocksSight(x, y - 1) || map.blocksSight(x, y + 1);
+    const Vector2 axis = vertical ? Vector2{0, 1} : Vector2{1, 0};
+    const Vector2 across{-axis.y, axis.x};
+    const Vector2 hinge{center.x - axis.x * size * .44f, center.y - axis.y * size * .44f};
+    const Vector2 end{center.x + axis.x * size * .44f, center.y + axis.y * size * .44f};
+    const Color edge = Fade(wall, visibility);
+    const Color metal = Fade(ColorLerp(wall, Palette::Bone, .25f), visibility);
+    for (const auto point : {hinge, end}) {
+        DrawLineEx({point.x - across.x * size * .14f, point.y - across.y * size * .14f},
+                   {point.x + across.x * size * .14f, point.y + across.y * size * .14f},
+                   size * .08f, edge);
+        DrawCircleSector(point, size * .045f, 0, 360, 32, metal);
+    }
+    const Vector2 tip = map.isOpen(x, y) ? Vector2{hinge.x + across.x * size * .78f,
+                                                   hinge.y + across.y * size * .78f}
+                                         : end;
+    DrawLineEx(hinge, tip, size * .18f, Fade(Palette::Ink, visibility));
+    DrawLineEx(hinge, tip, size * .12f, Fade(ColorLerp(wall, Palette::Ink, .55f), visibility));
+    DrawLineEx({hinge.x - across.x * size * .045f, hinge.y - across.y * size * .045f},
+               {tip.x - across.x * size * .045f, tip.y - across.y * size * .045f}, size * .022f,
+               metal);
+    DrawCircleSector({hinge.x + (tip.x - hinge.x) * .82f, hinge.y + (tip.y - hinge.y) * .82f},
+                     size * .035f, 0, 360, 32, Fade(Palette::Bone, visibility));
 }
 
 void drawOperator(Vector2 p, float radius, float facing, Color body, float opacity, bool rim,
@@ -111,25 +248,56 @@ void drawOperator(Vector2 p, float radius, float facing, Color body, float opaci
         return Vector2{p.x + radius * (forward.x * x + side.x * y),
                        p.y + radius * (forward.y * x + side.y * y)};
     };
-    for (const auto shoulder : {at(-.2f, -.65f), at(-.2f, .65f)}) {
-        if (rim) DrawCircleV(shoulder, radius * .55f + 2, Fade(Palette::Bone, opacity));
-        DrawCircleV(shoulder, radius * .55f, Fade(body, opacity));
+    const auto disk = [&](Vector2 center, float r, Color color) {
+        DrawCircleSector(center, r, 0, 360, 64, Fade(color, opacity));
+    };
+    // One continuous outer silhouette: overlapping fills cover the internal rims.
+    DrawCircleSector(at(-.15f, .12f), radius * 1.2f, 0, 360, 64, Fade(BLACK, opacity * .43f));
+    const std::array<Vector2, 2> silhouette{at(-.28f, -.65f), at(-.28f, .65f)};
+    if (rim)
+        for (std::size_t i = 0; i < silhouette.size(); ++i)
+            disk(silhouette[i], radius * .56f + 1.2f, Palette::Bone);
+    for (std::size_t i = 0; i < silhouette.size(); ++i) disk(silhouette[i], radius * .56f, body);
+    const auto torso = [&](float scale, Color color) {
+        std::array<Vector2, 8> contour{
+            at(-.95f * scale, -.48f * scale), at(-.65f * scale, -.8f * scale),
+            at(.05f * scale, -.83f * scale),  at(.62f * scale, -.42f * scale),
+            at(.68f * scale, .42f * scale),   at(.05f * scale, .83f * scale),
+            at(-.65f * scale, .8f * scale),   at(-.95f * scale, .48f * scale)};
+        std::reverse(contour.begin(), contour.end());
+        DrawTriangleFan(contour.data(), static_cast<int>(contour.size()), Fade(color, opacity));
+    };
+    if (rim) torso(1.1f, Palette::Bone);
+    for (const auto shoulder : silhouette) disk(shoulder, radius * .56f, body);
+    torso(1.f, body);
+    // Shoulder pads, articulated sleeves and the rear vest panel.
+    for (float sign : {-1.f, 1.f}) {
+        DrawLineEx(at(-.48f, sign * .77f), at(.27f, sign * .7f), radius * .23f,
+                   Fade(ColorLerp(body, Palette::Bone, .16f), opacity));
+        DrawLineEx(at(.27f, sign * .7f), at(.75f, sign * .32f), radius * .27f, Fade(body, opacity));
+        disk(at(.76f, sign * .31f), radius * .16f, ghost ? Palette::Slate : Palette::Bone);
     }
-    if (rim) DrawCircleV(p, radius + 2, Fade(Palette::Bone, opacity));
-    DrawCircleV(p, radius, Fade(body, opacity));
-    const Vector2 head = at(.2f, 0);
-    DrawCircleV(head, radius * .65f, Fade(ghost ? Palette::Bone : Palette::Slate, opacity));
+    DrawLineEx(at(-.63f, -.4f), at(-.63f, .4f), radius * .3f,
+               Fade(ColorLerp(body, Palette::Ink, .65f), opacity));
+    DrawLineEx(at(-.63f, -.37f), at(-.63f, .37f), radius * .055f,
+               Fade(heavy ? Color{242, 183, 5, 255} : Palette::Slate, opacity));
+    disk(at(.04f, 0), radius * .63f, Palette::Ink);
+    disk(at(.16f, 0), radius * .57f, ghost ? Palette::Bone : Palette::Slate);
+    disk(at(-.03f, -.55f), radius * .17f, Palette::Ink);
+    disk(at(-.03f, .55f), radius * .17f, Palette::Ink);
     if (ghost) {
-        for (float eye : {-.24f, .24f})
-            DrawCircleV(at(.39f, eye), radius * .14f, Fade(Palette::Ink, opacity));
-        DrawLineEx(at(.65f, -.18f), at(.65f, .18f), radius * .12f, Fade(Palette::Ink, opacity));
-        DrawCircleV(at(-.2f, -.85f), radius * .16f, Fade(Palette::Alarm, opacity));
+        for (float eye : {-.22f, .22f}) disk(at(.35f, eye), radius * .105f, Palette::Ink);
+        DrawLineEx(at(.58f, -.14f), at(.58f, .14f), radius * .09f, Fade(Palette::Ink, opacity));
+        disk(at(-.08f, -.58f), radius * .065f, Palette::Alarm);
     } else {
-        DrawLineEx(at(.65f, -.45f), at(.65f, .45f), radius * .17f, Fade(Palette::Bone, opacity));
-        DrawLineEx(at(-.45f, -.42f), at(-.45f, .42f), radius * .24f,
-                   Fade(heavy ? Color{242, 183, 5, 255} : Palette::Bone, opacity));
+        DrawLineEx(at(.53f, -.38f), at(.53f, .38f), radius * .2f, Fade(body, opacity));
+        DrawLineEx(at(.58f, -.29f), at(.58f, .29f), radius * .055f, Fade(Palette::Bone, opacity));
     }
-    DrawLineEx(at(-.15f, -.68f), at(.2f, -.68f), radius * .15f, Fade(Palette::Teal, opacity));
+    // Receiver and barrel are visual geometry; combat owns shot origins and aim.
+    DrawLineEx(at(.83f, -.04f), at(1.43f, -.04f), radius * .23f, Fade(Palette::Ink, opacity));
+    DrawLineEx(at(1.2f, -.04f), at(1.85f, -.04f), radius * .105f, Fade(Palette::Slate, opacity));
+    DrawLineEx(at(.91f, -.1f), at(1.37f, -.1f), radius * .055f,
+               Fade(Color{242, 183, 5, 255}, opacity));
 }
 
 void drawClippedTriangle(Vector2 eye, Vector2 right, Vector2 left, Rectangle tile, Color color) {
@@ -160,6 +328,43 @@ void drawClippedTriangle(Vector2 eye, Vector2 right, Vector2 left, Rectangle til
     }
     if (count >= 3) DrawTriangleFan(polygon.data(), count, color);
 }
+// Continuous wall-corner rays translate the tile-owned reveal into smooth
+// visible floor shapes. This reads the same raycast and never writes reveal.
+void sightBoundary(Vec2 origin, float radius, const TileMap& map, std::vector<float>& angles,
+                   std::vector<Vector2>& boundary) {
+    angles.clear();
+    boundary.clear();
+    if (radius <= 0) return;
+    constexpr int segments = 256;
+    for (int i = 0; i <= segments; ++i) angles.push_back(i * 2 * kPi / segments);
+    const float size = static_cast<float>(map.tileSize());
+    const int left = std::max(0, static_cast<int>((origin.x - radius) / size));
+    const int top = std::max(0, static_cast<int>((origin.y - radius) / size));
+    const int right = std::min(map.width(), static_cast<int>((origin.x + radius) / size) + 1);
+    const int bottom = std::min(map.height(), static_cast<int>((origin.y + radius) / size) + 1);
+    for (int y = top; y <= bottom; ++y)
+        for (int x = left; x <= right; ++x) {
+            if (!map.blocksSight(x, y) && !map.blocksSight(x - 1, y) &&
+                !map.blocksSight(x, y - 1) && !map.blocksSight(x - 1, y - 1))
+                continue;
+            const float dx = x * size - origin.x, dy = y * size - origin.y;
+            if (std::hypot(dx, dy) > radius) continue;
+            const float angle = std::atan2(dy, dx);
+            for (const float offset : {-.00001f, 0.f, .00001f}) {
+                const float wrapped = std::fmod(angle + offset + 2 * kPi, 2 * kPi);
+                angles.push_back(wrapped);
+            }
+        }
+    std::sort(angles.begin(), angles.end());
+    angles.erase(std::unique(angles.begin(), angles.end()), angles.end());
+    for (const float angle : angles) {
+        const Vec2 end{origin.x + std::cos(angle) * radius, origin.y + std::sin(angle) * radius};
+        const float distance = Raycast::sightDistance(origin, end, map);
+        boundary.push_back(
+            {origin.x + std::cos(angle) * distance, origin.y + std::sin(angle) * distance});
+    }
+}
+
 }  // namespace
 
 void Renderer::prepareLevel(const Level& level) {
@@ -169,6 +374,8 @@ void Renderer::prepareLevel(const Level& level) {
     coneDistances_.reserve(capacity);
     coneDirections_.reserve(capacity);
     coneLightRegions_.reserve(static_cast<std::size_t>(level.map.width()) * level.map.height());
+    pingAngles_.reserve(capacity + 256);
+    pingBoundary_.reserve(capacity + 256);
 }
 
 void Renderer::drawGuardCone(const Guard& guard, Vec2 position, const TileMap& map, bool crouched,
@@ -287,10 +494,8 @@ void Renderer::drawGuardCone(const Guard& guard, Vec2 position, const TileMap& m
 }
 
 Renderer::Renderer(Logger& logger, const RenderConfig& config)
-    : surface_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)),
-      world_(LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight)),
-      config_(config),
-      uiAssets_(logger) {
+    : config_(config), logger_(logger), uiAssets_(logger) {
+    resizeTargets();
 #ifdef __EMSCRIPTEN__
     const char* path = "assets/shaders/glsl100/post.fs";
 #else
@@ -301,6 +506,7 @@ Renderer::Renderer(Logger& logger, const RenderConfig& config)
         timeLocation_ = GetShaderLocation(post_, "elapsedTime");
         alarmPulseLocation_ = GetShaderLocation(post_, "alarmPulse");
         grainLocation_ = GetShaderLocation(post_, "grainIntensity");
+        texelLocation_ = GetShaderLocation(post_, "texelSize");
         vignetteLocation_ = GetShaderLocation(post_, "vignetteStrength");
     }
     if (timeLocation_ < 0)
@@ -314,16 +520,106 @@ Renderer::~Renderer() {
     UnloadRenderTexture(surface_);
 }
 
+void Renderer::beginLogicalScissor(int x, int y, int width, int height) const {
+    const double scale = static_cast<double>(surface_.texture.width) / Letterbox::kWidth;
+    const int left = static_cast<int>(std::floor(x * scale));
+    const int top = static_cast<int>(std::floor(y * scale));
+    BeginScissorMode(left, top, static_cast<int>(std::ceil((x + width) * scale)) - left,
+                     static_cast<int>(std::ceil((y + height) * scale)) - top);
+}
+
+void Renderer::resizeTargets() {
+    if (textureLimit_ == 0) glGetIntegerv(GL_MAX_TEXTURE_SIZE, &textureLimit_);
+#ifdef __EMSCRIPTEN__
+    const auto desired = Letterbox::renderSize(1280, 720, config_.ssaaScale, textureLimit_);
+#else
+    const auto desired = Letterbox::renderSize(GetRenderWidth(), GetRenderHeight(),
+                                               config_.ssaaScale, textureLimit_);
+#endif
+    if (desired.width == requestedWidth_ && desired.height == requestedHeight_) return;
+    std::array<RenderTexture2D, 4> targets{};
+    const int count = static_cast<int>(targets.size());
+    const auto release = [&] {
+        for (auto& target : targets) {
+            if (target.id) UnloadRenderTexture(target);
+            target = {};
+        }
+    };
+    const auto allocate = [&](int units) {
+        release();
+        if (units <= 0) return false;
+        for (int i = 0; i < count; ++i) {
+            targets[i] = loadFilteredTarget(units * 16, units * 9);
+            if (!IsRenderTextureValid(targets[i]) || !rlFramebufferComplete(targets[i].id)) {
+                release();
+                return false;
+            }
+            BeginTextureMode(targets[i]);
+            ClearBackground(BLACK);
+            EndTextureMode();
+        }
+        return true;
+    };
+    int units = desired.width / 16;
+    if (!allocate(units)) {
+        // Find the highest allocation that the device can actually support.
+        int low = 0, high = units - 1;
+        while (low < high) {
+            const int mid = low + (high - low + 1) / 2;
+            if (allocate(mid))
+                low = mid;
+            else
+                high = mid - 1;
+        }
+        units = low;
+        if (!allocate(units)) {
+            logger_.log(LogLevel::Warn,
+                        "Render target allocation failed; retaining previous frame targets");
+            if (!world_.id) throw std::runtime_error("No supported render target allocation");
+            requestedWidth_ = desired.width;
+            requestedHeight_ = desired.height;
+            return;
+        }
+    }
+    if (desired.reduced || units * 16 != desired.width)
+        logger_.log(LogLevel::Warn, "GPU limit reduced render targets to " +
+                                        std::to_string(units * 16) + "x" +
+                                        std::to_string(units * 9));
+    int index = 2;
+    const auto preserve = [&](RenderTexture2D& old) {
+        auto replacement = targets[index++];
+        beginLogicalTarget(replacement);
+        ClearBackground(BLACK);
+        drawLogicalTexture(old.texture, WHITE);
+        EndTextureMode();
+        UnloadRenderTexture(old);
+        old = replacement;
+    };
+    if (frozen_.id) preserve(frozen_);
+    if (outgoing_.id) preserve(outgoing_);
+    frozen_ = targets[2];
+    outgoing_ = targets[3];
+    if (world_.id) UnloadRenderTexture(world_);
+    if (surface_.id) UnloadRenderTexture(surface_);
+    world_ = targets[0];
+    surface_ = targets[1];
+    requestedWidth_ = desired.width;
+    requestedHeight_ = desired.height;
+    uiAssets_.ensureFontResolution(
+        static_cast<int>(std::ceil(96.0 * surface_.texture.width / 1280)));
+}
+
 void Renderer::beginFrame() {
     constexpr Color kInk = {10, 10, 12, 255};
+    resizeTargets();
     composed_ = false;
-    BeginTextureMode(world_);
+    beginLogicalTarget(world_);
     ClearBackground(kInk);
 }
 
 void Renderer::compose(bool effects) {
     EndTextureMode();
-    BeginTextureMode(surface_);
+    beginLogicalTarget(surface_);
     ClearBackground({10, 10, 12, 255});
     const bool useShader = effects && !reduceEffects_ && timeLocation_ >= 0;
     if (useShader) {
@@ -336,31 +632,31 @@ void Renderer::compose(bool effects) {
                            SHADER_UNIFORM_FLOAT);
         if (alarmPulseLocation_ >= 0)
             SetShaderValue(post_, alarmPulseLocation_, &alarmPulse_, SHADER_UNIFORM_FLOAT);
+        const float texel[2] = {1.f / world_.texture.width, 1.f / world_.texture.height};
+        if (texelLocation_ >= 0) SetShaderValue(post_, texelLocation_, texel, SHADER_UNIFORM_VEC2);
         BeginShaderMode(post_);
     }
-    DrawTextureRec(
-        world_.texture,
-        {0, 0, static_cast<float>(Letterbox::kWidth), -static_cast<float>(Letterbox::kHeight)},
-        {0, 0}, WHITE);
+    drawLogicalTexture(world_.texture, WHITE);
     if (useShader) EndShaderMode();
     composed_ = true;
 }
 
 void Renderer::freezeFrame() {
-    if (!frozen_.id) frozen_ = LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight);
-    BeginTextureMode(frozen_);
+    if (!frozen_.id) frozen_ = loadFilteredTarget(surface_.texture.width, surface_.texture.height);
+    beginLogicalTarget(frozen_);
     ClearBackground(BLACK);
-    DrawTextureRec(surface_.texture, {0, 0, 1280, -720}, {0, 0}, WHITE);
+    drawLogicalTexture(surface_.texture, WHITE);
     EndTextureMode();
 }
 void Renderer::drawFrozenFrame() const {
-    if (frozen_.id) DrawTextureRec(frozen_.texture, {0, 0, 1280, -720}, {0, 0}, WHITE);
+    if (frozen_.id) drawLogicalTexture(frozen_.texture, WHITE);
 }
 void Renderer::startTransition(float duration, bool backwards) {
-    if (!outgoing_.id) outgoing_ = LoadRenderTexture(Letterbox::kWidth, Letterbox::kHeight);
-    BeginTextureMode(outgoing_);
+    if (!outgoing_.id)
+        outgoing_ = loadFilteredTarget(surface_.texture.width, surface_.texture.height);
+    beginLogicalTarget(outgoing_);
     ClearBackground(BLACK);
-    DrawTextureRec(surface_.texture, {0, 0, 1280, -720}, {0, 0}, WHITE);
+    drawLogicalTexture(surface_.texture, WHITE);
     EndTextureMode();
     transitionDuration_ = duration;
     transitionElapsed_ = 0;
@@ -372,7 +668,7 @@ void Renderer::present() {
     if (transitionElapsed_ < transitionDuration_ && outgoing_.id) {
         const float p = transitionProgress(transitionElapsed_, transitionDuration_);
         if (reduceEffects_) {
-            DrawTextureRec(outgoing_.texture, {0, 0, 1280, -720}, {0, 0}, Fade(WHITE, 1 - p));
+            drawLogicalTexture(outgoing_.texture, Fade(WHITE, 1 - p));
         } else {
             // Three staggered directional panels retain the outgoing composition.
             for (int row = 0; row < 3; ++row) {
@@ -380,8 +676,8 @@ void Renderer::present() {
                 const int width = static_cast<int>((1 - local) * 1280);
                 const int x = transitionBackwards_ ? 0 : 1280 - width;
                 if (width > 0) {
-                    BeginScissorMode(x, row * 240, width, 240);
-                    DrawTextureRec(outgoing_.texture, {0, 0, 1280, -720}, {0, 0}, WHITE);
+                    beginLogicalScissor(x, row * 240, width, 240);
+                    drawLogicalTexture(outgoing_.texture, WHITE);
                     DrawRectangle(x, row * 240, 4, 240, Palette::Teal);
                     EndScissorMode();
                 }
@@ -396,15 +692,23 @@ void Renderer::present() {
     ClearBackground(BLACK);
     const auto viewport = Letterbox::fit(GetScreenWidth(), GetScreenHeight());
     if (viewport.width > 0.0f && viewport.height > 0.0f) {
-        DrawTexturePro(
-            surface_.texture,
-            {0, 0, static_cast<float>(Letterbox::kWidth), -static_cast<float>(Letterbox::kHeight)},
-            {viewport.x, viewport.y, viewport.width, viewport.height}, {0, 0}, 0, WHITE);
+        DrawTexturePro(surface_.texture,
+                       {0, 0, static_cast<float>(surface_.texture.width),
+                        -static_cast<float>(surface_.texture.height)},
+                       {viewport.x, viewport.y, viewport.width, viewport.height}, {0, 0}, 0, WHITE);
     }
     EndDrawing();
 }
 
-void Renderer::drawPlaceholder(const char* title, const char* subtitle) {
+void Renderer::drawPlaceholder(const char* title, const char* subtitle, const UiAssets* assets) {
+    if (assets) {
+        const float width = MeasureTextEx(assets->title(), title, 40, 1).x;
+        const float caption = MeasureTextEx(assets->body(), subtitle, 20, 1).x;
+        assets->text(title, {(1280 - width) * .5f, 288}, 40, Palette::Bone, false, true);
+        assets->text(subtitle, {(1280 - caption) * .5f, 360}, 20, Palette::Teal, true);
+        assets->text("F11 fullscreen", {24, 680}, 18, Palette::Bone, true);
+        return;
+    }
     constexpr Color kBone = {233, 228, 208, 255};
     constexpr Color kTeal = {63, 143, 140, 255};
     DrawText(title, (Letterbox::kWidth - MeasureText(title, 40)) / 2, 288, 40, kBone);
@@ -463,23 +767,55 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                 continue;
             const float reveal =
                 overview || pickupsLit ? 1.0f : ripple.visibility(x, y, player.pos, map);
+            const float visible = std::max(reveal, config_.ambientWallAlpha);
             if (tile == TileType::Wall) {
-                if (reveal > 0)
-                    DrawRectangleRec({x * size, y * size, size, size}, Fade(wallColor, reveal));
-                const Color edge = Fade(wallColor, std::max(reveal, config_.ambientWallAlpha));
-                if (map.isPassable(x - 1, y)) DrawRectangleRec({x * size, y * size, 2, size}, edge);
-                if (map.isPassable(x + 1, y))
-                    DrawRectangleRec({(x + 1) * size - 2, y * size, 2, size}, edge);
-                if (map.isPassable(x, y - 1)) DrawRectangleRec({x * size, y * size, size, 2}, edge);
-                if (map.isPassable(x, y + 1))
-                    DrawRectangleRec({x * size, (y + 1) * size - 2, size, 2}, edge);
+                // Structural mass remains dark. Light catches only the room-facing caps.
+                DrawRectangleRec({x * size, y * size, size, size}, Palette::Ink);
+                const Color edge = Fade(wallColor, visible);
+                const Color face = Fade(ColorLerp(wallColor, Palette::Ink, .52f), visible);
+                const Color shine = Fade(ColorLerp(wallColor, Palette::Bone, .2f), visible);
+                const float depth = size * .19f;
+                if (pickupsLit && map.isPassable(x - 1, y) && map.isPassable(x + 1, y) &&
+                    map.isPassable(x, y - 1) && map.isPassable(x, y + 1)) {
+                    DrawRectangleRec({x * size + 3, y * size + 3, size - 6, size - 6},
+                                     ColorLerp(floorColor, Palette::Ink, .65f));
+                    DrawRectangleRec({x * size + 6, y * size + 5, size - 12, size - 16}, face);
+                    DrawRectangleRec({x * size + 8, y * size + 7, size - 16, 2}, edge);
+                }
+                if (map.isPassable(x - 1, y)) {
+                    DrawRectangleRec({x * size, y * size, depth, size}, face);
+                    DrawRectangleRec({x * size, y * size, 2, size}, shine);
+                    DrawRectangleRec({x * size + depth - 2, y * size, 2, size}, edge);
+                }
+                if (map.isPassable(x + 1, y)) {
+                    DrawRectangleRec({(x + 1) * size - depth, y * size, depth, size}, face);
+                    DrawRectangleRec({(x + 1) * size - 2, y * size, 2, size}, shine);
+                    DrawRectangleRec({(x + 1) * size - depth, y * size, 2, size}, edge);
+                }
+                if (map.isPassable(x, y - 1)) {
+                    DrawRectangleRec({x * size, y * size, size, depth}, face);
+                    DrawRectangleRec({x * size, y * size, size, 2}, shine);
+                    DrawRectangleRec({x * size, y * size + depth - 2, size, 2}, edge);
+                }
+                if (map.isPassable(x, y + 1)) {
+                    DrawRectangleRec({x * size, (y + 1) * size - depth, size, depth}, face);
+                    DrawRectangleRec({x * size, (y + 1) * size - 2, size, 2}, shine);
+                    DrawRectangleRec({x * size, (y + 1) * size - depth, size, 2}, edge);
+                }
             } else {
+                const float lightVisibility = map.light(x, y) == LightLevel::Lit   ? 1.f
+                                              : map.light(x, y) == LightLevel::Dim ? .35f
+                                                                                   : 0.f;
+                const float floorVisibility =
+                    overview || pickupsLit ? 1.f
+                                           : std::max(lightVisibility, config_.ambientFloorAlpha);
                 DrawRectangleRec({x * size, y * size, size, size},
-                                 Fade(floorColor, std::max(reveal, config_.ambientFloorAlpha)));
+                                 Fade(floorColor, floorVisibility));
+                // Low-contrast polished panels remain subordinate to actors and pings.
+                DrawRectangleLinesEx(
+                    {x * size + .5f, y * size + .5f, size - 1, size - 1}, .5f,
+                    Fade(ColorLerp(floorColor, Palette::Bone, .08f), floorVisibility * .35f));
             }
-            if (level.name == "Gotham Central Bank" && tile == TileType::Floor)
-                drawBankFurniture(x, y, size, std::max(reveal, config_.ambientFloorAlpha),
-                                  wallColor, floorColor);
             if (reveal > 0 && tile == TileType::Bollard) {
                 const auto point = map.tileCenter({x, y});
                 if (map.isOpen(x, y))
@@ -489,20 +825,41 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                     DrawCircleV({point.x, point.y}, size * .08f, Fade(kGold, reveal));
                 }
             }
-            if (reveal > 0 && tile != TileType::Bollard && tile != TileType::Wall &&
-                tile != TileType::Floor && !map.isOpen(x, y) && tile != TileType::PlayerSpawn &&
+            if (reveal > 0 && !isDoor(tile) && tile != TileType::Bollard &&
+                tile != TileType::Wall && tile != TileType::Floor && !map.isOpen(x, y) &&
+                tile != TileType::PlayerSpawn && tile != TileType::Keycard &&
                 !(objectives && (tile == TileType::Money || tile == TileType::VaultDoor ||
                                  tile == TileType::VanSpawn))) {
                 const auto center = map.tileCenter({x, y});
                 const auto color = map.isPassable(x, y) ? kGold : kBone;
-                DrawRectangleRec(
-                    {center.x - size * 0.2f, center.y - size * 0.2f, size * 0.4f, size * 0.4f},
-                    Fade(color, reveal));
+                if (tile == TileType::SecurityPanel || tile == TileType::Breaker ||
+                    tile == TileType::BollardPanel) {
+                    const Rectangle cabinet{center.x - size * .23f, center.y - size * .32f,
+                                            size * .46f, size * .64f};
+                    DrawRectangleRounded(cabinet, .08f, 12, Fade(Palette::Ink, reveal));
+                    DrawRectangleLinesEx(cabinet, 1, Fade(kBone, reveal * .65f));
+                    DrawRectangleRec({cabinet.x + 3, cabinet.y + 3, cabinet.width - 6, size * .28f},
+                                     Fade(ColorLerp(wallColor, floorColor, .6f), reveal));
+                    for (int line = 0; line < 3; ++line)
+                        DrawLineEx(
+                            {cabinet.x + 5, cabinet.y + 6 + line * size * .045f},
+                            {cabinet.x + cabinet.width - 5, cabinet.y + 6 + line * size * .045f}, 1,
+                            Fade(Palette::Teal, reveal));
+                    for (int key = 0; key < 3; ++key)
+                        DrawRectangleRec({cabinet.x + 4 + key * size * .12f,
+                                          cabinet.y + size * .43f, size * .07f, size * .06f},
+                                         Fade(key == 2 ? kGold : kBone, reveal));
+                } else {
+                    DrawRectangleRec(
+                        {center.x - size * .2f, center.y - size * .2f, size * .4f, size * .4f},
+                        Fade(color, reveal));
+                }
                 if (overview) {
                     const char symbol[] = {static_cast<char>(tile), '\0'};
-                    DrawText(symbol, static_cast<int>(x * size + size * 0.25f),
-                             static_cast<int>(y * size + size * 0.25f),
-                             static_cast<int>(size * 0.5f), {10, 10, 12, 255});
+                    uiAssets_.text(symbol,
+                                   {static_cast<float>(static_cast<int>(x * size + size * 0.25f)),
+                                    static_cast<float>(static_cast<int>(y * size + size * 0.25f))},
+                                   size * 0.5f, {10, 10, 12, 255}, true);
                 }
             }
             if (!overview && !pickupsLit) {
@@ -510,32 +867,161 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                 const bool halo = std::hypot(center.x - player.pos.x, center.y - player.pos.y) <=
                                       ripple.haloRadius() + size &&
                                   Raycast::hasLineOfSight(player.pos, center, map, true);
-                const bool wave = ripple.waveActive() &&
-                                  Raycast::hasLineOfSight(ripple.origin(), center, map, true);
-                if (halo || wave) {
-                    BeginScissorMode(static_cast<int>(std::floor(topLeft.x)),
-                                     static_cast<int>(std::floor(topLeft.y)),
-                                     static_cast<int>(std::ceil(screenSize)),
-                                     static_cast<int>(std::ceil(screenSize)));
+                if (halo) {
+                    beginLogicalScissor(static_cast<int>(std::floor(topLeft.x)),
+                                        static_cast<int>(std::floor(topLeft.y)),
+                                        static_cast<int>(std::ceil(screenSize)),
+                                        static_cast<int>(std::ceil(screenSize)));
+                    if (halo && tile != TileType::Wall) {
+                        DrawCircleGradient(static_cast<int>(spawn.x), static_cast<int>(spawn.y),
+                                           ripple.haloRadius(), floorColor, Fade(floorColor, 0));
+                    }
                     BeginBlendMode(BLEND_ADDITIVE);
                     if (halo)
                         DrawCircleGradient(static_cast<int>(spawn.x), static_cast<int>(spawn.y),
                                            ripple.haloRadius(), Fade(kBone, 0.12f), Fade(kBone, 0));
-                    if (wave) {
-                        const auto origin = ripple.origin();
-                        const float radius = ripple.waveRadius();
-                        DrawCircleV({origin.x, origin.y}, radius, Fade(kBone, 0.08f));
-                        if (radius > 0)
-                            DrawRing({origin.x, origin.y}, std::max(0.0f, radius - 3.0f), radius, 0,
-                                     360, 128,
-                                     Fade(kBone, 0.9f * (1.0f - radius / ripple.maxRadius())));
-                    }
                     EndBlendMode();
                     EndScissorMode();
                 }
             }
         }
     }
+    bool pingVisible = ripple.waveActive();
+    if (!overview && !pickupsLit)
+        for (int y = 0; y < map.height() && !pingVisible; ++y)
+            for (int x = 0; x < map.width() && !pingVisible; ++x)
+                pingVisible = ripple.tileReveal(x, y) > 0;
+    if (!overview && !pickupsLit && pingVisible && ripple.waveRadius() > 0) {
+        const auto origin = ripple.origin();
+        const Vector2 eye{origin.x, origin.y};
+        const float radius = ripple.waveRadius();
+        sightBoundary(origin, radius, map, pingAngles_, pingBoundary_);
+        for (int y = 0; y < map.height(); ++y)
+            for (int x = 0; x < map.width(); ++x) {
+                if (map.tile(x, y) == TileType::Wall) continue;
+                const auto screen = GetWorldToScreen2D({x * size, y * size}, camera);
+                if (screen.x + size < 0 || screen.y + size < 0 || screen.x >= 1280 ||
+                    screen.y >= 720)
+                    continue;
+                float timed = ripple.tileReveal(x, y);
+                for (int dy = -1; dy <= 1; ++dy)
+                    for (int dx = -1; dx <= 1; ++dx)
+                        timed = std::max(timed, ripple.tileReveal(x + dx, y + dy));
+                const float light = map.light(x, y) == LightLevel::Lit   ? 1.f
+                                    : map.light(x, y) == LightLevel::Dim ? .35f
+                                                                         : 0.f;
+                const float base = std::max(light, config_.ambientFloorAlpha);
+                const float opacity = base < 1 ? std::max(0.f, (timed - base) / (1 - base)) : 0.f;
+                if (opacity <= 0 && !ripple.waveActive()) continue;
+                const Rectangle tile{x * size, y * size, size, size};
+                const float centerX = (x + .5f) * size - origin.x;
+                const float centerY = (y + .5f) * size - origin.y;
+                const float distance = std::hypot(centerX, centerY);
+                const float bound = size * .707107f;
+                if (distance > radius + bound) continue;
+                const bool nearEye = distance <= bound;
+                const float center = std::atan2(centerY, centerX);
+                const float span = nearEye ? kPi : std::asin(bound / distance);
+                for (int wrap = -1; wrap <= 1; ++wrap) {
+                    if (nearEye && wrap != 0) continue;
+                    const float low = nearEye ? 0 : center - span + wrap * 2 * kPi;
+                    const float high = nearEye ? 2 * kPi : center + span + wrap * 2 * kPi;
+                    const auto first = std::max<std::size_t>(
+                        1, std::lower_bound(pingAngles_.begin(), pingAngles_.end(), low) -
+                               pingAngles_.begin());
+                    const auto last = std::min<std::size_t>(
+                        pingAngles_.size() - 1,
+                        std::upper_bound(pingAngles_.begin(), pingAngles_.end(), high) -
+                            pingAngles_.begin());
+                    const auto paint = [&](Color color) {
+                        for (std::size_t i = first; i <= last; ++i)
+                            drawClippedTriangle(eye, pingBoundary_[i], pingBoundary_[i - 1], tile,
+                                                color);
+                    };
+                    if (opacity > 0) paint(Fade(floorColor, opacity));
+                    if (ripple.waveActive()) {
+                        BeginBlendMode(BLEND_ADDITIVE);
+                        paint(Fade(kBone, .08f));
+                        EndBlendMode();
+                    }
+                }
+            }
+        if (ripple.waveActive())
+            for (std::size_t i = 1; i < pingBoundary_.size(); ++i) {
+                const auto a = pingBoundary_[i - 1], b = pingBoundary_[i];
+                if (std::hypot(a.x - eye.x, a.y - eye.y) < radius - .01f ||
+                    std::hypot(b.x - eye.x, b.y - eye.y) < radius - .01f)
+                    continue;
+                DrawLineEx(a, b, 2, Fade(kBone, .9f * (1 - radius / ripple.maxRadius())));
+            }
+    }
+    if (level.name == "Gotham Central Bank") {
+        for (int y = 0; y < map.height(); ++y)
+            for (int x = 0; x < map.width(); ++x) {
+                if (map.tile(x, y) != TileType::Floor) continue;
+                const auto screen = GetWorldToScreen2D({x * size, y * size}, camera);
+                if (screen.x + size < 0 || screen.y + size < 0 || screen.x >= 1280 ||
+                    screen.y >= 720)
+                    continue;
+                const float reveal =
+                    overview || pickupsLit ? 1.f : ripple.visibility(x, y, player.pos, map);
+                DrawRectangleLinesEx({x * size + .5f, y * size + .5f, size - 1, size - 1}, .6f,
+                                     Fade(ColorLerp(floorColor, Palette::Ink, .55f),
+                                          std::max(reveal, config_.ambientFloorAlpha) * .5f));
+            }
+    }
+    // Contact shadows sit on the room floor after the floor pass. They describe
+    // depth without changing collision, light-zone classification or reveal.
+    for (int y = 0; y < map.height(); ++y)
+        for (int x = 0; x < map.width(); ++x) {
+            if (map.tile(x, y) != TileType::Wall) continue;
+            const auto screen = GetWorldToScreen2D({x * size, y * size}, camera);
+            if (screen.x + size * 2 < 0 || screen.y + size * 2 < 0 || screen.x - size >= 1280 ||
+                screen.y - size >= 720)
+                continue;
+            const float reveal =
+                overview || pickupsLit ? 1.f : ripple.visibility(x, y, player.pos, map);
+            const float visibility = std::max(reveal, config_.ambientFloorAlpha);
+            const Color shadow = Fade(BLACK, visibility * .47f);
+            if (map.isPassable(x + 1, y))
+                DrawRectangleRec({(x + 1) * size, y * size, size * .12f, size}, shadow);
+            if (map.isPassable(x, y + 1))
+                DrawRectangleRec({x * size, (y + 1) * size, size, size * .17f}, shadow);
+        }
+    if (level.name == "Gotham Central Bank") {
+        for (int y = 0; y < map.height(); ++y)
+            for (int x = 0; x < map.width(); ++x) {
+                if (map.tile(x, y) != TileType::Floor && map.tile(x, y) != TileType::Keycard)
+                    continue;
+                const auto screen = GetWorldToScreen2D({x * size, y * size}, camera);
+                if (screen.x + size * 2 < 0 || screen.y + size * 2 < 0 || screen.x - size >= 1280 ||
+                    screen.y - size >= 720)
+                    continue;
+                const float reveal =
+                    overview || pickupsLit ? 1.f : ripple.visibility(x, y, player.pos, map);
+                drawBankFurniture(x, y, size, std::max(reveal, config_.ambientFloorAlpha),
+                                  wallColor, floorColor);
+            }
+    }
+    for (int y = 0; y < map.height(); ++y)
+        for (int x = 0; x < map.width(); ++x) {
+            if (!isDoor(map.tile(x, y)) && map.tile(x, y) != TileType::Keycard) continue;
+            const auto screen = GetWorldToScreen2D({x * size, y * size}, camera);
+            if (screen.x + size * 2 < 0 || screen.y + size * 2 < 0 || screen.x - size >= 1280 ||
+                screen.y - size >= 720)
+                continue;
+            const float reveal =
+                overview || pickupsLit ? 1.f : ripple.visibility(x, y, player.pos, map);
+            if (reveal <= 0) continue;
+            if (map.tile(x, y) == TileType::Keycard) {
+                const auto center = map.tileCenter({x, y});
+                drawKeycard(center, size, reveal);
+                if (overview)
+                    uiAssets_.text("k", {center.x - size * .25f, center.y - size * .25f},
+                                   size * .5f, Palette::Ink, true);
+            } else
+                drawBankDoor(x, y, size, reveal, map, wallColor);
+        }
     if (objectives)
         for (int y = 0; y < map.height(); ++y) {
             for (int x = 0; x < map.width(); ++x) {
@@ -562,8 +1048,25 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                             DrawRectangleRec(
                                 {frame.x + 5, frame.y + 5, frame.width - 10, frame.height - 10},
                                 Fade(wallColor, visible));
-                            DrawCircleLinesV(center, size * 0.32f, Fade(kBone, visible));
-                            DrawCircleV(center, size * 0.11f, Fade(kGold, visible));
+                            DrawCircleSector(center, size * .4f, 0, 360, 96,
+                                             Fade(Palette::Ink, visible));
+                            DrawRing(center, size * .32f, size * .39f, 0, 360, 96,
+                                     Fade(ColorLerp(wallColor, kBone, .35f), visible));
+                            DrawRing(center, size * .29f, size * .31f, 0, 360, 96,
+                                     Fade(kBone, visible));
+                            DrawCircleSector(
+                                center, size * .26f, 0, 360, 96,
+                                Fade(ColorLerp(wallColor, Palette::Ink, .7f), visible));
+                            for (int bolt = 0; bolt < 12; ++bolt) {
+                                const float angle = bolt * 2 * kPi / 12;
+                                DrawCircleSector({center.x + std::cos(angle) * size * .35f,
+                                                  center.y + std::sin(angle) * size * .35f},
+                                                 size * .012f, 0, 360, 16,
+                                                 Fade(Palette::Ink, visible));
+                            }
+                            DrawCircleSector(center, size * .11f, 0, 360, 64, Fade(kGold, visible));
+                            DrawRing(center, size * .045f, size * .065f, 0, 360, 32,
+                                     Fade(kBone, visible));
                             for (int spoke = 0; spoke < 4; ++spoke) {
                                 const float angle = spoke * kPi * 0.5f;
                                 DrawLineEx(center,
@@ -595,8 +1098,10 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
             DrawEllipse(static_cast<int>(position.x), static_cast<int>(position.y),
                         guard.radius * 1.3f, guard.radius * 0.55f, Fade(kBone, visible));
             if (overview)
-                DrawText(guard.id.c_str(), static_cast<int>(position.x + guard.radius),
-                         static_cast<int>(position.y), 24, kBone);
+                uiAssets_.text(guard.id.c_str(),
+                               {static_cast<float>(static_cast<int>(position.x + guard.radius)),
+                                static_cast<float>(static_cast<int>(position.y))},
+                               24, kBone, true);
             continue;
         }
         if (!pickupsLit) drawGuardCone(guard, position, map, player.isCrouched(), visible);
@@ -608,8 +1113,10 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                     position.y + direction.y * guard.radius * 1.7f},
                    guard.radius * 0.25f, Fade(kGold, visible));
         if (overview)
-            DrawText(guard.id.c_str(), static_cast<int>(position.x + guard.radius),
-                     static_cast<int>(position.y), 24, kBone);
+            uiAssets_.text(guard.id.c_str(),
+                           {static_cast<float>(static_cast<int>(position.x + guard.radius)),
+                            static_cast<float>(static_cast<int>(position.y))},
+                           24, kBone, true);
         if (guard.detection() > 0) {
             const Vector2 meter{position.x, position.y - guard.radius - 12};
             DrawCircleV(meter, 8, Fade({20, 22, 27, 255}, visible));
@@ -617,9 +1124,10 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                              Fade(kAlarm, visible));
             DrawCircleLinesV(meter, 8, Fade(kBone, visible));
             if (guard.state() == GuardState::Alerted)
-                DrawText(TextFormat("%.1fs", guard.callInRemaining()),
-                         static_cast<int>(meter.x + 12), static_cast<int>(meter.y - 8), 16,
-                         Fade(kAlarm, visible));
+                uiAssets_.text(TextFormat("%.1fs", guard.callInRemaining()),
+                               {static_cast<float>(static_cast<int>(meter.x + 12)),
+                                static_cast<float>(static_cast<int>(meter.y - 8))},
+                               16, Fade(kAlarm, visible), true);
         }
     }
     for (const auto& enemy : enemies) {
@@ -751,10 +1259,11 @@ void Renderer::drawLevel(const Level& level, const Player& player, const RippleS
                                Fade(kGold, 1 - phase));
                 }
             const int remaining = static_cast<int>(std::ceil(objectives->thermiteRemaining()));
-            DrawText(TextFormat("THERMITE %d:%02d", remaining / 60, remaining % 60),
-                     static_cast<int>(position.x - 64),
-                     static_cast<int>(position.y + (player.pos.y > position.y ? -40 : 32)), 16,
-                     kGold);
+            uiAssets_.text(TextFormat("THERMITE %d:%02d", remaining / 60, remaining % 60),
+                           {static_cast<float>(static_cast<int>(position.x - 64)),
+                            static_cast<float>(static_cast<int>(
+                                position.y + (player.pos.y > position.y ? -40 : 32)))},
+                           16, kGold, true);
         }
     }
     for (const auto& laser : lasers) {
@@ -916,7 +1425,9 @@ void Renderer::drawInteractionHud(const World& world, const InteractionSystem& i
                        14, kTeal, true);
     if (const auto* target = interaction.target()) {
         DrawRectangle(312, Letterbox::kHeight - 208, 704, 56, kSlate);
-        DrawText(target->prompt.c_str(), 336, Letterbox::kHeight - 192, 20, kBone);
+        uiAssets_.text(target->prompt.c_str(),
+                       {static_cast<float>(336), static_cast<float>(Letterbox::kHeight - 192)}, 20,
+                       kBone, true);
         if (interaction.progress() > 0)
             DrawRing({960, static_cast<float>(Letterbox::kHeight - 180)}, 14, 18, -90,
                      -90 + 360 * interaction.progress(), 64, kBone);
@@ -926,8 +1437,10 @@ void Renderer::drawInteractionHud(const World& world, const InteractionSystem& i
 void Renderer::drawPickupHud(const RecoveryPickup* pickup) const {
     if (!pickup) return;
     DrawRectangle(312, Letterbox::kHeight - 208, 704, 56, {20, 22, 27, 255});
-    DrawText(pickup->type == PickupType::Medkit ? "E: collect medkit" : "E: collect armor plate",
-             336, Letterbox::kHeight - 192, 20, {233, 228, 208, 255});
+    uiAssets_.text(
+        pickup->type == PickupType::Medkit ? "E: collect medkit" : "E: collect armor plate",
+        {static_cast<float>(336), static_cast<float>(Letterbox::kHeight - 192)}, 20,
+        {233, 228, 208, 255}, true);
 }
 
 void Renderer::drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pagers,
@@ -935,14 +1448,17 @@ void Renderer::drawStealthHud(const AlarmDirector& alarm, const PagerSystem& pag
     constexpr Color kAlarm = {255, 59, 92, 255};
     constexpr Color kBone = {233, 228, 208, 255};
     if (alarm.state() == AlarmState::CallIn)
-        DrawText(TextFormat("SPOTTED %.1fs", alarm.callInRemaining()), 560, 96, 24, kAlarm);
+        uiAssets_.text(TextFormat("SPOTTED %.1fs", alarm.callInRemaining()),
+                       {static_cast<float>(560), static_cast<float>(96)}, 24, kAlarm, true);
     else if (alarm.state() == AlarmState::Loud)
-        DrawText("ALARM", 560, 96, 24, kAlarm);
+        uiAssets_.text("ALARM", {static_cast<float>(560), static_cast<float>(96)}, 24, kAlarm,
+                       true);
     int y = 136;
     for (const auto& guard : guards)
         if (pagers.state(guard.id) == PagerState::Ringing) {
-            DrawText(TextFormat("PAGER %s %.1fs", guard.id.c_str(), pagers.remaining(guard.id)),
-                     560, y, 18, kBone);
+            uiAssets_.text(
+                TextFormat("PAGER %s %.1fs", guard.id.c_str(), pagers.remaining(guard.id)),
+                {static_cast<float>(560), static_cast<float>(y)}, 18, kBone, true);
             y += 24;
         }
 }
@@ -969,7 +1485,8 @@ void Renderer::drawWeaponHud(const CombatSystem& combat) const {
         std::to_string(weapon.ammunition()) + " / " + std::to_string(weapon.reserve());
     uiAssets_.text(ammunition.c_str(), {40, 594}, 28, kGold, false, true);
     if (weapon.reloadRemaining() > 0) {
-        DrawText("RELOADING", 158, 600, 16, kBone);
+        uiAssets_.text("RELOADING", {static_cast<float>(158), static_cast<float>(600)}, 16, kBone,
+                       true);
         const float progress = 1 - weapon.reloadRemaining() / weapon.spec().reload;
         DrawRectangle(40, 624, static_cast<int>(232 * progress), 3, kGold);
     }
@@ -993,8 +1510,12 @@ void Renderer::drawAlarmSequence(const AlarmSequence& sequence) const {
     if (sequence.bannerVisible()) {
         DrawRectangle(0, 16, Letterbox::kWidth, 48, Palette::Alarm);
         const char* message = "POLICE INBOUND";
-        DrawText(message, (Letterbox::kWidth - MeasureText(message, 28)) / 2, 26, 28,
-                 Palette::Bone);
+        uiAssets_.text(
+            message,
+            {static_cast<float>(
+                 (Letterbox::kWidth - MeasureTextEx(uiAssets_.body(), message, 28, 1).x) / 2),
+             static_cast<float>(26)},
+            28, Palette::Bone, true);
     }
 }
 
@@ -1002,25 +1523,39 @@ void Renderer::drawBusted(int stage) const {
     DrawRectangle(0, 0, Letterbox::kWidth, Letterbox::kHeight, Fade(Color{20, 22, 27, 255}, 0.85f));
     DrawRectangleRec({360, 240, 560, 240}, {20, 22, 27, 255});
     DrawRectangleLinesEx({360, 240, 560, 240}, 2, Palette::Bone);
-    DrawText("BUSTED", 520, 272, 48, Palette::Alarm);
-    DrawText(TextFormat("Retry from S%d", stage), 520, 344, 24, Palette::Bone);
-    DrawText("ENTER: RETRY", 520, 402, 24, Color{242, 183, 5, 255});
+    uiAssets_.text("BUSTED", {static_cast<float>(520), static_cast<float>(272)}, 48, Palette::Alarm,
+                   true);
+    uiAssets_.text(TextFormat("Retry from S%d", stage),
+                   {static_cast<float>(520), static_cast<float>(344)}, 24, Palette::Bone, true);
+    uiAssets_.text("ENTER: RETRY", {static_cast<float>(520), static_cast<float>(402)}, 24,
+                   Color{242, 183, 5, 255}, true);
 }
 
-void Renderer::drawLoadout(int excluded, bool easy) {
+void Renderer::drawLoadout(int excluded, bool easy, const UiAssets* assets) {
+    const auto text = [&](const char* value, Vector2 p, float size, Color color, bool body) {
+        if (assets)
+            assets->text(value, p, size, color, body);
+        else
+            DrawText(value, static_cast<int>(p.x), static_cast<int>(p.y), static_cast<int>(size),
+                     color);
+    };
     constexpr Color bone{233, 228, 208, 255}, gold{242, 183, 5, 255};
     DrawRectangle(160, 80, 960, 560, {20, 22, 27, 255});
-    DrawText("LOADOUT", 200, 112, 36, bone);
-    DrawText("Carry two guns. Press 1, 2 or 3 to leave one behind.", 200, 176, 22, bone);
+    text("LOADOUT", {static_cast<float>(200), static_cast<float>(112)}, 36, bone, true);
+    text("Carry two guns. Press 1, 2 or 3 to leave one behind.",
+         {static_cast<float>(200), static_cast<float>(176)}, 22, bone, true);
     const char* names[] = {"1  WHISPER - suppressed pistol", "2  CHATTER - SMG",
                            "3  GAVEL - shotgun"};
     for (int i = 0; i < 3; ++i) {
-        DrawText(names[i], 200, 248 + i * 64, 24, i == excluded ? Color{133, 133, 133, 255} : gold);
-        DrawText(i == excluded ? "LEAVE" : "EQUIPPED", 880, 248 + i * 64, 20, bone);
+        text(names[i], {static_cast<float>(200), static_cast<float>(248 + i * 64)}, 24,
+             i == excluded ? Color{133, 133, 133, 255} : gold, true);
+        text(i == excluded ? "LEAVE" : "EQUIPPED",
+             {static_cast<float>(880), static_cast<float>(248 + i * 64)}, 20, bone, true);
     }
-    DrawText(easy ? "C: difficulty TOURIST (Easy)" : "C: difficulty PROFESSIONAL (Normal)", 200,
-             472, 24, bone);
-    DrawText("ENTER: start heist    ESC: back to briefing", 200, 568, 24, gold);
+    text(easy ? "C: difficulty TOURIST (Easy)" : "C: difficulty PROFESSIONAL (Normal)",
+         {static_cast<float>(200), static_cast<float>(472)}, 24, bone, true);
+    text("ENTER: start heist    ESC: back to briefing",
+         {static_cast<float>(200), static_cast<float>(568)}, 24, gold, true);
 }
 void Renderer::drawPayout(const Payout& payout) {
     constexpr Color bone{233, 228, 208, 255}, gold{242, 183, 5, 255};

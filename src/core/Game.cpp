@@ -62,25 +62,28 @@ int Game::run() {
 #else
     constexpr bool kWaitForClick = false;
 #endif
-    states_.replace(std::make_unique<BootState>(input_, kWaitForClick, [this] {
+    states_.replace(std::make_unique<BootState>(
+        input_, kWaitForClick,
+        [this] {
 #ifdef __EMSCRIPTEN__
-        InitAudioDevice();
-        SetMasterVolume(settings_.volumeMaster);
+            InitAudioDevice();
+            SetMasterVolume(settings_.volumeMaster);
 #endif
-        audioDirector_.setVolumes(settings_.volumeMaster, settings_.volumeMusic,
-                                  settings_.volumeSfx, settings_.volumeVoice);
-        audioPlayback_ = std::make_unique<AudioPlayback>(logger_);
-        if (auto lines = loadVoiceLines("assets/config/voice_lines.json", logger_)) {
-            voiceDirector_ = std::make_unique<VoiceDirector>(
-                std::move(*lines), config_.voice.lowHealthFraction,
-                config_.voice.subtitleWordsPerSecond, config_.ui.hintTime);
-            for (int i = 1; i <= 25; ++i) {
-                const auto id = std::string("V") + (i < 10 ? "0" : "") + std::to_string(i);
-                voiceDirector_->setDuration(id, audioPlayback_->voiceDuration(id));
+            audioDirector_.setVolumes(settings_.volumeMaster, settings_.volumeMusic,
+                                      settings_.volumeSfx, settings_.volumeVoice);
+            audioPlayback_ = std::make_unique<AudioPlayback>(logger_);
+            if (auto lines = loadVoiceLines("assets/config/voice_lines.json", logger_)) {
+                voiceDirector_ = std::make_unique<VoiceDirector>(
+                    std::move(*lines), config_.voice.lowHealthFraction,
+                    config_.voice.subtitleWordsPerSecond, config_.ui.hintTime);
+                for (int i = 1; i <= 25; ++i) {
+                    const auto id = std::string("V") + (i < 10 ? "0" : "") + std::to_string(i);
+                    voiceDirector_->setDuration(id, audioPlayback_->voiceDuration(id));
+                }
             }
-        }
-        showMenu();
-    }));
+            showMenu();
+        },
+        &renderer_->uiAssets()));
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop_arg([](void* context) { static_cast<Game*>(context)->tick(); }, this,
                                  0, true);
@@ -289,7 +292,7 @@ void Game::showLoadout() {
             payoutRecorded_ = false;
             startMission();
         },
-        settings_.difficulty == "easy", [this] { showBriefing(); }));
+        settings_.difficulty == "easy", [this] { showBriefing(); }, &renderer_->uiAssets()));
 }
 void Game::showBriefing() {
     voicePaused_ = false;

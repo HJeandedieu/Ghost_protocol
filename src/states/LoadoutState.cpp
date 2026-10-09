@@ -21,5 +21,5 @@ void LoadoutState::update(float dt) {
 }
 void LoadoutState::render(float alpha) {
     (void)alpha;
-    Renderer::drawLoadout(excluded_, easy_);
+    Renderer::drawLoadout(excluded_, easy_, assets_);
 }
