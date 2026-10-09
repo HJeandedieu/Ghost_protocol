@@ -243,7 +243,7 @@ Sculpt torso(bool heavy) {
         s.box({sign * .102f, .7f, .101f}, {.036f, .16f, .018f}, Palette::Ink);
         s.box({sign * .108f, .724f, .116f}, {.027f, .035f, .013f}, seam());
         s.oval({sign * .17f * breadth, .73f, 0}, {.065f, .057f, .075f}, armor());
-        s.box({sign * .168f * breadth, .735f, .063f}, {.06f, .035f, .018f}, Palette::Bone);
+        s.box({sign * .168f * breadth, .735f, .083f}, {.06f, .035f, .018f}, Palette::Bone);
         s.box({sign * .09f, .53f, .104f}, {.068f, .08f, .05f}, cloth());
         s.box({sign * .09f, .555f, .133f}, {.062f, .024f, .008f}, armor());
         s.box({sign * .15f, .48f, 0}, {.04f, .08f, .09f}, armor());
@@ -540,7 +540,8 @@ void TacticalArt::drawActor(const std::string& id, Vec2 position, float facing, 
         place(Forearm, bone(elbow, wrist));
         place(Hand, local(wrist, {1, 1, 1}, side == 0 ? -1.1f : 0));
     }
-    place(heavy ? Shotgun : Smg, local({shield ? .1f : .04f, .612f, .18f}));
+    place(Smg, local({shield ? .1f : .04f, .612f, .18f},
+                     heavy ? Vector3{1.15f, 1.15f, 1.15f} : Vector3{1, 1, 1}));
     if (shield) {
         // Model front is the exact configured gameplay plane. The plate thickness goes behind it.
         const auto plate = multiply(
