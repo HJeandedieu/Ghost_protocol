@@ -339,3 +339,16 @@ This is a new presentation/input migration after the original day plan, not an a
 3. Rebuild bank geometry and original Ghost/guard/police/shield/heavy art, articulated animation and foreground weapon presentation with paired shaders and registered assets.
 4. Integrate reveal/light zones, occlusion, projected pings/beams, first-person frustum spawn checks, effects and screen-space HUD. Test hidden-wall threats, spawn boundaries, shooting/interaction rules and mission presets.
 5. Compare actual Stealth/combat captures with the new attachments; run the complete existing suite plus new logic/render regressions, native/web builds and CI with no new warnings; refresh local releases. The author handles merges; no external publishing is required.
+
+### Sequential first-person PR delivery (author requested 9 October 2026)
+Each step produces a separate reviewable PR. Complete its relevant local tests/builds and exact-head CI before requesting a merge. Stop after presenting the PR; the author merges. On confirmation, fetch main and verify the predecessor is merged before starting the next step. Do not treat authorization for the whole plan as permission to bypass this gate.
+
+1. Contracts: first-person camera/controls, true 3D hitscan, shared actor/shield geometry, seeded solid-angle spread and visual targets (FR-04/05/07/13/15/21/25/27). Documentation only; merge before runtime.
+2. Camera/controls: validated view tuning, pure yaw-relative movement/view state, capture/pause/focus/web pointer-lock lifecycle. No public release claiming perspective visuals yet; old renderer may remain during this foundation step.
+3. Perspective bank: map-derived 3D walls/doors, perspective rendering, basic phase lighting and stable supersampled HUD. Temporary actors may remain for this intermediate PR; include actual captures.
+4. 3D shooting: ray/geometry helpers, shared shot dimensions, nearest-hit selection, spread, enemy shots and shield blocking; add meaningful success/failure/regression tests.
+5. Characters/weapons: detailed original articulated actors, Ghost identity and first-person hands/weapons. Register assets and compare reference captures.
+6. Presentation: furnishings, occluded reveal/pings/beams, Loud combat effects, conservative frustum spawn visibility, accessible HUD/tutorials; complete stealth and Loud routes.
+7. Local release: full tests, warning-clean native/web builds, final reference comparisons and frame-pacing inspection; refresh archives and verify independent-directory startup. No external publication.
+
+Intermediate steps must build and preserve mission logic; their temporary visual/aim limitations are stated in their PRs and are not final acceptance. Replace obsolete top-down render assertions with corresponding perspective coverage rather than disabling tests.

@@ -292,3 +292,17 @@ Extend the existing tuning.json `view` object with these keys before implementin
 | far_clip | 6000 | Perspective far distance, finite >=map diagonal and <=20000 world pixels |
 
 Missing, non-numeric, non-finite or out-of-range keys WARN and fall back to the defaults above. Validate wall height, then eye heights, then clipping distances; if a dependent relation remains invalid, reset the related values together to defaults and WARN. These values describe presentation and input feel, not gameplay range multipliers. No initial camera bob or additional recoil tuning is introduced.
+
+### 9.1 3D actor and shield geometry
+Add a `shot_geometry` object in tuning.json with these defaults, in world pixels:
+
+```json
+{ "player_height": 48, "player_crouch_height": 32, "guard_height": 48,
+  "cop_height": 48, "shield_cop_height": 48, "heavy_height": 56,
+  "shield_width": 32, "shield_height": 44, "shield_bottom": 2,
+  "shield_forward_offset": 14 }
+```
+
+Heights/width/forward offset must be finite and strictly positive; shield_bottom must be finite and nonnegative. Actor heights are below view.wall_height; player_crouch_height is at most player_height. Standing/crouch eye heights must fit inside their respective player cylinders. Shield bottom+height is at most shield_cop_height, width is at most twice the shield officer's existing radius, and forward offset is at most that radius. Missing/invalid individual values WARN/default. If the resulting geometry violates a relationship, reset the whole shot_geometry group and the related view.wall_height/eye_height/crouch_eye_height to their documented defaults and WARN. No new enemy-data, map or save schema is needed.
+
+Section 8.1 of Systems Contract replaces the old planar spread sampling described in section 3, retaining spread_deg as total cone width. Weapon names and identifiers remain those in weapons.json (Whisper, Chatter, Gavel).
