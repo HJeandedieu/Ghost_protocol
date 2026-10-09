@@ -318,3 +318,12 @@ Day 22 presentation timing reads `ui.hover_time` and `ui.transition_time` from t
 Author visual-quality decision, 8 October 2026: retain the 1280x720 logical gameplay/HUD space while replacing fixed-resolution offscreen targets with the supersampled presentation policy in Architecture section 8. `render.ssaa_scale` is the physical quality multiplier defined in Data Formats section 2. Resolution, decorative shading and surface detail cannot alter collision, interaction ranges, reveal, detection, spawn positions, aiming or event timing. Grain remains world-only with its revised subdued default. Reduce Effects disables the documented animated effects without reducing edge or text quality.
 
 Change this file (and `04_Data_Formats.md` if a key changes) in a `docs:` commit first, merge, then implement.
+
+## 8. First-person input and presentation contract (9 October 2026)
+The author-approved first-person direction in GDD section 8 supersedes prior screen-position aiming and follow-camera requirements. Player/world coordinates, collision radii and all gameplay distances remain planar world pixels. View yaw uses the existing aim-angle convention; pitch is presentation only. Normalize combined forward/strafe input before applying existing movement speeds. Horizontal mouse delta increases yaw; vertical delta increases downward pitch, clamped by view.pitch_limit_deg. Apply each input delta once, not once for every catch-up tick. Initial yaw uses the player's existing spawn-facing angle; initial pitch is zero. Retry resets pitch and pointer deltas while retaining stage preset rules.
+
+Shots, takedowns, throws and enemy targeting retain planar range/LOS and existing rules. A fixed screen-center reticle indicates yaw aim; vertical looking does not grant headshots or change hit probability. This deliberately retains the existing combat model during the presentation migration. Crouching retains movement/detection effects and also lowers eye height. Hints must describe forward/strafe movement and mouse look rather than top-down cursor aiming.
+
+Only RippleSystem writes reveal, only AlarmDirector changes alarm state, and only ScoreSystem changes money. Eye height, perspective, geometry and lighting do not add gameplay events, collision, cover, interactions or new detection rules. The new frustum spawn visibility rule is specified in Architecture section 11. Reduce Effects suppresses existing decorative motion, preserves sharpness and does not alter aim.
+
+This contract must merge before first-person runtime implementation, following section 7.

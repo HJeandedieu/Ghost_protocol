@@ -276,3 +276,19 @@ Format: OGG mono 44.1 kHz for SFX, OGG stereo for music, voice OGG mono 64 kbps.
 Legend of landmarks: Alley spawn `@` (bottom-left) -> Loading Dock -> Service Door `S` -> Staff Corridor (x 20-23) -> rooms on its east side -> Main Hall (centre) -> Vault Corridor with gate `GGG` and Vault door `VVV` (top centre) -> Foyer and front doors `FFF` (bottom centre) -> Street with pickup zone `Z`, bollards `bb` and van spawn `v`.
 
 Day 21 payout tuning: `payout.deduction_max_count` (3) and `payout.deduction_max_amount` (500) are non-negative integers. Missing, fractional, negative, non-finite or out-of-range values fall back to their defaults with a WARN. These bound the inclusive seeded rolls in Systems Contract section 3.8.
+
+## 9. First-person view tuning (9 October 2026)
+Extend the existing tuning.json `view` object with these keys before implementing first-person runtime. Legacy lead_px/follow_rate remain readable for compatibility but do not drive the first-person camera. The `camera` group still configures security cameras. Map/entity/save schemas remain unchanged.
+
+| Key | Default | Meaning / valid range |
+|---|---|---|
+| fov_y_deg | 70 | Vertical perspective field of view, finite 30..100 degrees |
+| mouse_deg_per_px | 0.10 | Relative mouse sensitivity, finite >0 and <=2 degrees per input pixel |
+| pitch_limit_deg | 80 | Symmetric pitch clamp, finite 1..89 degrees |
+| eye_height | 36 | Standing eye height, finite >0 and <wall_height, world pixels |
+| crouch_eye_height | 22 | Crouching eye height, finite >0 and <=eye_height, world pixels |
+| wall_height | 64 | Map wall extrusion height, finite >=tile_size and <=256 world pixels |
+| near_clip | 0.5 | Perspective near distance, finite >0 and <eye_height, world pixels |
+| far_clip | 6000 | Perspective far distance, finite >=map diagonal and <=20000 world pixels |
+
+Missing, non-numeric, non-finite or out-of-range keys WARN and fall back to the defaults above. Validate wall height, then eye heights, then clipping distances; if a dependent relation remains invalid, reset the related values together to defaults and WARN. These values describe presentation and input feel, not gameplay range multipliers. No initial camera bob or additional recoil tuning is introduced.

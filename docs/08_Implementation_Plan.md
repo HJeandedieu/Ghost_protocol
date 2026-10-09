@@ -330,3 +330,12 @@ Check yourself every Sunday. If you are more than half a day behind the plan, cu
 - [ ] "Done when" is true
 - [ ] `ctest` green, commit pushed, PR merged
 - [ ] Two-line note written
+
+## Post-release first-person rebuild (author approved 9 October 2026)
+This is a new presentation/input migration after the original day plan, not an assertion that the completed top-down work already meets the new target. Merge the first-person contracts before runtime changes. Keep existing heist logic and stage completion intact.
+
+1. Add validated view tuning and pure yaw-relative movement/input tests (normal and invalid values, diagonal speed, catch-up delta handling and pitch clamp).
+2. Implement perspective camera, native pointer capture, pause/focus release and web pointer lock; add lifecycle tests and desktop/web smoke checks.
+3. Rebuild bank geometry and original Ghost/guard/police/shield/heavy art, articulated animation and foreground weapon presentation with paired shaders and registered assets.
+4. Integrate reveal/light zones, occlusion, projected pings/beams, first-person frustum spawn checks, effects and screen-space HUD. Test hidden-wall threats, spawn boundaries, shooting/interaction rules and mission presets.
+5. Compare actual Stealth/combat captures with the new attachments; run the complete existing suite plus new logic/render regressions, native/web builds and CI with no new warnings; refresh local releases. The author handles merges; no external publishing is required.

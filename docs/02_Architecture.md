@@ -154,3 +154,12 @@ All randomness goes through `Rng` (seeded; seed printed in the log and shown in 
 
 ## 14. Open Questions
 None. Any new question becomes a decision in `01_GDD.md` section 0 first.
+
+## 11. First-person rendering replacement (9 October 2026)
+This section supersedes the orthographic world-camera portions of section 8. Keep pure planar game logic and the existing raylib dependency. The renderer maps world (x, y) to 3D (x, height, y), using the same world-pixel units; map tile coordinates and collision do not change. Extrude map walls and existing blocking doors. Decorative furniture remains non-colliding unless the map already defines collision. No new engine or asset dependency is authorized.
+
+Use a perspective camera at the interpolated player position plus eye height, with yaw/pitch from the input adapter. Do not smooth camera position independently of the player into walls. Keep UI in logical 1280x720 and retain coherent supersampled targets, snapshots, physical shader texels and letterboxing. Draw depth-tested architecture and original articulated actors, then translucent reveal/beam effects with occlusion, then foreground hands/weapon with independent depth handling, post effects and sharp screen-space HUD. First-person view geometry never obstructs the gameplay ray or writes world state.
+
+Reveal still comes exclusively from RippleSystem. Existing light-zone/reveal rules determine threat visibility; depth testing additionally prevents wall disclosure. Ping wavefronts and guard/camera beams are projected world effects, not a top-down overlay. Off-screen call-in/pager feedback remains accessible through HUD/audio. Spawn visibility uses the unshaken first-person view frustum against the enemy's existing planar circle: reject any entry whose circle intersects the frustum footprint, even if a wall occludes it. Map blocking and listed-entry rules remain unchanged.
+
+Native mouse capture and browser pointer lock belong in the input/window adapter. Pure logic consumes yaw-relative movement and a planar aim direction. Pause, focus loss and pointer-lock loss clear held actions/deltas. No threads or blocking waits; desktop and web shaders remain paired.

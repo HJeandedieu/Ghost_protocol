@@ -53,7 +53,7 @@ Every open question was answered before implementation. "Author" = stated by the
 Defines what Ghost Protocol is and exactly how it behaves, so implementation needs no further questions.
 
 ### 1.2 Product summary
-Ghost Protocol is a single-player, top-down 2D stealth-action heist game. The player is **Ghost**, a thief who breaks into Gotham Central Bank at night, finds a keycard, restores power to the vault gate, opens the vault, carries ten bags of cash to a getaway van, and survives. The player starts in near-darkness with faint room structure; sound **pings** reveal nearby detail and threats. If guards catch on, the alarm fires, the lights come on, police swarm in, and the heist becomes a gunfight. A voice in the player's ear (the **Handler**) guides and mocks them throughout.
+Ghost Protocol is a single-player, first-person stealth-action heist game with stylized 3D presentation. The player is **Ghost**, a thief who breaks into Gotham Central Bank at night, finds a keycard, restores power to the vault gate, opens the vault, carries ten bags of cash to a getaway van, and survives. The player starts in near-darkness with faint room structure; sound **pings** reveal nearby detail and threats. If guards catch on, the alarm fires, the lights come on, police swarm in, and the heist becomes a gunfight. A voice in the player's ear (the **Handler**) guides and mocks them throughout.
 
 ### 1.3 Design pillars
 1. **Blind but clever.** Sound reveals threats in the dark, faint room structure aids orientation, and every ping tells guards where you are.
@@ -84,7 +84,7 @@ Ghost Protocol is a single-player, top-down 2D stealth-action heist game. The pl
 
 ## 2. Overall Description
 
-- **Perspective:** top-down, camera follows the player.
+- **Perspective:** first-person in both Stealth and Loud; see section 8 for the author-approved replacement contract.
 - **Logical resolution:** 1280x720, scaled with letterboxing. Tile size 48 px. Map 80x56 tiles (3840x2688 px).
 - **Single mission:** Gotham Central Bank. Expected run: 6 to 10 minutes.
 - **Single player, no save mid-mission.** Stage-start checkpoints on death.
@@ -384,3 +384,13 @@ Multiplayer, multiple missions, skill trees, weapon attachments, civilians and h
 
 ## 10. Traceability Note
 Every FR maps to a system in `02_Architecture.md`, an event or state machine in `03_Systems_Contract.md`, a tuning key in `04_Data_Formats.md`, and a day in `08_Implementation_Plan.md`.
+
+## 8. Author-approved first-person direction (9 October 2026)
+The author explicitly approved replacing top-down gameplay with first-person gameplay to match the three newly supplied images. This section supersedes D-16, D-18, D-24, section 4.2's screen-position mouse aim, FR-04's follow/look-ahead camera, and any earlier top-down visual requirement. Existing heist objectives, map layout, planar collision, movement speeds, detection, reveal, weapons, damage, wave rules and mission accounting remain authoritative.
+
+- The player sees through Ghost's eyes in both phases. Relative mouse motion turns yaw and pitch; WASD and arrows move forward/back and strafe relative to yaw. Pitch changes the view, not the existing planar hitscan/detection rules. Left click fires along view yaw; right click retains takedown. No jump, leaning, aiming-down-sights or new cover mechanic is introduced.
+- Gameplay captures the pointer. Escape pauses and releases it; menus use a normal cursor. Resume recaptures it, discarding stale mouse deltas. On web, pointer-lock acquisition requires a user gesture; losing pointer lock pauses rather than leaving the player moving unattended.
+- Visible gloved hands and an original weapon model occupy the lower foreground. Ghost wears a black hood, bone skull mask, headset and tactical vest/pouches. The face is shown in character/briefing art; first-person play naturally shows hands and sleeves.
+- Guards and police are fully formed, articulated tactical figures: helmet/headset, visor band, vest, shoulder armor, gloves, trousers, knees and boots. Shield officers have a substantial shield and visor; heavies retain their existing distinct bulk. Reference appearance is a target for original art, not permission to reuse branded or unlicensed assets.
+- Perspective bank interiors have full-height walls, recessed door frames, pillars, vault, counters and cohesive furnishings. Loud uses red architectural lighting and gold combat effects; Stealth uses readable dark teal architecture and localized Bone reveal. Occluded objects never become visible through walls. HUD anchors, Handler portrait/subtitles and mission text remain screen-space.
+- Windows remains primary and web secondary. High visual quality takes precedence over minimizing rendering cost; supersampling remains available. Visual acceptance requires actual first-person Stealth and combat captures compared with the new images, separately from automated test results.
