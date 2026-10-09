@@ -289,6 +289,56 @@ TEST_F(Render, PauseRequestStopsMissionTimeBeforeAnyGameplayTick) {
     EXPECT_EQ(run->deaths, 2);
 }
 
+TEST_F(Render, FirstPersonControlsDrivePlayerAndCaptureLossFreezesMissionUntilResume) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    Level level;
+    std::string rows;
+    for (int y = 0; y < 20; ++y) rows += std::string(20, '.') + '\n';
+    std::istringstream source(rows);
+    level.map = TileMap::parse(source, 48);
+    level.playerSpawn = {10, 10};
+    Config config;
+    Input input;
+    auto run = std::make_shared<MissionRun>();
+    int pauses = 0;
+    PlayState play(std::move(level), input, config, 42, renderer, logger,
+                   loadWeapons("assets/config/weapons.json", logger).value(), {}, {}, {}, 1, false,
+                   {}, run, {}, {{"whisper", "chatter"}}, {}, [&](int stage, bool loud) {
+                       EXPECT_EQ(stage, 1);
+                       EXPECT_FALSE(loud);
+                       ++pauses;
+                   });
+    const auto start = play.world().player.pos;
+    input.mouseDelta = {900, 10000};
+    input.mouseLogical = {0, 0};  // Screen cursor position must no longer determine yaw.
+    input.mouseInViewport = true;
+    input.move = {0, -1};
+    for (int tick = 0; tick < 30; ++tick) {
+        play.update(1.f / 60);
+        input.clearEdges();
+    }
+    EXPECT_FLOAT_EQ(play.view().yawDeg(), 90);
+    EXPECT_FLOAT_EQ(play.view().pitchDeg(), 80);
+    EXPECT_NEAR(play.world().player.pos.x, start.x, .01f);
+    EXPECT_GT(play.world().player.pos.y, start.y + 40);
+    input.crouchPressed = true;
+    play.update(1.f / 60);
+    input.clearEdges();
+    EXPECT_TRUE(play.world().player.isCrouched());
+    EXPECT_FLOAT_EQ(play.view().eyeHeight(true), 22);
+    const auto time = run->seconds;
+    play.pauseForCaptureLoss();
+    EXPECT_EQ(pauses, 1);
+    EXPECT_DOUBLE_EQ(run->seconds, time);
+    input = {};
+    play.update(1.f / 60);
+    EXPECT_GT(run->seconds, time);
+    EXPECT_FLOAT_EQ(play.view().yawDeg(), 90);
+    EXPECT_FLOAT_EQ(play.view().pitchDeg(), 80);
+}
+
 TEST_F(Render, PrescribedFontsLoadAndMissingAssetsRetainUsableFallback) {
     std::ostringstream output;
     Logger logger(output, "");

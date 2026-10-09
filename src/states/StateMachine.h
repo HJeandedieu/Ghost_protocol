@@ -13,6 +13,7 @@ class StateMachine {
     void replace(std::unique_ptr<IState> state);
     void update(float dt);
     void render(float alpha);
+    IState* top();
     const IState* top() const;
     std::size_t size() const;
 

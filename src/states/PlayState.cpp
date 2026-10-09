@@ -30,7 +30,11 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
                      VoiceDirector* voice)
     : world_(missionWorld(std::move(level), config, stage)),
       input_(input),
-      camera_(world_.player.pos, config.view),
+      view_(validateViewForLevel(
+          config.view, static_cast<float>(world_.level.map.tileSize()),
+          std::hypot(static_cast<float>(world_.level.map.width() * world_.level.map.tileSize()),
+                     static_cast<float>(world_.level.map.height() * world_.level.map.tileSize())),
+          logger)),
       seed_(seed),
       ripple_(config.ping, world_.level.map),
       renderer_(renderer),
@@ -131,6 +135,10 @@ void PlayState::enter() {
     }
 }
 void PlayState::exit() {}
+void PlayState::pauseForCaptureLoss() {
+    inputGate_.blockFire();
+    if (!world_.player.dead() && pause_) pause_(objectives_->stage(), world_.alarmLoud);
+}
 void PlayState::update(float dt) {
     if (!std::isfinite(dt) || dt <= 0) return;
     if (objectives_->complete()) return;
@@ -161,7 +169,11 @@ void PlayState::update(float dt) {
     const bool reloadBefore = combat_.activeWeapon().reloadRemaining() > 0;
     noise_.beginTick();
     auto& player = world_.player;
-    player.update(dt, input_, world_.level.map);
+    view_.look(input_.mouseDelta);
+    facing_ = view_.yawDeg() * (3.14159265358979323846f / 180);
+    Input movementInput = input_;
+    movementInput.move = view_.movement(input_.move);
+    player.update(dt, movementInput, world_.level.map);
     if (input_.takedownPressed) player.tryTakedown(world_.guards, events_);
     if (player.pos.x != player.prevPos.x || player.pos.y != player.prevPos.y)
         noise_.emit(player.pos,
@@ -190,15 +202,6 @@ void PlayState::update(float dt) {
         guardAi_[i]->update(dt);
         noise_.setHearerPosition(i, world_.guards[i].pos);
     }
-    Vec2 cursorOffset{};
-    if (input_.mouseInViewport && !debugView_) {
-        cursorOffset = {
-            camera_.target().x + input_.mouseLogical.x - Letterbox::kWidth * 0.5f - player.pos.x,
-            camera_.target().y + input_.mouseLogical.y - Letterbox::kHeight * 0.5f - player.pos.y};
-        if (cursorOffset.x != 0 || cursorOffset.y != 0)
-            facing_ = std::atan2(cursorOffset.y, cursorOffset.x);
-    }
-    camera_.update(dt, player.pos, cursorOffset);
     if (input_.throwPressed) objectives_->throwBag({std::cos(facing_), std::sin(facing_)});
     const float before = ripple_.cooldownRemaining();
     if (!world_.alarmLoud)
@@ -232,7 +235,7 @@ void PlayState::update(float dt) {
     enemyCombat_.update(dt);
     renderer_.updateHealthHud(dt, world_.player);
     alarm_.update();
-    Vec2 viewCenter = camera_.target();
+    Vec2 viewCenter = player.pos;
     float zoom = 1.f;
     if (debugView_) {
         const auto& map = world_.level.map;
@@ -309,11 +312,11 @@ void PlayState::update(float dt) {
 #endif
 }
 void PlayState::render(float alpha) {
-    renderer_.drawLevel(world_.level, world_.player, ripple_, camera_.interpolatedTarget(alpha),
-                        facing_, alpha, debugView_, seed_, world_.guards, world_.cameras,
-                        world_.lasers, world_.securityLoopRemaining > 0, &combat_, world_.pickups,
-                        world_.alarmLoud, world_.enemies, &enemyCombat_, &alarmSequence_,
-                        objectives_.get());
+    renderer_.drawLevel(
+        world_.level, world_.player, ripple_, world_.player.interpolatedPosition(alpha), facing_,
+        alpha, debugView_, seed_, world_.guards, world_.cameras, world_.lasers,
+        world_.securityLoopRemaining > 0, &combat_, world_.pickups, world_.alarmLoud,
+        world_.enemies, &enemyCombat_, &alarmSequence_, objectives_.get());
     renderer_.drawInteractionHud(world_, interaction_, noise_.currentRadius(), config_.noise.sprint,
                                  objectives_.get());
     renderer_.drawWeaponHud(combat_);

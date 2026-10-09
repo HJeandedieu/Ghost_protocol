@@ -8,6 +8,88 @@
 #include "core/Config.h"
 #include "core/Logger.h"
 
+TEST(Config, FirstPersonViewLoadsCustomValuesAndValidatedLevelBounds) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    data["view"] = {{"lead_px", 60},           {"follow_rate", 8},        {"fov_y_deg", 85},
+                    {"mouse_deg_per_px", .25}, {"pitch_limit_deg", 70},   {"wall_height", 80},
+                    {"eye_height", 44},        {"crouch_eye_height", 26}, {"near_clip", 1},
+                    {"far_clip", 7000}};
+    std::ostringstream output;
+    Logger logger(output, "");
+    const auto config = Config::load(files.write("view-custom.json", data.dump()), logger);
+    const auto view = validateViewForLevel(config.view, 48, 4700, logger);
+    EXPECT_FLOAT_EQ(view.fovYDeg, 85);
+    EXPECT_FLOAT_EQ(view.mouseDegPerPx, .25f);
+    EXPECT_FLOAT_EQ(view.pitchLimitDeg, 70);
+    EXPECT_FLOAT_EQ(view.wallHeight, 80);
+    EXPECT_FLOAT_EQ(view.eyeHeight, 44);
+    EXPECT_FLOAT_EQ(view.crouchEyeHeight, 26);
+    EXPECT_FLOAT_EQ(view.nearClip, 1);
+    EXPECT_FLOAT_EQ(view.farClip, 7000);
+    EXPECT_EQ(output.str().find("[WARN]"), std::string::npos);
+}
+
+TEST(Config, FirstPersonViewMissingMalformedAndOutOfRangeValuesWarnAndDefault) {
+    TestFiles files;
+    nlohmann::json original;
+    std::ifstream("assets/config/tuning.json") >> original;
+    const std::vector<std::pair<std::string, float ViewConfig::*>> keys{
+        {"fov_y_deg", &ViewConfig::fovYDeg},
+        {"mouse_deg_per_px", &ViewConfig::mouseDegPerPx},
+        {"pitch_limit_deg", &ViewConfig::pitchLimitDeg},
+        {"eye_height", &ViewConfig::eyeHeight},
+        {"crouch_eye_height", &ViewConfig::crouchEyeHeight},
+        {"wall_height", &ViewConfig::wallHeight},
+        {"near_clip", &ViewConfig::nearClip},
+        {"far_clip", &ViewConfig::farClip}};
+    for (const auto& [key, member] : keys) {
+        for (const nlohmann::json invalid :
+             {nlohmann::json(nullptr), nlohmann::json(true), nlohmann::json("bad"),
+              nlohmann::json(0), nlohmann::json(-1), nlohmann::json(1e100)}) {
+            SCOPED_TRACE(key + ": " + invalid.dump());
+            auto data = original;
+            if (invalid.is_null())
+                data["view"].erase(key);
+            else
+                data["view"][key] = invalid;
+            std::ostringstream output;
+            Logger logger(output, "");
+            const auto config = Config::load(files.write("view-invalid.json", data.dump()), logger);
+            EXPECT_FLOAT_EQ(config.view.*member, ViewConfig{}.*member);
+            EXPECT_NE(output.str().find("view." + key), std::string::npos);
+        }
+    }
+}
+
+TEST(Config, FirstPersonViewRejectsDependentGeometryAndLevelClippingFailures) {
+    TestFiles files;
+    nlohmann::json data;
+    std::ifstream("assets/config/tuning.json") >> data;
+    data["view"]["eye_height"] = 64;
+    data["view"]["crouch_eye_height"] = 70;
+    data["view"]["near_clip"] = 80;
+    data["view"]["fov_y_deg"] = 90;
+    std::ostringstream output;
+    Logger logger(output, "");
+    auto view = Config::load(files.write("view-related.json", data.dump()), logger).view;
+    EXPECT_FLOAT_EQ(view.eyeHeight, 36);
+    EXPECT_FLOAT_EQ(view.crouchEyeHeight, 22);
+    EXPECT_FLOAT_EQ(view.nearClip, .5f);
+    EXPECT_FLOAT_EQ(view.fovYDeg, 90);
+    EXPECT_NE(output.str().find("view geometry relationships"), std::string::npos);
+    view.wallHeight = 40;
+    view.eyeHeight = 30;
+    view.farClip = 1000;
+    view = validateViewForLevel(view, 48, 4700, logger);
+    EXPECT_FLOAT_EQ(view.wallHeight, 64);
+    EXPECT_FLOAT_EQ(view.eyeHeight, 36);
+    EXPECT_FLOAT_EQ(view.farClip, 6000);
+    EXPECT_NE(output.str().find("view.wall_height for level"), std::string::npos);
+    EXPECT_NE(output.str().find("view.far_clip for level"), std::string::npos);
+}
+
 TEST(Config, LoadsDocumentedTuningWithoutWarnings) {
     std::ostringstream console;
     Logger logger(console, "");
@@ -15,6 +97,14 @@ TEST(Config, LoadsDocumentedTuningWithoutWarnings) {
     EXPECT_FLOAT_EQ(config.player.walk, 160.0f);
     EXPECT_FLOAT_EQ(config.view.leadPx, 60.0f);
     EXPECT_FLOAT_EQ(config.view.followRate, 8.0f);
+    EXPECT_FLOAT_EQ(config.view.fovYDeg, 70);
+    EXPECT_FLOAT_EQ(config.view.mouseDegPerPx, .10f);
+    EXPECT_FLOAT_EQ(config.view.pitchLimitDeg, 80);
+    EXPECT_FLOAT_EQ(config.view.eyeHeight, 36);
+    EXPECT_FLOAT_EQ(config.view.crouchEyeHeight, 22);
+    EXPECT_FLOAT_EQ(config.view.wallHeight, 64);
+    EXPECT_FLOAT_EQ(config.view.nearClip, .5f);
+    EXPECT_FLOAT_EQ(config.view.farClip, 6000);
     EXPECT_FLOAT_EQ(config.ping.bigRadius, 520.0f);
     EXPECT_FLOAT_EQ(config.ping.hazardRevealRadius, 120.0f);
     EXPECT_FLOAT_EQ(config.mission.thermiteBurn, 75.0f);

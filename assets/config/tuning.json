@@ -25,7 +25,15 @@
   },
   "view": {
     "lead_px": 60,
-    "follow_rate": 8
+    "follow_rate": 8,
+    "fov_y_deg": 70,
+    "mouse_deg_per_px": 0.10,
+    "pitch_limit_deg": 80,
+    "eye_height": 36,
+    "crouch_eye_height": 22,
+    "wall_height": 64,
+    "near_clip": 0.5,
+    "far_clip": 6000
   },
   "voice": { "low_health_fraction": 0.25, "subtitle_words_per_second": 3 },
   "audio": { "crossfade_time": 1.0, "voice_duck": 0.4 },

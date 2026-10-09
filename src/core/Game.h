@@ -5,6 +5,7 @@
 #include "core/Config.h"
 #include "core/Input.h"
 #include "core/Logger.h"
+#include "core/PointerCapture.h"
 #include "core/Rng.h"
 #include "core/SaveStore.h"
 #include "core/Time.h"
@@ -25,6 +26,8 @@ class Game {
    private:
     void tick();
     void update(float dt);
+    void syncPointerCapture();
+    void requestBrowserCapture();
     void showMenu(const std::string& error = "");
     void toggleFullscreen();
     bool applySettings(const Settings& settings);
@@ -49,6 +52,8 @@ class Game {
     Rng rng_;
     Time time_;
     Input input_;
+    PointerCapture pointerCapture_;
+    bool discardGameplayFrame_ = false;
     StateMachine states_;
     std::unique_ptr<Renderer> renderer_;
     std::array<std::string, 2> loadout_{{"whisper", "chatter"}};

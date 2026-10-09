@@ -76,7 +76,17 @@ struct RenderConfig {
 struct ViewConfig {
     float leadPx = 60.0f;
     float followRate = 8.0f;
+    float fovYDeg = 70;
+    float mouseDegPerPx = 0.10f;
+    float pitchLimitDeg = 80;
+    float eyeHeight = 36;
+    float crouchEyeHeight = 22;
+    float wallHeight = 64;
+    float nearClip = 0.5f;
+    float farClip = 6000;
 };
+
+ViewConfig validateViewForLevel(ViewConfig view, float tileSize, float mapDiagonal, Logger& logger);
 
 struct NoiseConfig {
     float crouch = 40.0f;
