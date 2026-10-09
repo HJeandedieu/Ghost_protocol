@@ -18,6 +18,8 @@ class SecurityCamera;
 class Laser;
 class RippleSystem;
 class Logger;
+class BankScene;
+class FirstPersonView;
 class VoiceDirector;
 class InteractionSystem;
 class TileMap;
@@ -52,6 +54,10 @@ class Renderer {
     Texture2D frameTexture() const { return surface_.texture; }
     const UiAssets& uiAssets() const { return uiAssets_; }
     void prepareLevel(const Level& level);
+    void drawPerspective(const World& world, const FirstPersonView& view,
+                         const RippleSystem& ripple, float alpha,
+                         const AlarmSequence* sequence = nullptr,
+                         const ObjectiveSystem* objectives = nullptr);
     void drawInteractionHud(const World& world, const InteractionSystem& interaction,
                             float noiseRadius, float maximumNoise,
                             const ObjectiveSystem* objectives = nullptr) const;
@@ -96,6 +102,7 @@ class Renderer {
     RenderConfig config_;
     Logger& logger_;
     UiAssets uiAssets_;
+    std::unique_ptr<BankScene> bank_;
     HealthHud healthHud_;
     Shader post_{};
     int timeLocation_ = -1;

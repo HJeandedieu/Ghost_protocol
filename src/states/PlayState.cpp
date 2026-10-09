@@ -312,11 +312,15 @@ void PlayState::update(float dt) {
 #endif
 }
 void PlayState::render(float alpha) {
-    renderer_.drawLevel(
-        world_.level, world_.player, ripple_, world_.player.interpolatedPosition(alpha), facing_,
-        alpha, debugView_, seed_, world_.guards, world_.cameras, world_.lasers,
-        world_.securityLoopRemaining > 0, &combat_, world_.pickups, world_.alarmLoud,
-        world_.enemies, &enemyCombat_, &alarmSequence_, objectives_.get());
+    if (debugView_)
+        renderer_.drawLevel(
+            world_.level, world_.player, ripple_, world_.player.interpolatedPosition(alpha),
+            facing_, alpha, debugView_, seed_, world_.guards, world_.cameras, world_.lasers,
+            world_.securityLoopRemaining > 0, &combat_, world_.pickups, world_.alarmLoud,
+            world_.enemies, &enemyCombat_, &alarmSequence_, objectives_.get());
+    else
+        renderer_.drawPerspective(world_, view_, ripple_, alpha, &alarmSequence_,
+                                  objectives_.get());
     renderer_.drawInteractionHud(world_, interaction_, noise_.currentRadius(), config_.noise.sprint,
                                  objectives_.get());
     renderer_.drawWeaponHud(combat_);

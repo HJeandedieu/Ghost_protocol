@@ -92,6 +92,17 @@ author, licence, and attribution requirements before adding it to a release.
 
 | `assets/ui/handler_portrait.png` | Original portrait generated with OpenAI imagegen on 8 October 2026, using the project gameplay reference for style | Ghost Protocol project / OpenAI imagegen | AI-generated original project asset; no third-party asset incorporated | No additional attribution required | Day 26 Handler subtitle HUD portrait |
 
+## Original perspective assets
+
+| Asset | Source | Creator | Licence | Attribution | Use |
+|---|---|---|---|---|---|
+| `src/render/BankScene.cpp` | Original procedural perspective bank geometry | Ghost Protocol project | Project-owned original code/art | None | Cached floor/wall meshes, doors/vault and intermediate 3D markers |
+| `assets/shaders/glsl330/bank.vs` | Original project GLSL | Ghost Protocol project | Project-owned | None | Desktop perspective vertex transform |
+| `assets/shaders/glsl330/bank.fs` | Original project GLSL | Ghost Protocol project | Project-owned | None | Desktop phase lighting and render-only visibility |
+| `assets/shaders/glsl100/bank.vs` | Original project GLSL | Ghost Protocol project | Project-owned | None | Web perspective vertex transform |
+| `assets/shaders/glsl100/bank.fs` | Original project GLSL | Ghost Protocol project | Project-owned | None | Web phase lighting and render-only visibility |
+| `reference/step3/bank-stealth.png`, `reference/step3/bank-loud.png`, `reference/step3/browser-play.png` | Captured from the project's native/web perspective renderer | Ghost Protocol project | Project-owned gameplay captures | None | Development-only Step 3 review evidence; not runtime assets |
+
 ## Packaged software notices
 
 Release archives include `licenses/` from `tools/release_licenses/`: raylib 5.5

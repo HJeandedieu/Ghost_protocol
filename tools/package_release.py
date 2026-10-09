@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WEB_FILES = ("index.html", "index.js", "index.wasm", "index.data")
 WEB_LIMIT = 50_000_000
 RUNTIME_DLL = re.compile(r"(?:libgcc_s_[a-z0-9]+-1|libstdc\+\+-6|libwinpthread-1)\.dll")
-ASSET_EXTENSIONS = {".json", ".map", ".ogg", ".png", ".ttf", ".txt", ".fs"}
+ASSET_EXTENSIONS = {".json", ".map", ".ogg", ".png", ".ttf", ".txt", ".fs", ".vs"}
 
 
 def checked(path):
@@ -72,7 +72,9 @@ def native_files(build, root):
         checked(assets / relative)
     for name in ("config/tuning.json", "config/weapons.json", "config/enemies.json",
                  "levels/gotham_central.map", "levels/gotham_central.json",
-                 "shaders/glsl330/post.fs", "shaders/glsl100/post.fs"):
+                 "shaders/glsl330/post.fs", "shaders/glsl100/post.fs",
+                 "shaders/glsl330/bank.vs", "shaders/glsl330/bank.fs",
+                 "shaders/glsl100/bank.vs", "shaders/glsl100/bank.fs"):
         checked(assets / name)
     return files + common_files(root)
 

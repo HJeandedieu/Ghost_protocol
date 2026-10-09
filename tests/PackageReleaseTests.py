@@ -47,7 +47,9 @@ class PackageReleaseTests(unittest.TestCase):
         self.write(self.build / "assets/config/voice_lines.json", json.dumps(manifest))
         for name in ("config/tuning.json", "config/weapons.json", "config/enemies.json",
                      "levels/gotham_central.map", "levels/gotham_central.json",
-                     "shaders/glsl330/post.fs", "shaders/glsl100/post.fs"):
+                     "shaders/glsl330/post.fs", "shaders/glsl100/post.fs",
+                     "shaders/glsl330/bank.vs", "shaders/glsl330/bank.fs",
+                     "shaders/glsl100/bank.vs", "shaders/glsl100/bank.fs"):
             self.write(self.build / "assets" / name)
 
     def test_web_archive_is_reproducible_and_excludes_development_inputs(self):
@@ -81,12 +83,20 @@ class PackageReleaseTests(unittest.TestCase):
         names = {name for _, name in PACKAGE.native_files(self.build, self.root)}
         self.assertIn("ghost_game.exe", names)
         self.assertIn("assets/audio/voice/V25.ogg", names)
+        self.assertIn("assets/shaders/glsl330/bank.vs", names)
+        self.assertIn("assets/shaders/glsl100/bank.fs", names)
         self.assertNotIn("ghost_tests.exe", names)
         self.assertNotIn("logs/ghost.log", names)
 
     def test_native_rejects_missing_recording(self):
         self.native_fixture()
         (self.build / "assets/audio/voice/V12.ogg").unlink()
+        with self.assertRaisesRegex(ValueError, "release input"):
+            PACKAGE.native_files(self.build, self.root)
+
+    def test_native_rejects_missing_perspective_shader(self):
+        self.native_fixture()
+        (self.build / "assets/shaders/glsl330/bank.vs").unlink()
         with self.assertRaisesRegex(ValueError, "release input"):
             PACKAGE.native_files(self.build, self.root)
 
