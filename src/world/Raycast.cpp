@@ -40,7 +40,7 @@ std::optional<float> Raycast::intersectCylinder(ShotRay ray, Vec2 center, float 
     const double x = static_cast<double>(ray.origin.x) - center.x;
     const double z = static_cast<double>(ray.origin.z) - center.y;
     const double radiusSquared = static_cast<double>(radius) * radius;
-    if (x * x + z * z <= radiusSquared && ray.origin.y >= 0 && ray.origin.y <= height) return 0;
+    if (x * x + z * z <= radiusSquared && ray.origin.y >= 0 && ray.origin.y <= height) return 0.0f;
     double nearest = std::numeric_limits<double>::infinity();
     const double a = static_cast<double>(ray.direction.x) * ray.direction.x +
                      static_cast<double>(ray.direction.z) * ray.direction.z;
@@ -70,7 +70,7 @@ std::optional<float> Raycast::intersectCylinder(ShotRay ray, Vec2 center, float 
 std::optional<float> Raycast::intersectFloor(ShotRay ray) {
     const auto unit = ray.normalized();
     if (!unit) return std::nullopt;
-    if (unit->origin.y <= 0) return 0;
+    if (unit->origin.y <= 0) return 0.0f;
     if (unit->direction.y >= 0) return std::nullopt;
     return -unit->origin.y / unit->direction.y;
 }
