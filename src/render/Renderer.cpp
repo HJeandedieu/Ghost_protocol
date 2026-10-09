@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "core/FirstPersonView.h"
 #include "core/Logger.h"
 #include "entities/Enemy.h"
 #include "entities/Guard.h"
@@ -14,6 +15,7 @@
 #include "entities/Player.h"
 #include "entities/SecurityCamera.h"
 #include "raylib.h"
+#include "render/BankScene.h"
 #include "rlgl.h"
 #ifdef __EMSCRIPTEN__
 #include <GLES2/gl2.h>
@@ -368,6 +370,7 @@ void sightBoundary(Vec2 origin, float radius, const TileMap& map, std::vector<fl
 }  // namespace
 
 void Renderer::prepareLevel(const Level& level) {
+    bank_.reset();
     const auto corners = static_cast<std::size_t>(level.map.width() + 1) * (level.map.height() + 1);
     const auto capacity = corners * 3 + kConeArcSegments + 1;
     coneAngles_.reserve(capacity);
@@ -376,6 +379,42 @@ void Renderer::prepareLevel(const Level& level) {
     coneLightRegions_.reserve(static_cast<std::size_t>(level.map.width()) * level.map.height());
     pingAngles_.reserve(capacity + 256);
     pingBoundary_.reserve(capacity + 256);
+}
+
+void Renderer::drawPerspective(const World& world, const FirstPersonView& view,
+                               const RippleSystem& ripple, float alpha,
+                               const AlarmSequence* sequence, const ObjectiveSystem* objectives) {
+    if (!bank_) bank_ = std::make_unique<BankScene>(logger_);
+    const auto position = world.player.interpolatedPosition(alpha);
+    const float yaw = view.yawDeg() * kPi / 180;
+    const float pitch = view.pitchDeg() * kPi / 180;
+    Camera3D camera{};
+    camera.position = {position.x, view.eyeHeight(world.player.isCrouched()), position.y};
+    camera.target = {camera.position.x + std::cos(pitch) * std::cos(yaw),
+                     camera.position.y - std::sin(pitch),
+                     camera.position.z + std::cos(pitch) * std::sin(yaw)};
+    camera.up = {0, 1, 0};
+    camera.fovy = view.config().fovYDeg;
+    camera.projection = CAMERA_PERSPECTIVE;
+    const float phase = world.alarmLoud ? (sequence ? sequence->paletteBlend() : 1.f) : 0.f;
+    alarmPulse_ = sequence && !reduceEffects_ ? sequence->vignettePulse() : 0.f;
+    rlSetClipPlanes(view.config().nearClip, view.config().farClip);
+    BeginMode3D(camera);
+    bank_->draw(world, ripple, view.config(), config_, alpha, phase, objectives);
+    EndMode3D();
+    compose(true);
+    if (!reduceEffects_ && healthHud_.flashFraction() > 0)
+        DrawRectangle(0, 64, Letterbox::kWidth, Letterbox::kHeight - 112,
+                      Fade(Palette::Alarm, healthHud_.flashFraction() * .12f));
+    uiAssets_.text(world.level.name.c_str(), {464, 24}, 18, Palette::Bone);
+    uiAssets_.text(world.player.isCrouched()    ? "CROUCH"
+                   : world.player.isSprinting() ? "SPRINT"
+                                                : "WALK",
+                   {464, 48}, 14, {242, 183, 5, 255}, true);
+    DrawLine(633, 360, 637, 360, Palette::Bone);
+    DrawLine(643, 360, 647, 360, Palette::Bone);
+    DrawLine(640, 353, 640, 357, Palette::Bone);
+    DrawLine(640, 363, 640, 367, Palette::Bone);
 }
 
 void Renderer::drawGuardCone(const Guard& guard, Vec2 position, const TileMap& map, bool crouched,
