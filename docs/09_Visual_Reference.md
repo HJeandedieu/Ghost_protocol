@@ -127,3 +127,14 @@ Translate the motion language into the existing 0.25 s UI transitions and 0.15 s
 2. Decorative bank furnishings are covered by this document; they do not authorize new mechanics, collision, enemies, or interactions.
 3. Record unresolved conflicts before changing gameplay contracts. Do not dismiss the visual target as optional or invent a percentage reduction in fidelity.
 4. Colours are referenced by palette name, never by sampling the images.
+
+## 7. Replacement first-person acceptance target (9 October 2026)
+The author supplied three new images and explicitly confirmed the first-person interpretation. This section supersedes earlier top-down/orthographic camera requirements, the prohibition on perspective gameplay, circle/arc character recipes and permission to ignore thief silhouettes. Earlier images remain useful for palette/HUD history; these new images control camera and character acceptance.
+
+1. Combat POV: codex-clipboard-a7651999-d5e2-41d8-bc08-49f4cecec44d.png. Eye-level perspective bank, visible foreground hands/weapon, full tactical enemies, red architectural lighting, gold shots/impacts, vault/thermite and stable framed HUD. Stealth must use this same first-person viewpoint, translated to readable dark teal/Bone visibility.
+2. Guard sheet: codex-clipboard-13406740-3042-464d-9c80-af7cb7b4c4d3.png. Clean helmet, headset, visor band, armored torso, arms/hands, legs/boots and weapon. Shield officer has a substantial rectangular shield and visor. Tiny top-down circles, textureless cylinders or flat enemy billboards fail the target.
+3. Ghost: codex-clipboard-eef69d03-d698-4f79-85bb-5bbe6aaa681f.png. Black hood, skull mask, headset, tactical gear, gloves and detailed weapon. Use original shapes and avoid branded logos. First-person hands/sleeves and character art must share this identity.
+
+These filenames identify the user attachments; transient OS paths are not runtime asset paths. Do not package the attachments or claim their redistribution rights. Match their forms, composition and lighting using original implementation. Map/JSON still define collision and entity positions. No visual reference adds jumping, new enemies, cover mechanics or new mission rules.
+
+Acceptance: inspect actual gameplay captures in both phases at 1920x1080 and resized output; show recognizable full-bodied guards/shields, convincing first-person weapon framing and readable bank interiors; test mouse capture, pause/resume, web pointer lock, hidden threats and wall occlusion. Automated tests and smooth contours alone do not establish a visual match.

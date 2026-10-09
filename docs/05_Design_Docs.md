@@ -171,3 +171,8 @@ Subtitles for every voice line, a Reduce Effects setting, no flashing above 3 Hz
 
 ## 10. Handoff Notes
 Colours are always referenced by palette name in code (`Palette::Teal`), never as raw hex literals scattered in files.
+
+## 11. First-person character and environment design (9 October 2026)
+GDD section 11 and Visual Reference section 7 supersede the top-down recipes in section 1.3 and orthographic motion restriction in section 1.6. Build original stylized 3D forms with clean silhouettes, layered armor/material separation and restrained surface detail. Ghost has a black hood, headset, tactical pouches, gloved hands and bone skull mask with dark eye sockets and nose opening. Guards wear dark navy tactical armor and helmets with pale visor bands; shield officers carry a tall dark shield with a pale viewing slot; heavies are visibly bulkier. Animate movement, weapon handling and firing so figures do not read as static cylinders or billboards.
+
+Match the combat reference's foreground arms/weapon, readable enemies, recessed vault, pillars, counter-height furnishings, red light on architecture and gold muzzle/tracer/thermite accents. Stealth uses the same eye-level camera with readable cool darkness and occluded reveal effects. Existing HUD anchors/fonts, phase-specific indicators, weapon identities, Handler portrait and timing rules continue. Reference illustrations are development inputs; original runtime geometry/art must be registered in ASSETS.md.
