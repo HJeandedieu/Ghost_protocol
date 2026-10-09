@@ -21,7 +21,7 @@ class BankScene {
     BankScene& operator=(const BankScene&) = delete;
     void draw(const World& world, const RippleSystem& ripple, const ViewConfig& view,
               const RenderConfig& render, float alpha, float phase,
-              const ObjectiveSystem* objectives);
+              const ObjectiveSystem* objectives, const ShotGeometryConfig& geometry = {});
     int geometryRevision() const { return geometryRevision_; }
 
    private:

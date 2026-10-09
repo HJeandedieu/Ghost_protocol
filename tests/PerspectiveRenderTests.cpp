@@ -2,11 +2,13 @@
 
 #include <sstream>
 
+#include "core/EventBus.h"
 #include "core/FirstPersonView.h"
 #include "core/Logger.h"
 #include "render/BankScene.h"
 #include "render/Letterbox.h"
 #include "render/Renderer.h"
+#include "systems/CombatSystem.h"
 #include "systems/RippleSystem.h"
 #include "world/World.h"
 
@@ -75,6 +77,11 @@ TEST_F(PerspectiveRender, ClosedDoorOccludesActorsAndOpeningRevealsThemWithoutCh
     world.guards.emplace_back(spawn, world.level.map, GuardConfig{});
     auto actorClosed = capture(renderer, world, view, ripple);
     EXPECT_EQ(changedPixels(emptyClosed, actorClosed, {520, 180, 240, 400}), 0);
+    const auto original = world.guards.front().pos;
+    world.guards.front().pos = world.guards.front().prevPos = world.level.map.tileCenter({5, 4});
+    auto insideClosed = capture(renderer, world, view, ripple);
+    EXPECT_EQ(changedPixels(emptyClosed, insideClosed, {520, 180, 240, 400}), 0);
+    world.guards.front().pos = world.guards.front().prevPos = original;
     world.level.map.setOpen(5, 4, true);
     auto actorOpen = capture(renderer, world, view, ripple);
     EXPECT_GT(changedPixels(actorClosed, actorOpen, {520, 180, 240, 400}), 1000);
@@ -86,6 +93,7 @@ TEST_F(PerspectiveRender, ClosedDoorOccludesActorsAndOpeningRevealsThemWithoutCh
     EXPECT_TRUE(world.level.map.isOpen(5, 4));
     UnloadImage(emptyClosed);
     UnloadImage(actorClosed);
+    UnloadImage(insideClosed);
     UnloadImage(actorOpen);
     UnloadImage(emptyOpen);
     EXPECT_EQ(output.str().find("[ERROR]"), std::string::npos);
@@ -148,6 +156,40 @@ TEST_F(PerspectiveRender, ArchitectureCacheSurvivesDoorChangesAndRebuildsForANew
     RippleSystem otherRipple({}, second.level.map);
     scene.draw(second, otherRipple, view, render, 1, 0, nullptr);
     EXPECT_EQ(scene.geometryRevision(), 2);
+}
+
+TEST_F(PerspectiveRender, PitchedGeometryImpactAppearsAtTheFixedCenterReticle) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    auto world = bankFixture();
+    world.alarmLoud = true;
+    FirstPersonView view({});
+    view.look({0, 80});
+    RippleSystem ripple({}, world.level.map);
+    auto before = capture(renderer, world, view, ripple);
+    EventBus events;
+    auto weapons = loadWeapons("assets/config/weapons.json", logger).value();
+    for (auto& spec : weapons) spec.spreadDeg = 0;
+    CombatSystem combat(events, weapons, 42);
+    Input input;
+    input.firePressed = true;
+    input.mouseInViewport = true;
+    combat.update(1.f / 60, input, view.shotRay(world.player.pos, false), world);
+    ASSERT_EQ(combat.lastShot().pellets.size(), 1u);
+    EXPECT_EQ(combat.lastShot().pellets[0].impact, ShotImpact::Geometry);
+    EXPECT_LT(combat.lastShot().pellets[0].to3D.y, ViewConfig{}.eyeHeight);
+    renderer.beginFrame();
+    renderer.drawPerspective(world, view, ripple, 1, nullptr, nullptr, &combat);
+    renderer.present();
+    auto after = LoadImageFromTexture(renderer.frameTexture());
+    ImageResize(&after, 1280, 720);
+    ImageFlipVertical(&after);
+    EXPECT_GT(changedPixels(before, after, {630, 350, 20, 20}), 4);
+    EXPECT_TRUE(ExportImage(after, GP_RENDER_OUTPUT_DIRECTORY "/perspective-pitched-impact.png"));
+    UnloadImage(before);
+    UnloadImage(after);
 }
 
 TEST_F(PerspectiveRender, PhysicalResizePreservesPerspectiveAndFrozenFrame) {

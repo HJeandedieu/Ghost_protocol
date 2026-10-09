@@ -383,16 +383,15 @@ void Renderer::prepareLevel(const Level& level) {
 
 void Renderer::drawPerspective(const World& world, const FirstPersonView& view,
                                const RippleSystem& ripple, float alpha,
-                               const AlarmSequence* sequence, const ObjectiveSystem* objectives) {
+                               const AlarmSequence* sequence, const ObjectiveSystem* objectives,
+                               const CombatSystem* combat, const EnemyCombatSystem* enemyCombat) {
     if (!bank_) bank_ = std::make_unique<BankScene>(logger_);
     const auto position = world.player.interpolatedPosition(alpha);
-    const float yaw = view.yawDeg() * kPi / 180;
-    const float pitch = view.pitchDeg() * kPi / 180;
+    const auto aim = view.shotRay(position, world.player.isCrouched());
     Camera3D camera{};
-    camera.position = {position.x, view.eyeHeight(world.player.isCrouched()), position.y};
-    camera.target = {camera.position.x + std::cos(pitch) * std::cos(yaw),
-                     camera.position.y - std::sin(pitch),
-                     camera.position.z + std::cos(pitch) * std::sin(yaw)};
+    camera.position = {aim.origin.x, aim.origin.y, aim.origin.z};
+    const auto target = aim.at(1);
+    camera.target = {target.x, target.y, target.z};
     camera.up = {0, 1, 0};
     camera.fovy = view.config().fovYDeg;
     camera.projection = CAMERA_PERSPECTIVE;
@@ -400,7 +399,23 @@ void Renderer::drawPerspective(const World& world, const FirstPersonView& view,
     alarmPulse_ = sequence && !reduceEffects_ ? sequence->vignettePulse() : 0.f;
     rlSetClipPlanes(view.config().nearClip, view.config().farClip);
     BeginMode3D(camera);
-    bank_->draw(world, ripple, view.config(), config_, alpha, phase, objectives);
+    bank_->draw(world, ripple, view.config(), config_, alpha, phase, objectives,
+                combat ? combat->geometry() : ShotGeometryConfig{});
+    const auto point = [](Vec3 position) { return Vector3{position.x, position.y, position.z}; };
+    if (combat && combat->shotAge() < .08f) {
+        const float opacity = 1 - combat->shotAge() / .08f;
+        for (const auto& pellet : combat->lastShot().pellets) {
+            DrawLine3D(point(pellet.from3D), point(pellet.to3D), Fade(Palette::Gold, opacity));
+            if (pellet.impact != ShotImpact::None)
+                DrawSphere(point(pellet.to3D), 1.2f,
+                           Fade(pellet.impact == ShotImpact::Shield ? Palette::Bone : Palette::Gold,
+                                opacity));
+        }
+    }
+    if (enemyCombat)
+        for (const auto& shot : enemyCombat->shots())
+            DrawLine3D(point(shot.from3D), point(shot.to3D),
+                       Fade(Palette::Gold, 1 - shot.age / .08f));
     EndMode3D();
     compose(true);
     if (!reduceEffects_ && healthHud_.flashFraction() > 0)

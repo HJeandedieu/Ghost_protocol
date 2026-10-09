@@ -12,6 +12,19 @@
 #include "world/Raycast.h"
 
 namespace {
+Config missionConfig(Config config, const Level& level, const std::vector<EnemySpec>& enemies,
+                     Logger& logger) {
+    config.view = validateViewForLevel(
+        config.view, static_cast<float>(level.map.tileSize()),
+        std::hypot(static_cast<float>(level.map.width() * level.map.tileSize()),
+                   static_cast<float>(level.map.height() * level.map.tileSize())),
+        logger);
+    const auto shield = std::find_if(enemies.begin(), enemies.end(),
+                                     [](const auto& spec) { return spec.id == "shield_cop"; });
+    validateShotGeometry(config.shotGeometry, config.view,
+                         shield == enemies.end() ? 0 : shield->radius, logger);
+    return config;
+}
 World missionWorld(Level level, const Config& config, int stage) {
     World world(std::move(level), config.player, config.guard, config.camera);
     ObjectiveSystem::applyPreset(world, config.mission, stage);
@@ -28,13 +41,10 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
                      DifficultyPreset difficulty, std::function<void(int, bool)> pause,
                      std::function<void(int, bool)> busted, AudioDirector* audio,
                      VoiceDirector* voice)
-    : world_(missionWorld(std::move(level), config, stage)),
+    : config_(missionConfig(config, level, enemies, logger)),
+      world_(missionWorld(std::move(level), config_, stage)),
       input_(input),
-      view_(validateViewForLevel(
-          config.view, static_cast<float>(world_.level.map.tileSize()),
-          std::hypot(static_cast<float>(world_.level.map.width() * world_.level.map.tileSize()),
-                     static_cast<float>(world_.level.map.height() * world_.level.map.tileSize())),
-          logger)),
+      view_(config_.view),
       seed_(seed),
       ripple_(config.ping, world_.level.map),
       renderer_(renderer),
@@ -44,9 +54,9 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
       alarm_(events_, logger, world_),
       pagers_(events_, config.pager, world_, interaction_),
       lasers_(events_, config.laser, config.noise.laser),
-      combat_(events_, weapons, seed, loadout),
+      combat_(events_, weapons, seed, loadout, config_.shotGeometry, config_.view.wallHeight),
       pickups_(events_, config.pickup, seed),
-      enemyCombat_(events_, world_, combat_, pickups_, enemies, config, seed, difficulty.enemyDmg),
+      enemyCombat_(events_, world_, combat_, pickups_, enemies, config_, seed, difficulty.enemyDmg),
       waves_(events_, world_, enemies, waves, entries,
              [&] {
                  auto alarm = config.alarm;
@@ -54,7 +64,6 @@ PlayState::PlayState(Level level, const Input& input, const Config& config, std:
                  return alarm;
              }()),
       alarmSequence_(events_, config.alarm, seed),
-      config_(config),
       retry_(std::move(retry)),
       run_(run ? std::move(run) : std::make_shared<MissionRun>()),
       finish_(std::move(finish)),
@@ -226,8 +235,8 @@ void PlayState::update(float dt) {
     for (auto& enemy : world_.enemies) tickRevealables.push_back(enemy.get());
     ripple_.update(dt, world_.level.map, tickRevealables);
     if (!world_.alarmLoud) ripple_.applyProximity(player.pos, world_.level.map, hazards_);
-    combat_.update(dt, inputGate_.filter(input_), facing_ * (180.0f / 3.14159265358979323846f),
-                   world_);
+    combat_.update(dt, inputGate_.filter(input_),
+                   view_.shotRay(world_.player.pos, world_.player.isCrouched()), world_);
 #ifndef NDEBUG
     if (input_.debugDamagePressed)
         combat_.applyDamage(world_.player, config_.player.armor, "debug");
@@ -319,8 +328,8 @@ void PlayState::render(float alpha) {
             world_.securityLoopRemaining > 0, &combat_, world_.pickups, world_.alarmLoud,
             world_.enemies, &enemyCombat_, &alarmSequence_, objectives_.get());
     else
-        renderer_.drawPerspective(world_, view_, ripple_, alpha, &alarmSequence_,
-                                  objectives_.get());
+        renderer_.drawPerspective(world_, view_, ripple_, alpha, &alarmSequence_, objectives_.get(),
+                                  &combat_, &enemyCombat_);
     renderer_.drawInteractionHud(world_, interaction_, noise_.currentRadius(), config_.noise.sprint,
                                  objectives_.get());
     renderer_.drawWeaponHud(combat_);

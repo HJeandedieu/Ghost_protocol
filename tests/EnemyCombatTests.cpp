@@ -63,6 +63,72 @@ class EnemyCombatTest : public testing::Test {
         }
     }
 };
+TEST_F(EnemyCombatTest, SuccessfulRollUsesCrouchedBodyHeightAndRequiresThreeDimensionalRange) {
+    start();
+    config.shotGeometry.playerCrouchHeight = 8;
+    config.view.crouchEyeHeight = 4;
+    Input input;
+    input.crouchPressed = true;
+    world.player.update(1.f / 60, input, world.level.map);
+    ASSERT_TRUE(world.player.isCrouched());
+    auto spec = specs[1];
+    spec.accuracy = 1;
+    spec.engage = 12;
+    spec.rate = 2;
+    world.enemies.clear();
+    world.enemies.push_back(std::make_unique<Cop>("C01", Vec2{170, 160}, spec, spec.radius));
+    tick(24);
+    ASSERT_EQ(ai->shots().size(), 1u);
+    EXPECT_FALSE(ai->shots()[0].hitPlayer);
+    EXPECT_FLOAT_EQ(world.player.armor(), 50);
+    EXPECT_FLOAT_EQ(ai->shots()[0].from3D.y, 24);
+    const auto& shot = ai->shots()[0];
+    const auto delta = shot.to3D - shot.from3D;
+    EXPECT_NEAR(std::sqrt(delta.dot(delta)), 12, .0001);
+}
+
+TEST_F(EnemyCombatTest, SuccessfulShotHitsCrouchedCylinderButFailedRollAlwaysMisses) {
+    for (float accuracy : {1.f, 0.f}) {
+        world.enemies.clear();
+        start(accuracy);
+        Input input;
+        input.crouchPressed = !world.player.isCrouched();
+        world.player.update(1.f / 60, input, world.level.map);
+        const float armor = world.player.armor();
+        tick(24);
+        ASSERT_EQ(ai->shots().size(), 1u);
+        const auto& shot = ai->shots()[0];
+        EXPECT_EQ(shot.hitPlayer, accuracy == 1);
+        EXPECT_FLOAT_EQ(shot.from3D.y, config.shotGeometry.copHeight * .5f);
+        if (accuracy == 1) {
+            EXPECT_LT(world.player.armor(), armor);
+            EXPECT_GE(shot.to3D.y, 0);
+            EXPECT_LE(shot.to3D.y, config.shotGeometry.playerCrouchHeight);
+        } else
+            EXPECT_FLOAT_EQ(world.player.armor(), armor);
+    }
+}
+
+TEST_F(EnemyCombatTest, EnemyBulletsDoNotDamageOrStopAtOtherEnemies) {
+    start();
+    auto spec = specs[1];
+    spec.damage = 0;
+    spec.accuracy = 0;
+    world.enemies.push_back(std::make_unique<Cop>("C02", Vec2{230, 160}, spec, spec.radius));
+    tick(24);
+    EXPECT_FLOAT_EQ(world.enemies[0]->hp(), 100);
+    EXPECT_FLOAT_EQ(world.enemies[1]->hp(), 100);
+    EXPECT_FLOAT_EQ(world.player.armor(), 43);
+}
+
+TEST_F(EnemyCombatTest, CoincidentBodyCentersDoNotProduceZeroLengthShotsOrDamage) {
+    start();
+    world.enemies[0]->pos = world.player.pos;
+    tick(24);
+    EXPECT_TRUE(ai->shots().empty());
+    EXPECT_EQ(shots, 0);
+    EXPECT_FLOAT_EQ(world.player.armor(), 50);
+}
 TEST_F(EnemyCombatTest, ReactionThenThreeBulletsAndBurstStartCadence) {
     start();
     tick(23);
@@ -248,10 +314,12 @@ TEST_F(EnemyCombatTest, PlayerHitsNearestLivingEnemyAndShootsThroughDeadEnemy) {
     gun.range = 600;
     Rng rng(42);
     const Weapon weapon(gun);
-    auto first = combat.fire(weapon, world.player.pos, 0, rng, world);
+    auto first =
+        combat.fire(weapon, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0), rng, world);
     EXPECT_EQ(first.pellets[0].targetId, "C01");
     EXPECT_TRUE(world.enemies[0]->dead());
-    auto second = combat.fire(weapon, world.player.pos, 0, rng, world);
+    auto second =
+        combat.fire(weapon, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0), rng, world);
     EXPECT_EQ(second.pellets[0].targetId, "C02");
     EXPECT_TRUE(world.enemies[1]->dead());
 }

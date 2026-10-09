@@ -57,6 +57,36 @@ ViewConfig validateViewForLevel(ViewConfig view, float tileSize, float mapDiagon
     return view;
 }
 
+void validateShotGeometry(ShotGeometryConfig& geometry, ViewConfig& view, float shieldRadius,
+                          Logger& logger) {
+    bool invalidNumber = false;
+    for (const float value :
+         {geometry.playerHeight, geometry.playerCrouchHeight, geometry.guardHeight,
+          geometry.copHeight, geometry.shieldCopHeight, geometry.heavyHeight, geometry.shieldWidth,
+          geometry.shieldHeight, geometry.shieldForwardOffset})
+        invalidNumber = invalidNumber || !std::isfinite(value) || value <= 0;
+    invalidNumber =
+        invalidNumber || !std::isfinite(geometry.shieldBottom) || geometry.shieldBottom < 0;
+    const bool invalid =
+        invalidNumber || geometry.playerHeight >= view.wallHeight ||
+        geometry.playerCrouchHeight > geometry.playerHeight ||
+        geometry.guardHeight >= view.wallHeight || geometry.copHeight >= view.wallHeight ||
+        geometry.shieldCopHeight >= view.wallHeight || geometry.heavyHeight >= view.wallHeight ||
+        view.eyeHeight >= geometry.playerHeight ||
+        view.crouchEyeHeight >= geometry.playerCrouchHeight ||
+        geometry.shieldBottom + geometry.shieldHeight > geometry.shieldCopHeight ||
+        (shieldRadius > 0 &&
+         (geometry.shieldWidth > 2 * shieldRadius || geometry.shieldForwardOffset > shieldRadius));
+    if (!invalid) return;
+    logger.log(LogLevel::Warn, "Invalid shot_geometry relationships; using default geometry");
+    geometry = ShotGeometryConfig{};
+    const ViewConfig defaults;
+    view.wallHeight = defaults.wallHeight;
+    view.eyeHeight = defaults.eyeHeight;
+    view.crouchEyeHeight = defaults.crouchEyeHeight;
+    if (view.nearClip >= view.eyeHeight) view.nearClip = defaults.nearClip;
+}
+
 Config Config::load(const std::string& path, Logger& logger) {
     Config config;
     std::ifstream file(path);
@@ -163,6 +193,30 @@ Config Config::load(const std::string& path, Logger& logger) {
         config.view.crouchEyeHeight = defaults.crouchEyeHeight;
         config.view.nearClip = defaults.nearClip;
     }
+    const auto& geometry = groupOrEmpty(data, "shot_geometry", empty);
+    const std::pair<const char*, float ShotGeometryConfig::*> geometryKeys[] = {
+        {"player_height", &ShotGeometryConfig::playerHeight},
+        {"player_crouch_height", &ShotGeometryConfig::playerCrouchHeight},
+        {"guard_height", &ShotGeometryConfig::guardHeight},
+        {"cop_height", &ShotGeometryConfig::copHeight},
+        {"shield_cop_height", &ShotGeometryConfig::shieldCopHeight},
+        {"heavy_height", &ShotGeometryConfig::heavyHeight},
+        {"shield_width", &ShotGeometryConfig::shieldWidth},
+        {"shield_height", &ShotGeometryConfig::shieldHeight},
+        {"shield_bottom", &ShotGeometryConfig::shieldBottom},
+        {"shield_forward_offset", &ShotGeometryConfig::shieldForwardOffset}};
+    for (const auto& [key, member] : geometryKeys) {
+        const float fallback = config.shotGeometry.*member;
+        float value = readNumber(geometry, key, fallback, "shot_geometry", logger);
+        if (value == 0 && member != &ShotGeometryConfig::shieldBottom) {
+            logger.log(LogLevel::Warn,
+                       std::string("Invalid shot_geometry.") + key + "; using default");
+            value = fallback;
+        }
+        config.shotGeometry.*member = value;
+    }
+    // Enemy radius comes from enemies.json and is checked when constructing a mission.
+    validateShotGeometry(config.shotGeometry, config.view, 0, logger);
     const auto& voice = groupOrEmpty(data, "voice", empty);
     config.voice.lowHealthFraction = readNumber(voice, "low_health_fraction",
                                                 config.voice.lowHealthFraction, "voice", logger, 1);

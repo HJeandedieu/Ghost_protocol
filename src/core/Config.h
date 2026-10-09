@@ -5,6 +5,18 @@
 
 class Logger;
 
+struct ShotGeometryConfig {
+    float playerHeight = 48, playerCrouchHeight = 32, guardHeight = 48;
+    float copHeight = 48, shieldCopHeight = 48, heavyHeight = 56;
+    float shieldWidth = 32, shieldHeight = 44, shieldBottom = 2, shieldForwardOffset = 14;
+    float enemyHeight(const std::string& id) const {
+        return id == "heavy"          ? heavyHeight
+               : id == "shield_cop"   ? shieldCopHeight
+               : id == "patrol_guard" ? guardHeight
+                                      : copHeight;
+    }
+};
+
 struct PlayerConfig {
     float radius = 14.0f;
     float walk = 160.0f;
@@ -87,6 +99,8 @@ struct ViewConfig {
 };
 
 ViewConfig validateViewForLevel(ViewConfig view, float tileSize, float mapDiagonal, Logger& logger);
+void validateShotGeometry(ShotGeometryConfig& geometry, ViewConfig& view, float shieldRadius,
+                          Logger& logger);
 
 struct NoiseConfig {
     float crouch = 40.0f;
@@ -223,6 +237,7 @@ class Config {
     PickupConfig pickup;
     EnemyCombatConfig enemyCombat;
     ViewConfig view;
+    ShotGeometryConfig shotGeometry;
     RenderConfig render;
     UiConfig ui;
     AudioConfig audio;

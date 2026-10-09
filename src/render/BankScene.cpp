@@ -195,30 +195,33 @@ void BankScene::drawDoors(const TileMap& map, float height, Color accent) {
             for (float sign : {-1.f, 1.f}) {
                 box({center.x + across.x * sign * size * .46f, height * .5f,
                      center.y + across.z * sign * size * .46f},
-                    acrossX ? Vector3{size * .08f, height, size * .22f}
-                            : Vector3{size * .22f, height, size * .08f},
+                    acrossX ? Vector3{size * .08f, height, size}
+                            : Vector3{size, height, size * .08f},
                     trim, 1);
             }
-            box({center.x, height * .96f, center.y},
-                acrossX ? Vector3{size, height * .08f, size * .22f}
-                        : Vector3{size * .22f, height * .08f, size},
-                trim, 1);
+            box({center.x, height * .96f, center.y}, {size, height * .08f, size}, trim, 1);
             if (!map.isOpen(x, y)) {
-                box({center.x, height * .45f, center.y},
-                    acrossX ? Vector3{size * .84f, height * .9f, size * .12f}
-                            : Vector3{size * .12f, height * .9f, size * .84f},
+                // Match the closed tile prism used by shooting, including its near face.
+                box({center.x, height * .46f, center.y},
+                    acrossX ? Vector3{size * .84f, height * .92f, size}
+                            : Vector3{size, height * .92f, size * .84f},
                     ColorLerp(accent, Palette::Slate, .7f), 1);
-                box({center.x + across.x * size * .23f, height * .43f,
-                     center.y + across.z * size * .23f},
-                    {size * .08f, size * .08f, size * .2f}, Palette::Bone, 1);
+                const Vector3 normal = acrossX ? Vector3{0, 0, 1} : Vector3{1, 0, 0};
+                for (float sign : {-1.f, 1.f})
+                    box({center.x + across.x * size * .23f + normal.x * sign * size * .52f,
+                         height * .43f,
+                         center.y + across.z * size * .23f + normal.z * sign * size * .52f},
+                        acrossX ? Vector3{size * .08f, size * .08f, size * .12f}
+                                : Vector3{size * .12f, size * .08f, size * .08f},
+                        Palette::Bone, 1);
                 if (tile == TileType::VaultDoor) {
                     material_.maps[MATERIAL_MAP_DIFFUSE].color = Palette::Bone;
                     const float radius = size * .3f;
                     const auto transform =
                         meshTransform({radius, size * .04f, radius},
-                                      {center.x, height * .46f, center.y + size * .08f}, true);
+                                      {center.x, height * .46f, center.y + size * .51f}, true);
                     DrawMesh(disc_, material_, transform);
-                    box({center.x, height * .46f, center.y + size * .13f},
+                    box({center.x, height * .46f, center.y + size * .56f},
                         {size * .08f, size * .35f, size * .06f}, trim, 1);
                 }
             }
@@ -227,7 +230,7 @@ void BankScene::drawDoors(const TileMap& map, float height, Color accent) {
 
 void BankScene::draw(const World& world, const RippleSystem& ripple, const ViewConfig& view,
                      const RenderConfig& render, float alpha, float phase,
-                     const ObjectiveSystem* objectives) {
+                     const ObjectiveSystem* objectives, const ShotGeometryConfig& geometry) {
     const auto& map = world.level.map;
     prepare(map, view.wallHeight);
     const float size = static_cast<float>(map.tileSize());
@@ -276,22 +279,38 @@ void BankScene::draw(const World& world, const RippleSystem& ripple, const ViewC
     drawDoors(map, view.wallHeight, accent);
 
     // Temporary readable 3D actors; detailed articulated art belongs to Step 5.
-    const auto actor = [&](Vec2 position, float radius, float visibility, bool shield,
+    const auto actor = [&](Vec2 position, float radius, float height, float visibility, bool shield,
                            float facing) {
         if (visibility <= 0) return;
         const auto navy = Fade(Palette::Navy, visibility);
-        box({position.x, 25, position.y}, {radius * 1.5f, 26, radius}, navy);
-        box({position.x, 43, position.y}, {radius, 10, radius}, Fade(Palette::Ink, visibility));
-        box({position.x + std::cos(facing) * radius * .45f, 42,
+        box({position.x, height * .52f, position.y}, {radius * 1.5f, height * .54f, radius}, navy);
+        box({position.x, height * .89f, position.y}, {radius, height * .21f, radius},
+            Fade(Palette::Ink, visibility));
+        box({position.x + std::cos(facing) * radius * .45f, height * .875f,
              position.y + std::sin(facing) * radius * .45f},
-            {radius * .6f, 2, radius * .6f}, Fade(Palette::Bone, visibility));
+            {radius * .6f, height * .04f, radius * .6f}, Fade(Palette::Bone, visibility));
         for (float sign : {-1.f, 1.f})
-            box({position.x + sign * radius * .4f, 7, position.y}, {radius * .5f, 14, radius * .7f},
-                navy);
-        if (shield)
-            box({position.x + std::cos(facing) * radius, 23,
-                 position.y + std::sin(facing) * radius},
-                {radius * 1.7f, 42, radius * .2f}, Fade(Palette::Slate, visibility));
+            box({position.x + sign * radius * .4f, height * .145f, position.y},
+                {radius * .5f, height * .29f, radius * .7f}, navy);
+        if (shield) {
+            const float cosine = std::cos(facing), sine = std::sin(facing);
+            const float mode = 2;
+            SetShaderValue(material_.shader, modeLoc_, &mode, SHADER_UNIFORM_FLOAT);
+            material_.maps[MATERIAL_MAP_DIFFUSE].color = Fade(Palette::Slate, visibility);
+            // A unit cube's front surface sits exactly on the shared gameplay plate.
+            const float thickness = radius * .1f;
+            Matrix transform{};
+            transform.m0 = sine * geometry.shieldWidth;
+            transform.m2 = -cosine * geometry.shieldWidth;
+            transform.m5 = geometry.shieldHeight;
+            transform.m8 = cosine * thickness;
+            transform.m10 = sine * thickness;
+            transform.m12 = position.x + cosine * (geometry.shieldForwardOffset - thickness * .5f);
+            transform.m13 = geometry.shieldBottom + geometry.shieldHeight * .5f;
+            transform.m14 = position.y + sine * (geometry.shieldForwardOffset - thickness * .5f);
+            transform.m15 = 1;
+            DrawMesh(cube_, material_, transform);
+        }
     };
     const auto visible = [&](const Entity& entity) {
         if (world.alarmLoud) return entity.deathOpacity();
@@ -302,13 +321,13 @@ void BankScene::draw(const World& world, const RippleSystem& ripple, const ViewC
     };
     for (const auto& guard : world.guards) {
         if (!guard.dead() && guard.state() != GuardState::Unconscious)
-            actor(guard.interpolatedPosition(alpha), guard.radius, visible(guard), false,
-                  guard.facing());
+            actor(guard.interpolatedPosition(alpha), guard.radius, geometry.guardHeight,
+                  visible(guard), false, guard.facing());
     }
     for (const auto& enemy : world.enemies) {
         if (!enemy->dead())
-            actor(enemy->pos, enemy->radius, visible(*enemy), enemy->spec().id == "shield_cop",
-                  enemy->facing());
+            actor(enemy->pos, enemy->radius, geometry.enemyHeight(enemy->spec().id),
+                  visible(*enemy), enemy->spec().id == "shield_cop", enemy->facing());
     }
     for (int y = 0; y < map.height(); ++y)
         for (int x = 0; x < map.width(); ++x) {

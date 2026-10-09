@@ -102,6 +102,7 @@ author, licence, and attribution requirements before adding it to a release.
 | `assets/shaders/glsl100/bank.vs` | Original project GLSL | Ghost Protocol project | Project-owned | None | Web perspective vertex transform |
 | `assets/shaders/glsl100/bank.fs` | Original project GLSL | Ghost Protocol project | Project-owned | None | Web phase lighting and render-only visibility |
 | `reference/step3/bank-stealth.png`, `reference/step3/bank-loud.png`, `reference/step3/browser-play.png` | Captured from the project's native/web perspective renderer | Ghost Protocol project | Project-owned gameplay captures | None | Development-only Step 3 review evidence; not runtime assets |
+| `reference/step4/bank-stealth-impact.png`, `reference/step4/bank-loud-impact.png`, `reference/step4/reticle-impact.png`, `reference/step4/browser-fired.png` | Captured from the project's native/web 3D shooting renderer | Ghost Protocol project | Project-owned gameplay/test captures | None | Development-only Step 4 impact and browser firing evidence; not runtime assets |
 
 ## Packaged software notices
 

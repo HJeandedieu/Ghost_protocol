@@ -881,7 +881,8 @@ TEST_F(Render, WeaponTracerStopsAtWallAndAmmoPanelReflectsShotAndReload) {
     Input input;
     input.firePressed = true;
     input.mouseInViewport = true;
-    combat.update(1.0f / 60, input, 0, world);
+    combat.update(1.0f / 60, input, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0),
+                  world);
     EXPECT_EQ(combat.activeWeapon().ammunition(), 11);
     Renderer renderer(logger);
     RippleSystem ripple(PingConfig{}, world.level.map);
@@ -907,7 +908,7 @@ TEST_F(Render, WeaponTracerStopsAtWallAndAmmoPanelReflectsShotAndReload) {
     UnloadImage(image);
     input.clearEdges();
     input.reloadPressed = true;
-    combat.update(0.1f, input, 0, world);
+    combat.update(0.1f, input, ShotRay::aim(world.player.pos, ViewConfig{}.eyeHeight, 0), world);
     EXPECT_GT(combat.activeWeapon().reloadRemaining(), 0);
     image = draw();
     EXPECT_LT(GetImageColor(image, 780, 360).r, 40);
