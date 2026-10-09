@@ -16,6 +16,7 @@
 #include "entities/SecurityCamera.h"
 #include "raylib.h"
 #include "render/BankScene.h"
+#include "render/TacticalArt.h"
 #include "rlgl.h"
 #ifdef __EMSCRIPTEN__
 #include <GLES2/gl2.h>
@@ -370,6 +371,7 @@ void sightBoundary(Vec2 origin, float radius, const TileMap& map, std::vector<fl
 }  // namespace
 
 void Renderer::prepareLevel(const Level& level) {
+    if (tactical_) tactical_->resetMotion();
     bank_.reset();
     const auto corners = static_cast<std::size_t>(level.map.width() + 1) * (level.map.height() + 1);
     const auto capacity = corners * 3 + kConeArcSegments + 1;
@@ -400,7 +402,7 @@ void Renderer::drawPerspective(const World& world, const FirstPersonView& view,
     rlSetClipPlanes(view.config().nearClip, view.config().farClip);
     BeginMode3D(camera);
     bank_->draw(world, ripple, view.config(), config_, alpha, phase, objectives,
-                combat ? combat->geometry() : ShotGeometryConfig{});
+                combat ? combat->geometry() : ShotGeometryConfig{}, tactical_.get());
     const auto point = [](Vec3 position) { return Vector3{position.x, position.y, position.z}; };
     if (combat && combat->shotAge() < .08f) {
         const float opacity = 1 - combat->shotAge() / .08f;
@@ -417,6 +419,18 @@ void Renderer::drawPerspective(const World& world, const FirstPersonView& view,
             DrawLine3D(point(shot.from3D), point(shot.to3D),
                        Fade(Palette::Gold, 1 - shot.age / .08f));
     EndMode3D();
+    if (combat && tactical_) {
+        // Clear scene depth only; the viewmodel cannot clip into nearby bank walls.
+        rlDrawRenderBatchActive();
+        glClear(GL_DEPTH_BUFFER_BIT);
+        rlSetClipPlanes(.01, 10);
+        Camera3D foreground{
+            {0, 0, 0}, {0, 0, 1}, {0, 1, 0}, view.config().fovYDeg, CAMERA_PERSPECTIVE};
+        BeginMode3D(foreground);
+        tactical_->drawForeground(*combat, phase);
+        EndMode3D();
+        rlSetClipPlanes(view.config().nearClip, view.config().farClip);
+    }
     compose(true);
     if (!reduceEffects_ && healthHud_.flashFraction() > 0)
         DrawRectangle(0, 64, Letterbox::kWidth, Letterbox::kHeight - 112,
@@ -664,6 +678,7 @@ void Renderer::resizeTargets() {
 }
 
 void Renderer::beginFrame() {
+    if (!tactical_) tactical_ = std::make_unique<TacticalArt>(logger_);
     constexpr Color kInk = {10, 10, 12, 255};
     resizeTargets();
     composed_ = false;
@@ -1683,4 +1698,8 @@ void Renderer::drawVoice(const VoiceDirector& director, const UiConfig& config) 
         uiAssets_.text(value.c_str(), {432, y}, 22, Palette::Bone, true);
         y += 28;
     }
+}
+
+void Renderer::drawGhostPortrait(Rectangle bounds) {
+    if (tactical_) tactical_->drawGhostPortrait(bounds);
 }

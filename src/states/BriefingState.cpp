@@ -85,9 +85,9 @@ void BriefingState::render(float alpha) {
         DrawCircleLines(static_cast<int>(x + 368), 480, 24, Palette::Bone);
         DrawLineEx({x - 32, 528}, {x + 488, 528}, 3, Palette::Teal);
     } else {
+        renderer_.drawGhostPortrait({x + 96, 184, 288, 344});
         DrawRectangleLinesEx({x + 96, 184, 288, 344}, 3, Palette::Teal);
-        DrawTriangle({x + 128, 256}, {x + 128, 456}, {x + 320, 356}, Palette::DeepTeal);
-        art.text("GHOST", {x + 144, 316}, 28, Palette::Bone, false, true);
+        art.text("GHOST", {x + 112, 494}, 22, Palette::Bone, false, true);
     }
     drawScreenButton(renderer_, navigation_, 0, 440, slide_ == 3 ? "START HEIST" : "NEXT");
     drawScreenButton(renderer_, navigation_, 1, 440, "BACK");

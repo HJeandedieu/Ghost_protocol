@@ -78,7 +78,7 @@ target_include_directories(ghost_core PUBLIC src)
 target_link_libraries(ghost_core PRIVATE nlohmann_json::nlohmann_json)
 gp_enable_warnings(ghost_core)
 
-add_executable(ghost_game src/main.cpp src/core/Game.cpp src/audio/AudioPlayback.cpp src/render/Renderer.cpp src/render/BankScene.cpp
+add_executable(ghost_game src/main.cpp src/core/Game.cpp src/audio/AudioPlayback.cpp src/render/Renderer.cpp src/render/BankScene.cpp src/render/TacticalArt.cpp
     src/states/BootState.cpp src/states/BriefingState.cpp src/states/PauseState.cpp src/states/GameOverState.cpp src/states/MenuState.cpp src/states/PlayState.cpp
     src/states/LoadoutState.cpp src/states/PayoutState.cpp src/ui/UiAssets.cpp)
 target_link_libraries(ghost_game PRIVATE ghost_core raylib)
@@ -111,7 +111,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
     FetchContent_MakeAvailable(googletest)
     add_executable(ghost_tests
         tests/ConfigTests.cpp tests/LoggerTests.cpp tests/RngTests.cpp tests/TimeTests.cpp
-        tests/FirstPersonViewTests.cpp tests/PointerCaptureTests.cpp
+        tests/FirstPersonViewTests.cpp tests/PointerCaptureTests.cpp tests/CharacterPoseTests.cpp
         tests/StateMachineTests.cpp tests/LetterboxTests.cpp
         tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
         tests/AssetsTests.cpp tests/SaveStoreTests.cpp tests/ScoresTests.cpp tests/WidgetsTests.cpp tests/GameplayInputGateTests.cpp tests/ScreenNavigationTests.cpp
@@ -150,7 +150,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
         COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tests/PackageReleaseTests.py")
     set_tests_properties(LevelValidator LevelValidatorTests PackageReleaseTests PROPERTIES TIMEOUT 15)
     if(GP_BUILD_RENDER_TESTS)
-        add_executable(ghost_render_tests tests/RenderTests.cpp tests/PerspectiveRenderTests.cpp tests/PayoutStateTests.cpp tests/AudioPlaybackTests.cpp src/audio/AudioPlayback.cpp src/states/BriefingState.cpp src/states/PauseState.cpp src/states/GameOverState.cpp src/states/MenuState.cpp src/render/Renderer.cpp src/render/BankScene.cpp src/states/PlayState.cpp
+        add_executable(ghost_render_tests tests/RenderTests.cpp tests/PerspectiveRenderTests.cpp tests/PayoutStateTests.cpp tests/AudioPlaybackTests.cpp src/audio/AudioPlayback.cpp src/states/BriefingState.cpp src/states/PauseState.cpp src/states/GameOverState.cpp src/states/MenuState.cpp src/render/Renderer.cpp src/render/BankScene.cpp src/render/TacticalArt.cpp src/states/PlayState.cpp
             src/states/LoadoutState.cpp src/states/PayoutState.cpp src/ui/UiAssets.cpp)
         target_link_libraries(ghost_render_tests PRIVATE ghost_core raylib GTest::gtest_main)
         add_dependencies(ghost_render_tests ghost_game)
