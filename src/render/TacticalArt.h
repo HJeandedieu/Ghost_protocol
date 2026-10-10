@@ -26,7 +26,7 @@ class TacticalArt {
     void drawActor(const std::string& id, Vec2 position, float facing, float radius, float height,
                    TacticalKind kind, float visibility, float phase,
                    const ShotGeometryConfig& geometry, bool moving);
-    void drawForeground(const CombatSystem& combat, float phase);
+    void drawForeground(const CombatSystem& combat, float phase, bool reduceEffects = false);
     void drawGhostPortrait(Rectangle bounds);
 
    private:

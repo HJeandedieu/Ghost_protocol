@@ -333,3 +333,18 @@ TEST(WaveData, RejectsMissingMalformedAndOutOfBoundsSpawnCoordinates) {
     EXPECT_FALSE(loadSpawnPoints(files.path("missing.json"), map, logger));
     EXPECT_NE(output.str().find("[ERROR]"), std::string::npos);
 }
+TEST_F(WaveTest, PerspectiveEntriesWaitUntilUnshakenViewTurnsAway) {
+    for (auto& entry : entries) entry.second = {6, 2};
+    WaveSpawner spawner(bus, world, enemies, waves, entries, config.alarm);
+    world.alarmLoud = true;
+    SpawnView view{};
+    view.perspective = true;
+    view.footprint =
+        ViewFootprint::perspective(ShotRay::aim(world.player.pos, 36, 0), 70, 16.f / 9, 1, 1000);
+    spawner.update(30, view);
+    EXPECT_TRUE(world.enemies.empty());
+    view.footprint =
+        ViewFootprint::perspective(ShotRay::aim(world.player.pos, 36, 180), 70, 16.f / 9, 1, 1000);
+    spawner.update(1.f / 60, view);
+    EXPECT_FALSE(world.enemies.empty());
+}

@@ -111,7 +111,7 @@ if(GP_BUILD_TESTS AND NOT EMSCRIPTEN)
     FetchContent_MakeAvailable(googletest)
     add_executable(ghost_tests
         tests/ConfigTests.cpp tests/LoggerTests.cpp tests/RngTests.cpp tests/TimeTests.cpp
-        tests/FirstPersonViewTests.cpp tests/PointerCaptureTests.cpp tests/CharacterPoseTests.cpp
+        tests/ViewFootprintTests.cpp tests/VisibilityFanTests.cpp tests/FirstPersonViewTests.cpp tests/PointerCaptureTests.cpp tests/CharacterPoseTests.cpp
         tests/StateMachineTests.cpp tests/LetterboxTests.cpp
         tests/TileMapTests.cpp tests/LevelLoaderTests.cpp
         tests/AssetsTests.cpp tests/SaveStoreTests.cpp tests/ScoresTests.cpp tests/WidgetsTests.cpp tests/GameplayInputGateTests.cpp tests/ScreenNavigationTests.cpp
