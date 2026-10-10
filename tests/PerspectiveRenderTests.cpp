@@ -373,6 +373,10 @@ TEST_F(PerspectiveRender, CameraConeIsDepthOccludedAndSecurityLoopSuppressesIt) 
     EXPECT_EQ(changedPixels(closedDisabled, closedActive, {460, 400, 360, 280}), 0);
     world.level.map.setOpen(5, 4, true);
     world.level.map.fillLight(LightLevel::Lit);
+    ripple.update(10.f, world.level.map, entities);
+    ripple.startPing(world.player.pos, PingConfig{}.chargeMax);
+    ripple.update(.8f, world.level.map, entities);
+    ASSERT_GT(world.cameras.front().reveal, 0);
     auto active = capture(renderer, world, view, ripple);
     world.securityLoopRemaining = 100;
     auto disabled = capture(renderer, world, view, ripple);
@@ -382,4 +386,58 @@ TEST_F(PerspectiveRender, CameraConeIsDepthOccludedAndSecurityLoopSuppressesIt) 
     UnloadImage(closedActive);
     UnloadImage(active);
     UnloadImage(disabled);
+}
+TEST_F(PerspectiveRender, UnconsciousGuardHasAVisibleBodyWithoutChangingItsPagerPosition) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    auto world = bankFixture();
+    world.alarmLoud = true;
+    FirstPersonView view({});
+    view.look({0, 250});
+    RippleSystem ripple({}, world.level.map);
+    auto empty = capture(renderer, world, view, ripple);
+    GuardSpawn spawn{"body", "room", PatrolMode::Stationary, false, {{4, 4}}, 180};
+    world.guards.emplace_back(spawn, world.level.map, GuardConfig{});
+    EventBus events;
+    ASSERT_TRUE(world.guards.front().takeDown(events));
+    const auto original = world.guards.front().pos;
+    auto body = capture(renderer, world, view, ripple);
+    EXPECT_GT(changedPixels(empty, body, {320, 360, 640, 340}), 100);
+    EXPECT_EQ(world.guards.front().state(), GuardState::Unconscious);
+    EXPECT_FLOAT_EQ(world.guards.front().pos.x, original.x);
+    EXPECT_FLOAT_EQ(world.guards.front().pos.y, original.y);
+    UnloadImage(empty);
+    UnloadImage(body);
+}
+TEST_F(PerspectiveRender, LitRoomDoesNotExposeUnrevealedHazards) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    auto world = bankFixture();
+    world.level.map.fillLight(LightLevel::Lit);
+    FirstPersonView view({});
+    RippleSystem ripple({}, world.level.map);
+    auto empty = capture(renderer, world, view, ripple);
+    CameraSpawn spawn{"hidden-camera", "room", {4, 4}, 180, 0, 180};
+    world.cameras.emplace_back(spawn, world.level.map, CameraConfig{});
+    world.lasers.emplace_back(LaserSpawn{"hidden-laser", {4, 4}, {4, 5}}, world.level.map);
+    auto hidden = capture(renderer, world, view, ripple);
+    EXPECT_EQ(changedPixels(empty, hidden, {480, 140, 320, 540}), 0);
+    ripple.startPing(world.player.pos, PingConfig{}.chargeMax);
+    std::vector<Entity*> entities{&world.cameras.front(), &world.lasers.front()};
+    ripple.update(.2f, world.level.map, entities);
+    ASSERT_GT(world.cameras.front().reveal, 0);
+    ASSERT_GT(world.lasers.front().reveal, 0);
+    auto shown = capture(renderer, world, view, ripple);
+    world.cameras.clear();
+    world.lasers.clear();
+    auto noCamera = capture(renderer, world, view, ripple);
+    EXPECT_GT(changedPixels(shown, noCamera, {480, 140, 320, 540}), 100);
+    UnloadImage(empty);
+    UnloadImage(hidden);
+    UnloadImage(shown);
+    UnloadImage(noCamera);
 }

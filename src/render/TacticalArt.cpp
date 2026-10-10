@@ -504,7 +504,7 @@ void TacticalArt::endActors() {
 
 void TacticalArt::drawActor(const std::string& id, Vec2 position, float facing, float radius,
                             float height, TacticalKind kind, float visibility, float phase,
-                            const ShotGeometryConfig& geometry, bool moving) {
+                            const ShotGeometryConfig& geometry, bool moving, bool collapsed) {
     if (visibility <= 0 || height <= 0 || radius <= 0) return;
     lighting(phase, visibility);
     auto inserted = motion_.emplace(id, Motion{position, 0});
@@ -515,11 +515,12 @@ void TacticalArt::drawActor(const std::string& id, Vec2 position, float facing, 
     // Teleports/retries do not become an enormous walking stride.
     if (distance < height) motion.travel += distance;
     motion.position = position;
-    const auto pose = CharacterPose::walking(motion.travel, height, moving);
+    const auto pose = CharacterPose::walking(motion.travel, height, moving && !collapsed);
     const float breadth = std::min(1.15f, radius / (height * .25f));
-    const auto root =
-        multiply(multiply(scaling(height * breadth, height, height), rotationY(kPi * .5f - facing)),
-                 translation(position.x, 0, position.y));
+    const auto body = multiply(scaling(height * breadth, height, height),
+                               collapsed ? rotationX(kPi * .5f) : identity());
+    const auto root = multiply(multiply(body, rotationY(kPi * .5f - facing)),
+                               translation(position.x, collapsed ? height * .16f : 0, position.y));
     const auto place = [&](Part part, Matrix transform) { draw(part, multiply(transform, root)); };
     const bool heavy = kind == TacticalKind::Heavy, shield = kind == TacticalKind::Shield;
     place(heavy ? HeavyTorso : Torso, identity());

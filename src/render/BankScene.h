@@ -5,6 +5,7 @@
 #include "core/Config.h"
 #include "raylib.h"
 
+struct ViewFootprint;
 class Logger;
 class TacticalArt;
 class TileMap;
@@ -23,7 +24,8 @@ class BankScene {
     void draw(const World& world, const RippleSystem& ripple, const ViewConfig& view,
               const RenderConfig& render, float alpha, float phase,
               const ObjectiveSystem* objectives, const ShotGeometryConfig& geometry = {},
-              TacticalArt* art = nullptr, bool reduceEffects = false);
+              TacticalArt* art = nullptr, bool reduceEffects = false,
+              const ViewFootprint* footprint = nullptr);
     int geometryRevision() const { return geometryRevision_; }
 
    private:

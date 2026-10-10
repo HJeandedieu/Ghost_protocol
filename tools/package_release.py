@@ -74,7 +74,9 @@ def native_files(build, root):
                  "levels/gotham_central.map", "levels/gotham_central.json",
                  "shaders/glsl330/post.fs", "shaders/glsl100/post.fs",
                  "shaders/glsl330/bank.vs", "shaders/glsl330/bank.fs",
-                 "shaders/glsl100/bank.vs", "shaders/glsl100/bank.fs"):
+                 "shaders/glsl100/bank.vs", "shaders/glsl100/bank.fs",
+                 "shaders/glsl330/tactical.vs", "shaders/glsl330/tactical.fs",
+                 "shaders/glsl100/tactical.vs", "shaders/glsl100/tactical.fs"):
         checked(assets / name)
     return files + common_files(root)
 

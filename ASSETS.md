@@ -113,6 +113,8 @@ author, licence, and attribution requirements before adding it to a release.
 
 | `reference/step6/office-stealth.png`, `reference/step6/office-loud.png`, `reference/step6/bank-combat.png`, `reference/step6/bank-stealth.png`, `reference/step6/browser-play.png` | Captured from the original project native/WebGL presentation | Ghost Protocol project | Project-owned review captures | None | Development-only furnishing, visibility and stable HUD evidence; character comparison fixtures are arranged review poses |
 
+| `reference/step7/office-stealth.png`, `reference/step7/office-loud.png`, `reference/step7/browser-play.png` | Captured from the final original native/WebGL renderer | Ghost Protocol project | Project-owned development captures | None | Final visual review evidence, excluded from release archives |
+
 ## Packaged software notices
 
 Release archives include `licenses/` from `tools/release_licenses/`: raylib 5.5
