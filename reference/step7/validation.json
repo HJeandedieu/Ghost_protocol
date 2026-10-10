@@ -2,7 +2,7 @@
   "step": 7,
   "date": "2026-10-10",
   "native_tests": {
-    "passed": 403,
+    "passed": 404,
     "failed": 0
   },
   "native_build": "Release C++17 / raylib 5.5; no new warnings",
@@ -66,5 +66,6 @@
     "lossCanResume": true,
     "menuReleases": true,
     "noExceptions": true
-  }
+  },
+  "hazard_regression": "Lit rooms do not expose unrevealed camera lenses or laser beams; genuine pings reveal them. Regression failed before the fix."
 }

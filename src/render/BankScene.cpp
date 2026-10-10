@@ -454,6 +454,10 @@ void BankScene::draw(const World& world, const RippleSystem& ripple, const ViewC
                                                          world.player.pos, map)) *
                entity.deathOpacity();
     };
+    // Hazards use ping/proximity reveal even in lit rooms (Systems Contract 3.6).
+    const auto hazardVisible = [&](const Entity& entity) {
+        return (world.alarmLoud ? 1.f : entity.reveal) * entity.deathOpacity();
+    };
     if (art) {
         art->beginActors();
         for (const auto& guard : world.guards) {
@@ -502,7 +506,7 @@ void BankScene::draw(const World& world, const RippleSystem& ripple, const ViewC
             box({pickup->pos.x, 4, pickup->pos.y}, {8, 8, 8}, Fade(Palette::Bone, reveal));
     }
     for (const auto& camera : world.cameras) {
-        const float reveal = visible(camera);
+        const float reveal = hazardVisible(camera);
         if (reveal > 0) {
             const float height = view.wallHeight * .75f;
             box({camera.pos.x, height, camera.pos.y}, {size * .22f, size * .14f, size * .28f},
@@ -521,7 +525,7 @@ void BankScene::draw(const World& world, const RippleSystem& ripple, const ViewC
         }
     }
     for (const auto& laser : world.lasers) {
-        const float reveal = visible(laser);
+        const float reveal = hazardVisible(laser);
         if (reveal <= 0) continue;
         const auto end = laser.end();
         const float height = view.eyeHeight * .6f;
@@ -634,7 +638,7 @@ void BankScene::draw(const World& world, const RippleSystem& ripple, const ViewC
         }
         if (world.securityLoopRemaining <= 0)
             for (const auto& camera : world.cameras) {
-                const float visibility = visible(camera);
+                const float visibility = hazardVisible(camera);
                 if (visibility <= 0) continue;
                 const auto fan =
                     visibilityFan(camera.pos, camera.facing() * .01745329252f,
