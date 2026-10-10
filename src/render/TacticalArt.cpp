@@ -557,7 +557,7 @@ void TacticalArt::drawActor(const std::string& id, Vec2 position, float facing, 
     }
 }
 
-void TacticalArt::drawForeground(const CombatSystem& combat, float phase) {
+void TacticalArt::drawForeground(const CombatSystem& combat, float phase, bool reduceEffects) {
     // Dedicated viewmodel pass: +Z points forward, x right, y up. No bob or aim recoil.
     lighting(phase, 1);
     const auto& gun = combat.activeWeapon();
@@ -566,6 +566,19 @@ void TacticalArt::drawForeground(const CombatSystem& combat, float phase) {
     const auto root = multiply(multiply(rotationZ(pose.turn), rotationY(.23f)),
                                translation(-.24f, -.24f - pose.lower, .65f));
     draw(pistol ? Pistol : shotgun ? Shotgun : Smg, root);
+    if (!reduceEffects && combat.shotAge() < .05f && !combat.lastShot().pellets.empty()) {
+        const float barrel = pistol ? .258f : shotgun ? .273f : .218f;
+        const Vector3 muzzle{root.m8 * barrel + root.m4 * .003f + root.m12,
+                             root.m9 * barrel + root.m5 * .003f + root.m13,
+                             root.m10 * barrel + root.m6 * .003f + root.m14};
+        const float size = pistol ? .012f : .037f;
+        DrawSphere(muzzle, size, Palette::Gold);
+        for (float sign : {-1.f, 1.f})
+            DrawTriangle3D({muzzle.x + sign * size * 2, muzzle.y, muzzle.z},
+                           {muzzle.x, muzzle.y + size, muzzle.z},
+                           {muzzle.x, muzzle.y - size, muzzle.z + size * 3}, Palette::Bone);
+    }
+
     const Vector3 rightWrist{0, -.04f, -.04f};
     const Vector3 leftWrist = pistol ? Vector3{.04f, -.053f, -.025f} : Vector3{0, -.043f, .125f};
     draw(Forearm, multiply(bone({-.17f, -.42f, -.34f}, rightWrist, 1.8f), root));

@@ -4,12 +4,20 @@
 #include <memory>
 
 #include "core/Config.h"
+#include "core/ViewFootprint.h"
 #include "entities/EnemySpec.h"
 #include "world/TileMap.h"
 class EventBus;
 struct World;
 struct SpawnView {
     float left = 0, top = 0, right = 0, bottom = 0;
+    bool perspective = false;
+    ViewFootprint footprint{};
+    bool intersects(Vec2 position, float radius) const {
+        if (perspective) return footprint.intersects(position, radius);
+        return position.x + radius >= left && position.x - radius <= right &&
+               position.y + radius >= top && position.y - radius <= bottom;
+    }
 };
 class WaveSpawner {
    public:

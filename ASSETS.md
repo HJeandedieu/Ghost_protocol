@@ -109,6 +109,10 @@ author, licence, and attribution requirements before adding it to a release.
 | `assets/shaders/glsl100/tactical.vs`, `assets/shaders/glsl100/tactical.fs` | Original project GLSL | Ghost Protocol project | Project-owned | None | Matching WebGL tactical presentation |
 | `reference/step5/character-sheet.png`, `reference/step5/ghost-portrait.png`, `reference/step5/bank-chatter-loud.png`, `reference/step5/bank-whisper-stealth.png`, `reference/step5/bank-gavel-loud.png`, `reference/step5/browser-chatter.png` | Project native character/bank review fixtures and actual WebGL gameplay capture | Ghost Protocol project | Project-owned review captures | None | Development evidence only; arranged character poses do not modify the runtime map or entity spawns |
 
+| `src/render/BankScene.cpp` | Original procedural bank desks, teller counters, seating, plants, fixtures, duffels, camera housings, extraction van and effects | Ghost Protocol project | Project-owned original code/art | None | Render-only furnishings preserve map collision and shooting cover; existing bank shaders provide paired native/web lighting |
+
+| `reference/step6/office-stealth.png`, `reference/step6/office-loud.png`, `reference/step6/bank-combat.png`, `reference/step6/bank-stealth.png`, `reference/step6/browser-play.png` | Captured from the original project native/WebGL presentation | Ghost Protocol project | Project-owned review captures | None | Development-only furnishing, visibility and stable HUD evidence; character comparison fixtures are arranged review poses |
+
 ## Packaged software notices
 
 Release archives include `licenses/` from `tools/release_licenses/`: raylib 5.5

@@ -23,7 +23,7 @@ class BankScene {
     void draw(const World& world, const RippleSystem& ripple, const ViewConfig& view,
               const RenderConfig& render, float alpha, float phase,
               const ObjectiveSystem* objectives, const ShotGeometryConfig& geometry = {},
-              TacticalArt* art = nullptr);
+              TacticalArt* art = nullptr, bool reduceEffects = false);
     int geometryRevision() const { return geometryRevision_; }
 
    private:
@@ -31,7 +31,7 @@ class BankScene {
     void box(Vector3 center, Vector3 size, Color color, float mode = 2);
     void drawDoors(const TileMap& map, float height, Color accent);
     Material material_{};
-    Mesh floor_{}, walls_{}, cube_{}, disc_{};
+    Mesh floor_{}, walls_{}, furniture_{}, cube_{}, disc_{};
     Texture2D visibility_{};
     const TileMap* map_ = nullptr;
     float wallHeight_ = 0;

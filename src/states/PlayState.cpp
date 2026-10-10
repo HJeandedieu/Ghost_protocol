@@ -255,8 +255,16 @@ void PlayState::update(float dt) {
     }
     const float halfWidth = Letterbox::kWidth * 0.5f / zoom;
     const float halfHeight = Letterbox::kHeight * 0.5f / zoom;
-    waves_.update(realDt, {viewCenter.x - halfWidth, viewCenter.y - halfHeight,
-                           viewCenter.x + halfWidth, viewCenter.y + halfHeight});
+    SpawnView spawnView{viewCenter.x - halfWidth, viewCenter.y - halfHeight,
+                        viewCenter.x + halfWidth, viewCenter.y + halfHeight};
+    if (!debugView_) {
+        spawnView.perspective = true;
+        spawnView.footprint = ViewFootprint::perspective(
+            view_.shotRay(player.pos, player.isCrouched()), view_.config().fovYDeg,
+            static_cast<float>(Letterbox::kWidth) / Letterbox::kHeight, view_.config().nearClip,
+            view_.config().farClip);
+    }
+    waves_.update(realDt, spawnView);
     objectives_->update(dt);
     if (audio_) {
         if (cooldownBefore > 0 && ripple_.cooldownRemaining() <= 0) audio_->request("ping_ready");

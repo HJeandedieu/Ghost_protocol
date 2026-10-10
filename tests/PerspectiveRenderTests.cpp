@@ -352,3 +352,34 @@ TEST_F(PerspectiveRender, DetailedActorRemainsHiddenUntilRippleRevealsIt) {
     UnloadImage(visible);
     UnloadImage(revealedEmpty);
 }
+TEST_F(PerspectiveRender, CameraConeIsDepthOccludedAndSecurityLoopSuppressesIt) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    auto world = bankFixture();
+    FirstPersonView view({});
+    view.look({0, 160});
+    RippleSystem ripple({}, world.level.map);
+    CameraSpawn spawn{"camera", "room", {7, 4}, 180, 0, 180};
+    world.cameras.emplace_back(spawn, world.level.map, CameraConfig{});
+    ripple.startPing(world.player.pos, PingConfig{}.chargeMax);
+    std::vector<Entity*> entities{&world.cameras.front()};
+    ripple.update(.8f, world.level.map, entities);
+    world.securityLoopRemaining = 100;
+    auto closedDisabled = capture(renderer, world, view, ripple);
+    world.securityLoopRemaining = 0;
+    auto closedActive = capture(renderer, world, view, ripple);
+    EXPECT_EQ(changedPixels(closedDisabled, closedActive, {460, 400, 360, 280}), 0);
+    world.level.map.setOpen(5, 4, true);
+    world.level.map.fillLight(LightLevel::Lit);
+    auto active = capture(renderer, world, view, ripple);
+    world.securityLoopRemaining = 100;
+    auto disabled = capture(renderer, world, view, ripple);
+    EXPECT_GT(changedPixels(active, disabled, {460, 400, 360, 280}), 100);
+    EXPECT_TRUE(world.level.map.isOpen(5, 4));
+    UnloadImage(closedDisabled);
+    UnloadImage(closedActive);
+    UnloadImage(active);
+    UnloadImage(disabled);
+}

@@ -402,12 +402,14 @@ void Renderer::drawPerspective(const World& world, const FirstPersonView& view,
     rlSetClipPlanes(view.config().nearClip, view.config().farClip);
     BeginMode3D(camera);
     bank_->draw(world, ripple, view.config(), config_, alpha, phase, objectives,
-                combat ? combat->geometry() : ShotGeometryConfig{}, tactical_.get());
+                combat ? combat->geometry() : ShotGeometryConfig{}, tactical_.get(),
+                reduceEffects_);
     const auto point = [](Vec3 position) { return Vector3{position.x, position.y, position.z}; };
     if (combat && combat->shotAge() < .08f) {
         const float opacity = 1 - combat->shotAge() / .08f;
         for (const auto& pellet : combat->lastShot().pellets) {
-            DrawLine3D(point(pellet.from3D), point(pellet.to3D), Fade(Palette::Gold, opacity));
+            DrawCylinderEx(point(pellet.from3D), point(pellet.to3D), .25f, .25f, 6,
+                           Fade(Palette::Gold, opacity));
             if (pellet.impact != ShotImpact::None)
                 DrawSphere(point(pellet.to3D), 1.2f,
                            Fade(pellet.impact == ShotImpact::Shield ? Palette::Bone : Palette::Gold,
@@ -427,7 +429,7 @@ void Renderer::drawPerspective(const World& world, const FirstPersonView& view,
         Camera3D foreground{
             {0, 0, 0}, {0, 0, 1}, {0, 1, 0}, view.config().fovYDeg, CAMERA_PERSPECTIVE};
         BeginMode3D(foreground);
-        tactical_->drawForeground(*combat, phase);
+        tactical_->drawForeground(*combat, phase, reduceEffects_);
         EndMode3D();
         rlSetClipPlanes(view.config().nearClip, view.config().farClip);
     }
@@ -440,6 +442,14 @@ void Renderer::drawPerspective(const World& world, const FirstPersonView& view,
                    : world.player.isSprinting() ? "SPRINT"
                                                 : "WALK",
                    {464, 48}, 14, {242, 183, 5, 255}, true);
+    if (objectives && objectives->thermiteRemaining() > 0) {
+        DrawRectangleRounded({500, 82, 280, 44}, .1f, 8, Fade(Palette::Ink, .9f));
+        uiAssets_.text(
+            TextFormat("THERMITE  %d:%02d",
+                       static_cast<int>(std::ceil(objectives->thermiteRemaining())) / 60,
+                       static_cast<int>(std::ceil(objectives->thermiteRemaining())) % 60),
+            {524, 94}, 20, Palette::Gold, true);
+    }
     DrawLine(633, 360, 637, 360, Palette::Bone);
     DrawLine(643, 360, 647, 360, Palette::Bone);
     DrawLine(640, 353, 640, 357, Palette::Bone);

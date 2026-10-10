@@ -73,8 +73,7 @@ void WaveSpawner::spawnPending(SpawnView view) {
             if (point == entries_.end()) throw std::logic_error("Missing entry coordinate");
             const Vec2 pos = map.tileCenter(point->second);
             const float radius = item->spec.radius;
-            const bool visible = pos.x + radius >= view.left && pos.x - radius <= view.right &&
-                                 pos.y + radius >= view.top && pos.y - radius <= view.bottom;
+            const bool visible = view.intersects(pos, radius);
             if (visible || !map.isPassable(point->second.x, point->second.y) ||
                 !fits(pos, radius, map))
                 continue;
