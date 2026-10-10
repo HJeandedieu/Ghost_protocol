@@ -8,6 +8,7 @@
 #include <stdexcept>
 
 #include "core/Logger.h"
+#include "core/ViewFootprint.h"
 #include "entities/Enemy.h"
 #include "entities/Guard.h"
 #include "entities/Player.h"
@@ -395,7 +396,7 @@ void BankScene::drawDoors(const TileMap& map, float height, Color accent) {
 void BankScene::draw(const World& world, const RippleSystem& ripple, const ViewConfig& view,
                      const RenderConfig& render, float alpha, float phase,
                      const ObjectiveSystem* objectives, const ShotGeometryConfig& geometry,
-                     TacticalArt* art, bool reduceEffects) {
+                     TacticalArt* art, bool reduceEffects, const ViewFootprint* footprint) {
     const auto& map = world.level.map;
     prepare(map, view.wallHeight);
     const float size = static_cast<float>(map.tileSize());
@@ -456,21 +457,27 @@ void BankScene::draw(const World& world, const RippleSystem& ripple, const ViewC
     if (art) {
         art->beginActors();
         for (const auto& guard : world.guards) {
-            if (!guard.dead() && guard.state() != GuardState::Unconscious)
+            if (visible(guard) > 0 &&
+                (!footprint || footprint->intersects(guard.interpolatedPosition(alpha),
+                                                     geometry.guardHeight * 1.2f)))
                 art->drawActor(guard.id, guard.interpolatedPosition(alpha), guard.facing(),
                                guard.radius, geometry.guardHeight, TacticalKind::Guard,
                                visible(guard), phase, geometry,
-                               guard.pos.x != guard.prevPos.x || guard.pos.y != guard.prevPos.y);
+                               guard.pos.x != guard.prevPos.x || guard.pos.y != guard.prevPos.y,
+                               guard.dead() || guard.state() == GuardState::Unconscious);
         }
         for (const auto& enemy : world.enemies) {
-            if (!enemy->dead()) {
+            if (visible(*enemy) > 0 &&
+                (!footprint || footprint->intersects(
+                                   enemy->pos, geometry.enemyHeight(enemy->spec().id) * 1.2f))) {
                 const auto kind = enemy->spec().id == "shield_cop" ? TacticalKind::Shield
                                   : enemy->spec().id == "heavy"    ? TacticalKind::Heavy
                                                                    : TacticalKind::Cop;
-                art->drawActor(
-                    enemy->id, enemy->pos, enemy->facing(), enemy->radius,
-                    geometry.enemyHeight(enemy->spec().id), kind, visible(*enemy), phase, geometry,
-                    enemy->pos.x != enemy->prevPos.x || enemy->pos.y != enemy->prevPos.y);
+                art->drawActor(enemy->id, enemy->pos, enemy->facing(), enemy->radius,
+                               geometry.enemyHeight(enemy->spec().id), kind, visible(*enemy), phase,
+                               geometry,
+                               enemy->pos.x != enemy->prevPos.x || enemy->pos.y != enemy->prevPos.y,
+                               enemy->dead());
             }
         }
         art->endActors();

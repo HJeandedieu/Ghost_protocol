@@ -9,6 +9,7 @@
 
 #include "core/FirstPersonView.h"
 #include "core/Logger.h"
+#include "core/ViewFootprint.h"
 #include "entities/Enemy.h"
 #include "entities/Guard.h"
 #include "entities/Laser.h"
@@ -401,9 +402,14 @@ void Renderer::drawPerspective(const World& world, const FirstPersonView& view,
     alarmPulse_ = sequence && !reduceEffects_ ? sequence->vignettePulse() : 0.f;
     rlSetClipPlanes(view.config().nearClip, view.config().farClip);
     BeginMode3D(camera);
+    // Cull only visual assemblies, using an intentionally generous planar bound that
+    // includes weapons/limbs. Vision fans and simulation remain independent of this check.
+    const auto footprint = ViewFootprint::perspective(
+        aim, view.config().fovYDeg, static_cast<float>(Letterbox::kWidth) / Letterbox::kHeight,
+        view.config().nearClip, view.config().farClip);
     bank_->draw(world, ripple, view.config(), config_, alpha, phase, objectives,
-                combat ? combat->geometry() : ShotGeometryConfig{}, tactical_.get(),
-                reduceEffects_);
+                combat ? combat->geometry() : ShotGeometryConfig{}, tactical_.get(), reduceEffects_,
+                &footprint);
     const auto point = [](Vec3 position) { return Vector3{position.x, position.y, position.z}; };
     if (combat && combat->shotAge() < .08f) {
         const float opacity = 1 - combat->shotAge() / .08f;

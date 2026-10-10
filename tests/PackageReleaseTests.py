@@ -49,7 +49,9 @@ class PackageReleaseTests(unittest.TestCase):
                      "levels/gotham_central.map", "levels/gotham_central.json",
                      "shaders/glsl330/post.fs", "shaders/glsl100/post.fs",
                      "shaders/glsl330/bank.vs", "shaders/glsl330/bank.fs",
-                     "shaders/glsl100/bank.vs", "shaders/glsl100/bank.fs"):
+                     "shaders/glsl100/bank.vs", "shaders/glsl100/bank.fs",
+                     "shaders/glsl330/tactical.vs", "shaders/glsl330/tactical.fs",
+                     "shaders/glsl100/tactical.vs", "shaders/glsl100/tactical.fs"):
             self.write(self.build / "assets" / name)
 
     def test_web_archive_is_reproducible_and_excludes_development_inputs(self):
@@ -87,6 +89,18 @@ class PackageReleaseTests(unittest.TestCase):
         self.assertIn("assets/shaders/glsl100/bank.fs", names)
         self.assertNotIn("ghost_tests.exe", names)
         self.assertNotIn("logs/ghost.log", names)
+
+    def test_native_rejects_each_missing_tactical_shader(self):
+        self.native_fixture()
+        for version in ("glsl330", "glsl100"):
+            for extension in ("vs", "fs"):
+                path = self.build / f"assets/shaders/{version}/tactical.{extension}"
+                content = path.read_bytes()
+                path.unlink()
+                with self.subTest(shader=str(path)):
+                    with self.assertRaisesRegex(ValueError, "release input"):
+                        PACKAGE.native_files(self.build, self.root)
+                path.write_bytes(content)
 
     def test_native_rejects_missing_recording(self):
         self.native_fixture()

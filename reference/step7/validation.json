@@ -1,0 +1,70 @@
+{
+  "step": 7,
+  "date": "2026-10-10",
+  "native_tests": {
+    "passed": 403,
+    "failed": 0
+  },
+  "native_build": "Release C++17 / raylib 5.5; no new warnings",
+  "web_build": "Release WebAssembly; no new warnings",
+  "mission_routes": [
+    "silent heist",
+    "thermite Loud heist",
+    "quiet vault followed by late alarm"
+  ],
+  "performance": {
+    "window": [
+      1920,
+      1080
+    ],
+    "supersampling": 2,
+    "alive_police": 12,
+    "warmup_frames": 45,
+    "sample_frames": 360,
+    "average_ms": 11.6273,
+    "p95_ms": 20.8507,
+    "average_fps": 86.0042,
+    "fixture_note": "Isolated stress fixture sets enemy damage to zero to keep the player alive; production tuning is unchanged."
+  },
+  "resize": {
+    "window": [
+      1400,
+      900
+    ],
+    "target": [
+      2816,
+      1584
+    ]
+  },
+  "independent_native_startup": {
+    "folder": "build/local-play",
+    "launch_cwd": "outside the project",
+    "menu_loaded": true,
+    "responding": true,
+    "closed_cleanly": true
+  },
+  "packages": {
+    "windows": "build/submission/ghost-protocol-win.zip",
+    "web": "build/submission/ghost-protocol-web.zip",
+    "checksums": "build/submission/SHA256SUMS.txt",
+    "reference_media_packaged": false
+  },
+  "visual_review": [
+    "eye-level first-person view",
+    "Ghost skull/hood/headset identity and foreground hands/weapons",
+    "original full tactical silhouettes",
+    "furnished readable teal Stealth and red/gold Loud interiors",
+    "stable framed HUD and Handler subtitles"
+  ],
+  "scope_note": "Original stylized rendering, not pixel-identical reproduction of the supplied artwork. Performance results apply to this local machine and fixture; occasional frame-time spikes remain.",
+  "independent_web_checks": {
+    "waitsForGesture": true,
+    "acquiredByClick": true,
+    "pauseReleases": true,
+    "resumeAcquires": true,
+    "lossReleases": true,
+    "lossCanResume": true,
+    "menuReleases": true,
+    "noExceptions": true
+  }
+}

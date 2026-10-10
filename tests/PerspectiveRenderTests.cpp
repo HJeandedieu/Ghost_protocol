@@ -383,3 +383,27 @@ TEST_F(PerspectiveRender, CameraConeIsDepthOccludedAndSecurityLoopSuppressesIt) 
     UnloadImage(active);
     UnloadImage(disabled);
 }
+TEST_F(PerspectiveRender, UnconsciousGuardHasAVisibleBodyWithoutChangingItsPagerPosition) {
+    std::ostringstream output;
+    Logger logger(output, "");
+    Renderer renderer(logger);
+    renderer.setReduceEffects(true);
+    auto world = bankFixture();
+    world.alarmLoud = true;
+    FirstPersonView view({});
+    view.look({0, 250});
+    RippleSystem ripple({}, world.level.map);
+    auto empty = capture(renderer, world, view, ripple);
+    GuardSpawn spawn{"body", "room", PatrolMode::Stationary, false, {{4, 4}}, 180};
+    world.guards.emplace_back(spawn, world.level.map, GuardConfig{});
+    EventBus events;
+    ASSERT_TRUE(world.guards.front().takeDown(events));
+    const auto original = world.guards.front().pos;
+    auto body = capture(renderer, world, view, ripple);
+    EXPECT_GT(changedPixels(empty, body, {320, 360, 640, 340}), 100);
+    EXPECT_EQ(world.guards.front().state(), GuardState::Unconscious);
+    EXPECT_FLOAT_EQ(world.guards.front().pos.x, original.x);
+    EXPECT_FLOAT_EQ(world.guards.front().pos.y, original.y);
+    UnloadImage(empty);
+    UnloadImage(body);
+}

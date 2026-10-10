@@ -22,8 +22,8 @@ hints and Reduce Effects.
 
 | Control | Action |
 |---|---|
-| WASD / arrows | Move |
-| Mouse | Aim |
+| WASD / arrows | Move relative to your view; A/D strafe |
+| Mouse | Look and aim from Ghost's first-person view |
 | Left click | Fire |
 | Right click | Takedown when eligible |
 | Space: tap / hold and release | Small / charged sound ping in Stealth |
@@ -36,6 +36,10 @@ hints and Reduce Effects.
 | 1 / 2 / mouse wheel | Switch equipped weapons |
 | Escape | Pause / back |
 | F11 | Toggle fullscreen |
+
+The game captures the mouse during play. Escape releases it for pause; losing
+window focus pauses the heist. Browser play requires a click to capture the pointer,
+and losing pointer lock pauses safely.
 
 Menus support the mouse and keyboard navigation. Space skips the briefing;
 Enter advances its slides. In loadout, 1/2/3 chooses the excluded weapon,
